@@ -105,6 +105,21 @@ func test_against_a_bot_taps_are_ignored_while_the_bot_thinks() -> void:
 	assert_eq(_label("%StatusLabel", _match).text, "Green is thinking...")
 
 
+func test_the_menu_button_asks_for_the_menu_and_stops_the_bot() -> void:
+	_match.start(_create_bot_session)
+	_match.minimum_bot_turn_seconds = 10.0
+	_press_action()
+	var move: Move = _session.game().legal_moves()[0]
+	_board_view().square_pressed.emit(move.from)
+	_board_view().square_pressed.emit(move.to)
+	watch_signals(_match)
+	_button("%MenuButton").pressed.emit()
+	assert_signal_emitted(_match, "menu_requested")
+	_match.minimum_bot_turn_seconds = 0.0
+	await wait_process_frames(3)
+	assert_true(_session.is_bot_turn(), "the Bot of a left game does not play on")
+
+
 func _is_persons_turn() -> bool:
 	return not _session.is_bot_turn()
 

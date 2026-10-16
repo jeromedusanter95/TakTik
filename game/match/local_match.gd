@@ -4,6 +4,8 @@ extends Control
 ## the device changes hands; a person against a Bot always sees the Board from
 ## their own side and watches the Bot answer each Move.
 
+signal menu_requested
+
 ## The shortest time a Bot's turn lasts on screen, so a person sees that the
 ## Bot is answering even when it decides at once.
 @export var minimum_bot_turn_seconds: float = 0.6
@@ -19,6 +21,7 @@ var _bot_thinking: BotThinking = null
 var _bot_turn_elapsed: float = 0.0
 
 @onready var _status_label: Label = %StatusLabel
+@onready var _menu_button: Button = %MenuButton
 @onready var _board_view: BoardView = %BoardView
 @onready var _info_label: Label = %InfoLabel
 @onready var _graveyard_label: Label = %GraveyardLabel
@@ -32,6 +35,7 @@ func _ready() -> void:
 	_shuffle_button.pressed.connect(_on_shuffle_pressed)
 	_action_button.pressed.connect(_on_action_pressed)
 	_handoff_screen.continued.connect(_on_handoff_continued)
+	_menu_button.pressed.connect(_on_menu_pressed)
 
 
 ## Steps the Bot's search once per frame, then plays its Move.
@@ -95,6 +99,11 @@ func _start_bot_turn_if_due() -> void:
 	_bot_thinking = _session.start_bot_thinking()
 	_bot_turn_elapsed = 0.0
 	_refresh()
+
+
+func _on_menu_pressed() -> void:
+	_bot_thinking = null
+	menu_requested.emit()
 
 
 func _on_handoff_continued() -> void:
