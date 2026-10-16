@@ -19,6 +19,9 @@ var _selected: Vector2i = BoardViewState.NO_SQUARE
 var _turn_finished: bool = false
 var _bot_thinking: BotThinking = null
 var _bot_turn_elapsed: float = 0.0
+var _bot_turn_started_msec: int = 0
+var _bot_slowest_step_msec: int = 0
+var _bot_thinking_frames: int = 0
 
 @onready var _status_label: Label = %StatusLabel
 @onready var _menu_button: Button = %MenuButton
@@ -44,7 +47,7 @@ func _process(delta: float) -> void:
 		return
 	_bot_turn_elapsed += delta
 	if not _bot_thinking.is_done():
-		_bot_thinking.step()
+		_step_bot_thinking()
 		return
 	if _bot_turn_elapsed < minimum_bot_turn_seconds:
 		return
@@ -56,6 +59,21 @@ func _process(delta: float) -> void:
 	_selected = BoardViewState.NO_SQUARE
 	_refresh()
 	_start_bot_turn_if_due()
+
+
+## One slice of the Bot's search. Logs how long the whole turn took, and its
+## slowest frame, so speed can be checked in the browser console.
+func _step_bot_thinking() -> void:
+	var step_started_msec: int = Time.get_ticks_msec()
+	_bot_thinking.step()
+	_bot_thinking_frames += 1
+	_bot_slowest_step_msec = maxi(_bot_slowest_step_msec, Time.get_ticks_msec() - step_started_msec)
+	if _bot_thinking.is_done():
+		print("Bot turn: %d ms computing over %d frames, slowest frame %d ms" % [
+			Time.get_ticks_msec() - _bot_turn_started_msec,
+			_bot_thinking_frames,
+			_bot_slowest_step_msec,
+		])
 
 
 ## Starts the first game. [param create_session] returns a new MatchSession
@@ -98,6 +116,9 @@ func _start_bot_turn_if_due() -> void:
 		return
 	_bot_thinking = _session.start_bot_thinking()
 	_bot_turn_elapsed = 0.0
+	_bot_turn_started_msec = Time.get_ticks_msec()
+	_bot_slowest_step_msec = 0
+	_bot_thinking_frames = 0
 	_refresh()
 
 
