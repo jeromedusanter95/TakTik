@@ -1,14 +1,22 @@
 class_name SampledSearchThinking
 extends BotThinking
-## Imagines one world per step, scores every legal Move in it, and once all
-## worlds are searched picks the Move with the best total score (ADR 0002),
-## drawing lots between equally good Moves.
+## Imagines worlds one after the other, scores every legal Move in each, and
+## once all worlds are searched picks the Move with the best total score
+## (ADR 0002), drawing lots between equally good Moves.
+##
+## Each step stops once it has searched about [constant NODES_PER_STEP]
+## positions, so one frame never freezes the single threaded web build, while
+## small searches still finish in a frame or two.
+
+const NODES_PER_STEP: int = 300
 
 var _view: PlayerView
 var _sampler: WorldSampler
 var _searcher: MoveSearcher
 var _worlds_left: int
 var _rng: RandomNumberGenerator
+var _world: Game = null
+var _next_move: int = 0
 var _moves: Array[Move] = []
 var _totals: Array[int] = []
 var _chosen: Move = null
@@ -30,15 +38,9 @@ func _init(
 
 
 func step() -> void:
-	if _is_done:
-		return
-	var world: Game = _sampler.sample(_view)
-	if _moves.is_empty():
-		_start_with_moves_of(world)
-	_add_scores(_searcher.score_moves(world, _moves))
-	_worlds_left -= 1
-	if _worlds_left == 0 or _moves.is_empty():
-		_finish()
+	var step_end: int = _searcher.nodes_searched() + NODES_PER_STEP
+	while not _is_done and _searcher.nodes_searched() < step_end:
+		_score_next_move()
 
 
 func is_done() -> bool:
@@ -49,17 +51,31 @@ func chosen_move() -> Move:
 	return _chosen
 
 
+func _score_next_move() -> void:
+	if _world == null:
+		_imagine_next_world()
+		if _moves.is_empty():
+			_finish()
+			return
+	_totals[_next_move] += _searcher.score_move(_world, _moves[_next_move])
+	_next_move += 1
+	if _next_move < _moves.size():
+		return
+	_world = null
+	_next_move = 0
+	_worlds_left -= 1
+	if _worlds_left == 0:
+		_finish()
+
+
 ## A Bot's own legal Moves never depend on enemy Piece Types, so every world
-## gives the same list.
-func _start_with_moves_of(world: Game) -> void:
-	_moves = world.legal_moves()
-	_totals.resize(_moves.size())
-	_totals.fill(0)
-
-
-func _add_scores(scores: Array[int]) -> void:
-	for index: int in scores.size():
-		_totals[index] += scores[index]
+## gives the same list; it is read from the first one.
+func _imagine_next_world() -> void:
+	_world = _sampler.sample(_view)
+	if _totals.is_empty():
+		_moves = _world.legal_moves()
+		_totals.resize(_moves.size())
+		_totals.fill(0)
 
 
 func _finish() -> void:

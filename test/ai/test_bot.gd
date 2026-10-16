@@ -15,6 +15,18 @@ func test_every_difficulty_plays_a_legal_move() -> void:
 		assert_true(game.is_legal(move), path)
 
 
+func test_a_hard_turn_is_spread_over_several_steps() -> void:
+	var game: Game = _starting_game()
+	var bot: Bot = Bot.new(_profile(PROFILE_PATHS[2]), Side.Id.RED, _rng(4))
+	bot.begin(PlayerView.of(game, Side.Id.RED))
+	var thinking: BotThinking = bot.start_thinking(PlayerView.of(game, Side.Id.RED))
+	thinking.step()
+	assert_false(thinking.is_done(), "one step should not search a whole Hard turn")
+	while not thinking.is_done():
+		thinking.step()
+	assert_true(game.is_legal(thinking.chosen_move()))
+
+
 func test_the_bot_never_peeks_at_hidden_pieces() -> void:
 	# Identical to Red, but every Green Piece Type differs: a peeking Bot
 	# would attack the Soldier next to its Knight and flee the Monster.

@@ -10,6 +10,7 @@ const INFINITY: int = 1_000_000
 
 var _evaluator: PositionEvaluator
 var _depth: int
+var _nodes_searched: int = 0
 
 
 ## [param depth] counts Moves of both sides; 1 looks only at the Bot's own
@@ -19,19 +20,30 @@ func _init(evaluator: PositionEvaluator, depth: int) -> void:
 	_depth = maxi(depth, 1)
 
 
-## The score of each of [param moves] in [param game] for the side to move,
-## in the same order. Each score is exact, so scores from different sampled
-## worlds can be averaged.
+## How many positions this searcher has looked at so far, a measure of work
+## that does not depend on the machine.
+func nodes_searched() -> int:
+	return _nodes_searched
+
+
+## The score of [param move] in [param game] for the side to move. The score
+## is exact, so scores from different sampled worlds can be added up.
+func score_move(game: Game, move: Move) -> int:
+	var child: Game = game.duplicate_game()
+	child.try_play(move)
+	return -_negamax(child, _depth - 1, -INFINITY, INFINITY, 1)
+
+
+## [method score_move] for each of [param moves], in the same order.
 func score_moves(game: Game, moves: Array[Move]) -> Array[int]:
 	var scores: Array[int] = []
 	for move: Move in moves:
-		var child: Game = game.duplicate_game()
-		child.try_play(move)
-		scores.append(-_negamax(child, _depth - 1, -INFINITY, INFINITY, 1))
+		scores.append(score_move(game, move))
 	return scores
 
 
 func _negamax(game: Game, depth: int, alpha: int, beta: int, ply: int) -> int:
+	_nodes_searched += 1
 	if game.result().is_over():
 		return _finished_score(game, ply)
 	if depth == 0:
