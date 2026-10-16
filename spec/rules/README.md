@@ -60,3 +60,15 @@ Each file holds `{ "cases": [ ... ] }`.
 ```
 
 `rows` are the side's three setup ranks, top to bottom: ranks 3, 2, 1 for Red and ranks 8, 7, 6 for Green. `valid` says whether this is a legal Setup (exactly the Army, every setup Square filled).
+
+## Running the cases
+
+**TypeScript (the referee, `server/`)**, with Node.js 22.12 or later:
+
+```sh
+cd server
+npm ci
+npm test
+```
+
+`npm test` type-checks the package, then runs `server/test/shared-rule-cases.test.ts`, which loads every `*.json` file in this folder: a new case or a new case file is picked up without code changes. A case is a Setup case when it has a `valid` key, a play case otherwise. The runner fails on an `expect` key it does not know.
