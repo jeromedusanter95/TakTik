@@ -27,6 +27,23 @@ func test_a_hard_turn_is_spread_over_several_steps() -> void:
 	assert_true(game.is_legal(thinking.chosen_move()))
 
 
+func test_a_turn_stops_searching_new_worlds_past_its_position_limit() -> void:
+	var game: Game = _starting_game()
+	var profile: BotProfile = BotProfile.new()
+	profile.search_depth = 3
+	profile.sample_count = 1_000
+	var bot: Bot = Bot.new(profile, Side.Id.RED, _rng(5))
+	bot.begin(PlayerView.of(game, Side.Id.RED))
+	var thinking: BotThinking = bot.start_thinking(PlayerView.of(game, Side.Id.RED))
+	var steps: int = 0
+	while not thinking.is_done() and steps < 1_000:
+		thinking.step()
+		steps += 1
+	var step_limit: int = SampledSearchThinking.NODES_PER_TURN / SampledSearchThinking.NODES_PER_STEP
+	assert_lt(steps, step_limit + 10)
+	assert_true(game.is_legal(thinking.chosen_move()))
+
+
 func test_the_bot_never_peeks_at_hidden_pieces() -> void:
 	# Identical to Red, but every Green Piece Type differs: a peeking Bot
 	# would attack the Soldier next to its Knight and flee the Monster.

@@ -6,19 +6,24 @@ extends BotThinking
 ##
 ## Each step stops once it has searched about [constant NODES_PER_STEP]
 ## positions, so one frame never freezes the single threaded web build, while
-## small searches still finish in a frame or two.
+## small searches still finish in a frame or two. A turn that has searched
+## [constant NODES_PER_TURN] positions decides on the worlds it has fully
+## searched, so rare crowded positions do not keep the player waiting.
 
 const NODES_PER_STEP: int = 300
+const NODES_PER_TURN: int = 12_000
 
 var _view: PlayerView
 var _sampler: WorldSampler
 var _searcher: MoveSearcher
 var _worlds_left: int
 var _rng: RandomNumberGenerator
+var _turn_end: int
 var _world: Game = null
-var _next_move: int = 0
+var _world_scores: Array[int] = []
 var _moves: Array[Move] = []
 var _totals: Array[int] = []
+var _searched_worlds: int = 0
 var _chosen: Move = null
 var _is_done: bool = false
 
@@ -35,6 +40,7 @@ func _init(
 	_searcher = searcher
 	_worlds_left = maxi(world_count, 1)
 	_rng = rng
+	_turn_end = searcher.nodes_searched() + NODES_PER_TURN
 
 
 func step() -> void:
@@ -52,17 +58,25 @@ func chosen_move() -> Move:
 
 
 func _score_next_move() -> void:
+	if _searched_worlds > 0 and _searcher.nodes_searched() >= _turn_end:
+		_finish()
+		return
 	if _world == null:
 		_imagine_next_world()
 		if _moves.is_empty():
 			_finish()
 			return
-	_totals[_next_move] += _searcher.score_move(_world, _moves[_next_move])
-	_next_move += 1
-	if _next_move < _moves.size():
-		return
+	_world_scores.append(_searcher.score_move(_world, _moves[_world_scores.size()]))
+	if _world_scores.size() == _moves.size():
+		_add_world_scores()
+
+
+func _add_world_scores() -> void:
+	for index: int in _world_scores.size():
+		_totals[index] += _world_scores[index]
 	_world = null
-	_next_move = 0
+	_world_scores.clear()
+	_searched_worlds += 1
 	_worlds_left -= 1
 	if _worlds_left == 0:
 		_finish()
