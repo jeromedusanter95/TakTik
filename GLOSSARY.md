@@ -1,6 +1,6 @@
 # Taktik
 
-A non-commercial web recreation of TakTik (Kickoo, 2002), a two-player turn-based board game originally released on Palm OS. Terms below come from the original in-game help (see `docs/reference/screenshots/`).
+A non-commercial web recreation of TakTik (Kickoo, 2002), a two-player turn-based board game originally released on Palm OS. Terms below come from the original in-game help, the Kickoo documentation and play of the original.
 
 ## Game
 

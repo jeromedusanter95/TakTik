@@ -1,3 +1,12 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Reference screenshots of the original game: Kickoo copyright, kept local only
+docs/reference/
+
+# Claude Code session worktrees
+.claude/
+
+# Web export output
+build/
