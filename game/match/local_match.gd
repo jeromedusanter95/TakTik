@@ -21,6 +21,7 @@ var _bot_thinking: BotThinking = null
 var _bot_turn_elapsed: float = 0.0
 var _bot_turn_started_msec: int = 0
 var _bot_slowest_step_msec: int = 0
+var _bot_busy_msec: int = 0
 var _bot_thinking_frames: int = 0
 
 @onready var _status_label: Label = %StatusLabel
@@ -66,13 +67,16 @@ func _process(delta: float) -> void:
 func _step_bot_thinking() -> void:
 	var step_started_msec: int = Time.get_ticks_msec()
 	_bot_thinking.step()
+	var step_msec: int = Time.get_ticks_msec() - step_started_msec
 	_bot_thinking_frames += 1
-	_bot_slowest_step_msec = maxi(_bot_slowest_step_msec, Time.get_ticks_msec() - step_started_msec)
+	_bot_busy_msec += step_msec
+	_bot_slowest_step_msec = maxi(_bot_slowest_step_msec, step_msec)
 	if _bot_thinking.is_done():
-		print("Bot turn: %d ms computing over %d frames, slowest frame %d ms" % [
-			Time.get_ticks_msec() - _bot_turn_started_msec,
+		print("Bot turn: %d ms thinking in %d frames (slowest %d ms), %d ms wall clock" % [
+			_bot_busy_msec,
 			_bot_thinking_frames,
 			_bot_slowest_step_msec,
+			Time.get_ticks_msec() - _bot_turn_started_msec,
 		])
 
 
@@ -118,6 +122,7 @@ func _start_bot_turn_if_due() -> void:
 	_bot_turn_elapsed = 0.0
 	_bot_turn_started_msec = Time.get_ticks_msec()
 	_bot_slowest_step_msec = 0
+	_bot_busy_msec = 0
 	_bot_thinking_frames = 0
 	_refresh()
 
