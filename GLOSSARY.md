@@ -57,7 +57,7 @@ The set of eliminated Pieces of both Armies.
 _Avoid_: Discard, captured pieces, cemetery
 
 **Princess**:
-The Piece Type a player must protect. Losing it loses the game; bringing it to the enemy Home Row wins the game.
+The Piece Type a player must protect. It can never Attack. Losing it loses the game; bringing it to the enemy Home Row wins the game.
 _Avoid_: Flag, queen
 
 **Setup**:
@@ -81,7 +81,7 @@ A player with no legal Move on their turn. A Blocked player loses.
 _Avoid_: Stalemate, stuck
 
 **Draw**:
-The end of a game with no winner: when both Princesses are eliminated in the same Fight, or after 50 Rounds with no Fight.
+The end of a game with no winner, reached after 50 Rounds with no Fight.
 _Avoid_: Tie, stalemate
 
 **Round**:
