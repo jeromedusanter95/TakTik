@@ -6,7 +6,6 @@ extends Control
 signal square_pressed(square: Vector2i)
 
 const PIECE_RADIUS_RATIO: float = 0.42
-const NAME_FONT_RATIO: float = 0.2
 const STRENGTH_FONT_RATIO: float = 0.17
 ## The width of the label margins, in Squares.
 const LABEL_MARGIN_RATIO: float = 0.4
@@ -58,25 +57,34 @@ func _draw_square(square: Vector2i) -> void:
 
 
 func _draw_piece(piece: Piece, rect: Rect2) -> void:
-	var centre: Vector2 = rect.get_center()
-	var radius: float = rect.size.x * PIECE_RADIUS_RATIO
-	var fill: Color = palette.red_piece if piece.side == Side.Id.RED else palette.green_piece
-	draw_circle(centre, radius, fill)
-	draw_circle(centre, radius, palette.piece_outline, false, 2.0)
-	if not _state.reveal_all and piece.side != _state.viewer:
-		return
-	var font: Font = get_theme_default_font()
-	var name_size: int = roundi(rect.size.x * NAME_FONT_RATIO)
-	var strength_size: int = roundi(rect.size.x * STRENGTH_FONT_RATIO)
-	var width: float = rect.size.x
-	var left: float = rect.position.x
-	draw_string(
-		font, Vector2(left, centre.y), PieceNames.short_name(piece.type),
-		HORIZONTAL_ALIGNMENT_CENTER, width, name_size, palette.piece_text
+	var token_size: float = rect.size.x * PIECE_RADIUS_RATIO * 2.0
+	var token_rect: Rect2 = Rect2(
+		rect.get_center() - Vector2(token_size, token_size) / 2.0, Vector2(token_size, token_size)
 	)
+	if not _state.reveal_all and piece.side != _state.viewer:
+		draw_texture_rect(PieceArt.hidden(piece.side), token_rect, false)
+		return
+	draw_texture_rect(PieceArt.token(piece.type, piece.side), token_rect, false)
+	_draw_strength_badge(piece.type, rect)
+
+
+## "attack/defense" in a small dark pill along the bottom of the Square, so
+## strengths stay readable on top of the art.
+func _draw_strength_badge(type: PieceType.Id, rect: Rect2) -> void:
+	var font_size: int = roundi(rect.size.x * STRENGTH_FONT_RATIO)
+	var text: String = PieceNames.strengths(type)
+	var font: Font = get_theme_default_font()
+	var text_size: Vector2 = font.get_string_size(
+		text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size
+	)
+	var badge_size: Vector2 = text_size + Vector2(8.0, 0.0)
+	var badge_position: Vector2 = Vector2(
+		rect.get_center().x - badge_size.x / 2.0, rect.end.y - badge_size.y - 1.0
+	)
+	draw_rect(Rect2(badge_position, badge_size), palette.badge)
 	draw_string(
-		font, Vector2(left, centre.y + strength_size + 2.0), PieceNames.strengths(piece.type),
-		HORIZONTAL_ALIGNMENT_CENTER, width, strength_size, palette.piece_text
+		font, badge_position + Vector2(4.0, font.get_ascent(font_size)), text,
+		HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, palette.piece_text
 	)
 
 
