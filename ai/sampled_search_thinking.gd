@@ -1,12 +1,14 @@
 class_name SampledSearchThinking
 extends BotThinking
 ## Imagines one world per step, scores every legal Move in it, and once all
-## worlds are searched picks the Move with the best total score (ADR 0002).
+## worlds are searched picks the Move with the best total score (ADR 0002),
+## drawing lots between equally good Moves.
 
 var _view: PlayerView
 var _sampler: WorldSampler
 var _searcher: MoveSearcher
 var _worlds_left: int
+var _rng: RandomNumberGenerator
 var _moves: Array[Move] = []
 var _totals: Array[int] = []
 var _chosen: Move = null
@@ -18,11 +20,13 @@ func _init(
 		sampler: WorldSampler,
 		searcher: MoveSearcher,
 		world_count: int,
+		rng: RandomNumberGenerator,
 ) -> void:
 	_view = view
 	_sampler = sampler
 	_searcher = searcher
 	_worlds_left = maxi(world_count, 1)
+	_rng = rng
 
 
 func step() -> void:
@@ -60,9 +64,16 @@ func _add_scores(scores: Array[int]) -> void:
 
 func _finish() -> void:
 	_is_done = true
-	var best: int = -1
+	var best: Array[int] = _best_indexes()
+	if not best.is_empty():
+		_chosen = _moves[best[_rng.randi_range(0, best.size() - 1)]]
+
+
+func _best_indexes() -> Array[int]:
+	var best: Array[int] = []
 	for index: int in _totals.size():
-		if best == -1 or _totals[index] > _totals[best]:
-			best = index
-	if best != -1:
-		_chosen = _moves[best]
+		if best.is_empty() or _totals[index] > _totals[best[0]]:
+			best = [index]
+		elif _totals[index] == _totals[best[0]]:
+			best.append(index)
+	return best

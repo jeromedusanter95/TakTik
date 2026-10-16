@@ -53,7 +53,7 @@ func start_thinking(view: PlayerView) -> BotThinking:
 	var sampler: WorldSampler = WorldSampler.new(_tracker, _rng)
 	if _rng.randf() < _profile.mistake_chance:
 		return DecidedThinking.new(_random_move(sampler.sample(view)))
-	return SampledSearchThinking.new(view, sampler, _searcher, _profile.sample_count)
+	return SampledSearchThinking.new(view, sampler, _searcher, _profile.sample_count, _rng)
 
 
 func _random_move(world: Game) -> Move:
