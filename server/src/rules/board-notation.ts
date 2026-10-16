@@ -2,6 +2,7 @@ import { Board, COLUMNS, ROWS, type ReadonlyBoard } from "./board";
 import type { Move } from "./move";
 import type { Piece } from "./piece";
 import type { PieceType } from "./piece-type";
+import { Setup, SETUP_ROW_COUNT } from "./setup";
 import type { Side } from "./side";
 import { squareAt, type Square } from "./square";
 
@@ -109,3 +110,22 @@ function characterAt(board: ReadonlyBoard, square: Square): string {
 	return piece === undefined ? EMPTY : letterOf(piece);
 }
 
+/** Reads [rows], the side's setup ranks from top to bottom. Letters of the other side are left out. */
+export function parseSetup(side: Side, rows: readonly string[]): Setup {
+	const setup = new Setup(side);
+	const topRowFirst = Setup.rowsFor(side).reverse();
+	rows.forEach((text, index) => {
+		const row = topRowFirst[index];
+		if (row === undefined) {
+			throw new Error(`A Setup has only ${SETUP_ROW_COUNT} rows`);
+		}
+		for (let column = 0; column < COLUMNS; column++) {
+			const letter = text.charAt(column);
+			const type = typeOfLetter(letter);
+			if (type !== undefined && sideOfLetter(letter) === side) {
+				setup.place(squareAt(column, row), type);
+			}
+		}
+	});
+	return setup;
+}
