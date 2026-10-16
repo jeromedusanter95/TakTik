@@ -1,0 +1,3 @@
+# Bots are search-based, run in the browser, and never see Hidden Pieces
+
+Bots are not machine-learned. Each Bot samples plausible arrangements of the opponent's Hidden Pieces consistent with everything it has observed (Reveals, which Pieces have moved, the Graveyard), then searches a few Moves ahead in each sample and picks the Move that scores best on average. Difficulty comes only from search depth, number of samples and deliberate random mistakes; no Difficulty ever reads the true positions of Hidden Pieces. This is much simpler than training a model, runs in the player's browser so Bot games cost nothing and work without the server, and keeps Bots fair. Machine learning can be revisited if Hard proves too weak.
