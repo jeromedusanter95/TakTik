@@ -13,12 +13,21 @@ extends RefCounted
 var _profile: BotProfile
 var _side: Side.Id
 var _rng: RandomNumberGenerator
+var _searcher: MoveSearcher
+var _tracker: EnemyTracker = null
 
 
-func _init(profile: BotProfile, side: Side.Id, rng: RandomNumberGenerator) -> void:
+## [param evaluator] is replaceable to try other ways of scoring positions.
+func _init(
+		profile: BotProfile,
+		side: Side.Id,
+		rng: RandomNumberGenerator,
+		evaluator: PositionEvaluator = HeuristicEvaluator.new(),
+) -> void:
 	_profile = profile
 	_side = side
 	_rng = rng
+	_searcher = MoveSearcher.new(evaluator, profile.search_depth)
 
 
 func profile() -> BotProfile:
@@ -29,13 +38,26 @@ func side() -> Side.Id:
 	return _side
 
 
-func begin(_view: PlayerView) -> void:
-	pass
+func begin(view: PlayerView) -> void:
+	_tracker = EnemyTracker.new(view)
 
 
-func observe(_event: PublicMoveEvent) -> void:
-	pass
+func observe(event: PublicMoveEvent) -> void:
+	if _tracker != null:
+		_tracker.observe(event)
 
 
 func start_thinking(view: PlayerView) -> BotThinking:
-	return BotThinking.new(view, _rng)
+	if _tracker == null:
+		_tracker = EnemyTracker.new(view)
+	var sampler: WorldSampler = WorldSampler.new(_tracker, _rng)
+	if _rng.randf() < _profile.mistake_chance:
+		return DecidedThinking.new(_random_move(sampler.sample(view)))
+	return SampledSearchThinking.new(view, sampler, _searcher, _profile.sample_count, _rng)
+
+
+func _random_move(world: Game) -> Move:
+	var moves: Array[Move] = world.legal_moves()
+	if moves.is_empty():
+		return null
+	return moves[_rng.randi_range(0, moves.size() - 1)]
