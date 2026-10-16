@@ -12,3 +12,5 @@ extends Resource
 @export var selected: Color = Color("ffe14d")
 @export var destination: Color = Color(1.0, 0.95, 0.4, 0.55)
 @export var last_move: Color = Color(0.4, 0.75, 1.0, 0.4)
+## The column letters and rank numbers around the Board.
+@export var square_label: Color = Color("e8d5a9")
