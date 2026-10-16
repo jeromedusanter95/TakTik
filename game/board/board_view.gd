@@ -97,16 +97,9 @@ func _board_origin() -> Vector2:
 	return (size - board_size) / 2.0
 
 
-## The viewer's own Home Row is always drawn at the bottom.
-func _screen_cell_of(square: Vector2i) -> Vector2i:
-	if _state.viewer == Side.Id.RED:
-		return Vector2i(square.x, Board.ROWS - 1 - square.y)
-	return Vector2i(Board.COLUMNS - 1 - square.x, square.y)
-
-
 func _rect_of(square: Vector2i) -> Rect2:
 	var cell: float = _cell_size()
-	var screen_cell: Vector2i = _screen_cell_of(square)
+	var screen_cell: Vector2i = BoardOrientation.screen_cell_of(square, _state.viewer)
 	return Rect2(_board_origin() + Vector2(screen_cell) * cell, Vector2(cell, cell))
 
 
@@ -114,5 +107,4 @@ func _square_at(point: Vector2) -> Vector2i:
 	var cell: float = _cell_size()
 	var local: Vector2 = (point - _board_origin()) / cell
 	var screen_cell: Vector2i = Vector2i(floori(local.x), floori(local.y))
-	# The flip is its own inverse, so it maps screen cells back to Squares.
-	return _screen_cell_of(screen_cell)
+	return BoardOrientation.square_at(screen_cell, _state.viewer)
