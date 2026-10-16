@@ -1,15 +1,22 @@
 class_name LocalMatch
 extends Control
-## Two players taking turns on one device. Shows the Board only to the player
-## holding the device and covers it while the device changes hands.
+## A game on this device. Two people take turns and the Board is covered while
+## the device changes hands; a person against a Bot always sees the Board from
+## their own side and watches the Bot answer each Move.
+
+## The shortest time a Bot's turn lasts on screen, so a person sees that the
+## Bot is answering even when it decides at once.
+@export var minimum_bot_turn_seconds: float = 0.6
 
 var _create_session: Callable = Callable()
 var _session: MatchSession = null
-## The player currently looking at the screen. Stays the mover after a Move
-## until the device is handed over.
+## The player currently looking at the screen. With two people it stays the
+## mover after a Move until the device is handed over.
 var _viewer: Side.Id = Side.Id.RED
 var _selected: Vector2i = BoardViewState.NO_SQUARE
 var _turn_finished: bool = false
+var _bot_thinking: BotThinking = null
+var _bot_turn_elapsed: float = 0.0
 
 @onready var _status_label: Label = %StatusLabel
 @onready var _board_view: BoardView = %BoardView
@@ -27,8 +34,28 @@ func _ready() -> void:
 	_handoff_screen.continued.connect(_on_handoff_continued)
 
 
-## Starts the first game. [param create_session] returns a new
-## MatchSession each time a game starts.
+## Steps the Bot's search once per frame, then plays its Move.
+func _process(delta: float) -> void:
+	if _bot_thinking == null:
+		return
+	_bot_turn_elapsed += delta
+	if not _bot_thinking.is_done():
+		_bot_thinking.step()
+		return
+	if _bot_turn_elapsed < minimum_bot_turn_seconds:
+		return
+	var move: Move = _bot_thinking.chosen_move()
+	_bot_thinking = null
+	if _session.play(move) == null:
+		push_error("The Bot chose an illegal Move")
+		return
+	_selected = BoardViewState.NO_SQUARE
+	_refresh()
+	_start_bot_turn_if_due()
+
+
+## Starts the first game. [param create_session] returns a new MatchSession
+## each time a game starts.
 func start(create_session: Callable) -> void:
 	_create_session = create_session
 	_start_new_game()
@@ -38,10 +65,36 @@ func _start_new_game() -> void:
 	_session = _create_session.call()
 	_selected = BoardViewState.NO_SQUARE
 	_turn_finished = false
-	_handoff_screen.present(
-		"Red, set up your Army",
-		"Green must not look. Tap two of your Pieces to swap them, or Shuffle.",
-	)
+	_bot_thinking = null
+	if _shares_device():
+		_handoff_screen.present(
+			"Red, set up your Army",
+			"Green must not look. Tap two of your Pieces to swap them, or Shuffle.",
+		)
+		return
+	_handoff_screen.hide()
+	_viewer = _person_side()
+	_refresh()
+	_start_bot_turn_if_due()
+
+
+## True when two people pass the device between them.
+func _shares_device() -> bool:
+	return _session.human_sides().size() > 1
+
+
+## The side of the only person playing, or Red when Bots play each other.
+func _person_side() -> Side.Id:
+	var sides: Array[Side.Id] = _session.human_sides()
+	return sides[0] if not sides.is_empty() else Side.Id.RED
+
+
+func _start_bot_turn_if_due() -> void:
+	if not _session.is_bot_turn():
+		return
+	_bot_thinking = _session.start_bot_thinking()
+	_bot_turn_elapsed = 0.0
+	_refresh()
 
 
 func _on_handoff_continued() -> void:
@@ -54,7 +107,7 @@ func _on_square_pressed(square: Vector2i) -> void:
 		MatchSession.Phase.SETUP:
 			_press_during_setup(square)
 		MatchSession.Phase.PLAYING:
-			if not _turn_finished:
+			if not _turn_finished and not _session.is_bot_turn():
 				_press_during_play(square)
 
 
@@ -78,10 +131,12 @@ func _press_during_play(square: Vector2i) -> void:
 	elif _selected != BoardViewState.NO_SQUARE and square in game.legal_destinations(_selected):
 		_session.play(Move.new(_selected, square))
 		_selected = BoardViewState.NO_SQUARE
-		_turn_finished = _session.phase() == MatchSession.Phase.PLAYING
+		var still_playing: bool = _session.phase() == MatchSession.Phase.PLAYING
+		_turn_finished = still_playing and _shares_device()
 	else:
 		_selected = BoardViewState.NO_SQUARE
 	_refresh()
+	_start_bot_turn_if_due()
 
 
 func _on_shuffle_pressed() -> void:
@@ -103,7 +158,10 @@ func _on_action_pressed() -> void:
 func _confirm_setup() -> void:
 	_session.confirm_setup()
 	_selected = BoardViewState.NO_SQUARE
-	if _session.phase() == MatchSession.Phase.SETUP:
+	if not _shares_device():
+		_refresh()
+		_start_bot_turn_if_due()
+	elif _session.phase() == MatchSession.Phase.SETUP:
 		_handoff_screen.present(
 			"Pass the device to Green",
 			"Green, set up your Army. Red must not look.",
@@ -151,20 +209,51 @@ func _status_text() -> String:
 		MatchSession.Phase.SETUP:
 			return "%s: arrange your Army" % viewer
 		MatchSession.Phase.PLAYING:
-			return "Your turn is over" if _turn_finished else "%s to move" % viewer
+			if _session.is_bot_turn():
+				return "%s is thinking..." % PieceNames.side_name(_session.active_side())
+			if _turn_finished:
+				return "Your turn is over"
+			return "%s to move" % PieceNames.side_name(_session.active_side())
 		_:
 			return MatchNarrator.describe_result(_session.game().result())
 
 
 func _info_text() -> String:
+	var phase: MatchSession.Phase = _session.phase()
+	if phase == MatchSession.Phase.SETUP or _selected != BoardViewState.NO_SQUARE:
+		return _selected_piece_text()
+	if not _shares_device():
+		return _round_text()
 	var record: MoveRecord = _session.last_record()
-	if _session.phase() != MatchSession.Phase.SETUP and record != null and record.fight != null:
-		if _turn_finished or _session.phase() == MatchSession.Phase.OVER:
+	if record != null and record.fight != null:
+		if _turn_finished or phase == MatchSession.Phase.OVER:
 			return MatchNarrator.describe_fight(record.fight)
+	return "Tap one of your Pieces." if phase != MatchSession.Phase.OVER else ""
+
+
+func _selected_piece_text() -> String:
 	if _selected == BoardViewState.NO_SQUARE:
-		return "Tap one of your Pieces." if _session.phase() != MatchSession.Phase.OVER else ""
+		return "Tap one of your Pieces."
 	var piece: Piece = _session.display_board().piece_at(_selected)
 	return MatchNarrator.describe_piece(piece.type) if piece != null else ""
+
+
+## Against a Bot: the Fight the person's last Move caused, if any, then what
+## the Bot answered.
+func _round_text() -> String:
+	var lines: PackedStringArray = []
+	var own: MoveRecord = _session.last_record_of(_viewer)
+	if own != null and own.fight != null:
+		lines.append(MatchNarrator.describe_fight(own.fight))
+	var last: MoveRecord = _session.last_record()
+	if last != null and last != own:
+		lines.append(MatchNarrator.describe_move(last))
+	var persons_turn: bool = (
+		_session.phase() == MatchSession.Phase.PLAYING and not _session.is_bot_turn()
+	)
+	if lines.is_empty() and persons_turn:
+		lines.append("Tap one of your Pieces.")
+	return "\n".join(lines)
 
 
 func _graveyard_text() -> String:
