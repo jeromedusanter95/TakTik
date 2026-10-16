@@ -17,11 +17,17 @@ var _searcher: MoveSearcher
 var _tracker: EnemyTracker = null
 
 
-func _init(profile: BotProfile, side: Side.Id, rng: RandomNumberGenerator) -> void:
+## [param evaluator] is replaceable to try other ways of scoring positions.
+func _init(
+		profile: BotProfile,
+		side: Side.Id,
+		rng: RandomNumberGenerator,
+		evaluator: PositionEvaluator = HeuristicEvaluator.new(),
+) -> void:
 	_profile = profile
 	_side = side
 	_rng = rng
-	_searcher = MoveSearcher.new(HeuristicEvaluator.new(), profile.search_depth)
+	_searcher = MoveSearcher.new(evaluator, profile.search_depth)
 
 
 func profile() -> BotProfile:
