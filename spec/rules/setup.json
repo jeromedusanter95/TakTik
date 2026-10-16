@@ -1,0 +1,54 @@
+{
+	"cases": [
+		{
+			"name": "the full Army filling the three setup ranks is valid",
+			"side": "red",
+			"rows": [
+				"OTNSBK",
+				"MBSPBO",
+				"NSOMBE"
+			],
+			"valid": true
+		},
+		{
+			"name": "the full Army is valid for Green too",
+			"side": "green",
+			"rows": [
+				"otnsbk",
+				"mbspbo",
+				"nsombe"
+			],
+			"valid": true
+		},
+		{
+			"name": "a Setup with two Kings and no Executioner is invalid",
+			"side": "red",
+			"rows": [
+				"OTNSBK",
+				"MBSPBO",
+				"NSOMBK"
+			],
+			"valid": false
+		},
+		{
+			"name": "a Setup with an empty Square is invalid",
+			"side": "red",
+			"rows": [
+				"OTNSBK",
+				"MBSPBO",
+				"NSOMB."
+			],
+			"valid": false
+		},
+		{
+			"name": "a Setup using the opponent's Pieces is invalid",
+			"side": "red",
+			"rows": [
+				"otnsbk",
+				"mbspbo",
+				"nsombe"
+			],
+			"valid": false
+		}
+	]
+}

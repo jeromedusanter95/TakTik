@@ -1,0 +1,229 @@
+{
+	"cases": [
+		{
+			"name": "capturing the enemy Princess wins the game",
+			"to_move": "red",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#p.#.",
+				"..S...",
+				"......",
+				"......"
+			],
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "S",
+					"defender": "p",
+					"outcome": "attacker_wins"
+				},
+				"status": "red_wins",
+				"reason": "princess_captured"
+			}
+		},
+		{
+			"name": "Green wins by capturing the Red Princess",
+			"to_move": "green",
+			"board": [
+				"......",
+				"......",
+				"......",
+				".#..#.",
+				".#t.#.",
+				"..P...",
+				"......",
+				"S....."
+			],
+			"moves": [
+				"c4-c3"
+			],
+			"expect": {
+				"status": "green_wins",
+				"reason": "princess_captured"
+			}
+		},
+		{
+			"name": "a Red Princess reaching rank 8 wins the game",
+			"to_move": "red",
+			"board": [
+				"s.....",
+				"..P...",
+				"......",
+				".#..#.",
+				".#..#.",
+				"......",
+				"......",
+				"......"
+			],
+			"moves": [
+				"c7-c8"
+			],
+			"expect": {
+				"status": "red_wins",
+				"reason": "princess_reached_home_row"
+			}
+		},
+		{
+			"name": "a Green Princess reaching rank 1 wins the game",
+			"to_move": "green",
+			"board": [
+				"......",
+				"......",
+				"......",
+				".#..#.",
+				".#..#.",
+				"......",
+				"..p...",
+				".....S"
+			],
+			"moves": [
+				"c2-c1"
+			],
+			"expect": {
+				"status": "green_wins",
+				"reason": "princess_reached_home_row"
+			}
+		},
+		{
+			"name": "a Princess on its own Home Row has not won",
+			"to_move": "red",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#..#.",
+				"......",
+				"..P...",
+				"......"
+			],
+			"moves": [
+				"c2-c1"
+			],
+			"expect": {
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "a player left with no legal Move is Blocked and loses",
+			"to_move": "red",
+			"board": [
+				"po....",
+				"o.....",
+				"......",
+				".#..#.",
+				".#..#.",
+				"......",
+				"......",
+				"S....."
+			],
+			"moves": [
+				"a1-a2"
+			],
+			"expect": {
+				"status": "red_wins",
+				"reason": "blocked"
+			}
+		},
+		{
+			"name": "50 Rounds without a Fight end in a Draw",
+			"to_move": "red",
+			"plies_without_fight": 99,
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#..#.",
+				"......",
+				"......",
+				"S....."
+			],
+			"moves": [
+				"a1-a2"
+			],
+			"expect": {
+				"status": "draw",
+				"reason": "no_fight_limit"
+			}
+		},
+		{
+			"name": "one ply before the limit the game goes on",
+			"to_move": "red",
+			"plies_without_fight": 98,
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#..#.",
+				"......",
+				"......",
+				"S....."
+			],
+			"moves": [
+				"a1-a2"
+			],
+			"expect": {
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "a Fight resets the count of Rounds without a Fight",
+			"to_move": "red",
+			"plies_without_fight": 99,
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#s.#.",
+				"..N...",
+				"......",
+				"......"
+			],
+			"moves": [
+				"c3-c4",
+				"a8-a7",
+				"c4-c5"
+			],
+			"expect": {
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "no Move is accepted once the game is over",
+			"to_move": "red",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#p.#.",
+				"..S...",
+				"......",
+				"......"
+			],
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"status": "red_wins",
+				"legal_moves": {
+					"a8": []
+				},
+				"illegal_moves": [
+					"a8-a7"
+				]
+			}
+		}
+	]
+}

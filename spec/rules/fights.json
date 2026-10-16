@@ -1,0 +1,400 @@
+{
+	"cases": [
+		{
+			"name": "the stronger Attacker wins and takes the Defender's Square",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#s.#.",
+				"..N...",
+				"......",
+				"......"
+			],
+			"to_move": "red",
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "N",
+					"defender": "s",
+					"outcome": "attacker_wins"
+				},
+				"board": [
+					"s.....",
+					"......",
+					"......",
+					".#..#.",
+					".#N.#.",
+					"......",
+					"......",
+					"......"
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "a weaker Attacker is eliminated and the Defender stays",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#n.#.",
+				"..S...",
+				"......",
+				"......"
+			],
+			"to_move": "red",
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "S",
+					"defender": "n",
+					"outcome": "defender_wins"
+				},
+				"board": [
+					"s.....",
+					"......",
+					"......",
+					".#..#.",
+					".#n.#.",
+					"......",
+					"......",
+					"......"
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "equal strengths eliminate both Pieces",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#n.#.",
+				"..N...",
+				"......",
+				"......"
+			],
+			"to_move": "red",
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "N",
+					"defender": "n",
+					"outcome": "both_eliminated"
+				},
+				"board": [
+					"s.....",
+					"......",
+					"......",
+					".#..#.",
+					".#..#.",
+					"......",
+					"......",
+					"......"
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "an Executioner loses against a King's Defense Strength",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#k.#.",
+				"..E...",
+				"......",
+				"......"
+			],
+			"to_move": "red",
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "E",
+					"defender": "k",
+					"outcome": "defender_wins"
+				},
+				"board": [
+					"s.....",
+					"......",
+					"......",
+					".#..#.",
+					".#k.#.",
+					"......",
+					"......",
+					"......"
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "a Thief's Attack Strength of 7 beats a King",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#k.#.",
+				"..T...",
+				"......",
+				"......"
+			],
+			"to_move": "red",
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "T",
+					"defender": "k",
+					"outcome": "attacker_wins"
+				},
+				"board": [
+					"s.....",
+					"......",
+					"......",
+					".#..#.",
+					".#T.#.",
+					"......",
+					"......",
+					"......"
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "a Thief has no defense: even a Buffoon beats it",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#t.#.",
+				"..B...",
+				"......",
+				"......"
+			],
+			"to_move": "red",
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "B",
+					"defender": "t",
+					"outcome": "attacker_wins"
+				},
+				"board": [
+					"s.....",
+					"......",
+					"......",
+					".#..#.",
+					".#B.#.",
+					"......",
+					"......",
+					"......"
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "a Monster beats a King that attacks it",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#o.#.",
+				"..K...",
+				"......",
+				"......"
+			],
+			"to_move": "red",
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "K",
+					"defender": "o",
+					"outcome": "defender_wins"
+				},
+				"board": [
+					"s.....",
+					"......",
+					"......",
+					".#..#.",
+					".#o.#.",
+					"......",
+					"......",
+					"......"
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "a Monster beats an attacking Thief instead of tying",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#o.#.",
+				"..T...",
+				"......",
+				"......"
+			],
+			"to_move": "red",
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "T",
+					"defender": "o",
+					"outcome": "defender_wins"
+				},
+				"board": [
+					"s.....",
+					"......",
+					"......",
+					".#..#.",
+					".#o.#.",
+					"......",
+					"......",
+					"......"
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "a Magician kills a Monster and takes its Square",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#o.#.",
+				"..M...",
+				"......",
+				"......"
+			],
+			"to_move": "red",
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "M",
+					"defender": "o",
+					"outcome": "attacker_wins"
+				},
+				"board": [
+					"s.....",
+					"......",
+					"......",
+					".#..#.",
+					".#M.#.",
+					"......",
+					"......",
+					"......"
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "a Magician loses to a Soldier's Defense Strength",
+			"board": [
+				"s.....",
+				"......",
+				"......",
+				".#..#.",
+				".#s.#.",
+				"..M...",
+				"......",
+				"......"
+			],
+			"to_move": "red",
+			"moves": [
+				"c3-c4"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "M",
+					"defender": "s",
+					"outcome": "defender_wins"
+				},
+				"board": [
+					"s.....",
+					"......",
+					"......",
+					".#..#.",
+					".#s.#.",
+					"......",
+					"......",
+					"......"
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		},
+		{
+			"name": "Green attacks the same way Red does",
+			"to_move": "green",
+			"board": [
+				"......",
+				"......",
+				"......",
+				".#..#.",
+				".#n.#.",
+				"..S...",
+				"......",
+				"S....."
+			],
+			"moves": [
+				"c4-c3"
+			],
+			"expect": {
+				"fight": {
+					"attacker": "n",
+					"defender": "S",
+					"outcome": "attacker_wins"
+				},
+				"board": [
+					"......",
+					"......",
+					"......",
+					".#..#.",
+					".#..#.",
+					"..n...",
+					"......",
+					"S....."
+				],
+				"status": "in_progress",
+				"reason": "none"
+			}
+		}
+	]
+}

@@ -1,0 +1,102 @@
+{
+	"cases": [
+		{
+			"name": "a stepping Piece moves one Square forward, back, left or right, never diagonally",
+			"board": ["....s.", "......", "......", ".#..#.", ".#..#.", "..S...", "......", "......"],
+			"to_move": "red",
+			"expect": { "legal_moves": { "c3": ["c4", "c2", "b3", "d3"] } }
+		},
+		{
+			"name": "a Piece cannot move onto a friendly Piece",
+			"board": ["....s.", "......", "......", ".#..#.", ".#N.#.", "..S...", "......", "......"],
+			"to_move": "red",
+			"expect": { "legal_moves": { "c3": ["c2", "b3", "d3"] } }
+		},
+		{
+			"name": "a Piece may move onto an enemy Piece, which is an Attack",
+			"board": ["....s.", "......", "......", ".#..#.", ".#n.#.", "..S...", "......", "......"],
+			"to_move": "red",
+			"expect": { "legal_moves": { "c3": ["c4", "c2", "b3", "d3"] } }
+		},
+		{
+			"name": "a Piece cannot leave the Board",
+			"board": ["....s.", "......", "......", ".#..#.", ".#..#.", "......", "......", "S....."],
+			"to_move": "red",
+			"expect": { "legal_moves": { "a1": ["a2", "b1"] } }
+		},
+		{
+			"name": "a Piece cannot enter an Obstacle",
+			"board": ["....s.", "......", "......", ".#..#.", ".#..#.", ".S....", "......", "......"],
+			"to_move": "red",
+			"expect": { "legal_moves": { "b3": ["a3", "c3", "b2"] } }
+		},
+		{
+			"name": "a Monster never moves",
+			"board": ["....s.", "......", "......", ".#..#.", ".#..#.", "..O...", "......", "......"],
+			"to_move": "red",
+			"expect": { "legal_moves": { "c3": [] } }
+		},
+		{
+			"name": "a Princess steps like other Pieces but can never Attack",
+			"board": ["....s.", "......", "......", ".#..#.", ".#t.#.", "..P...", "......", "......"],
+			"to_move": "red",
+			"expect": { "legal_moves": { "c3": ["c2", "b3", "d3"] }, "illegal_moves": ["c3-c4"] }
+		},
+		{
+			"name": "a Buffoon crosses any number of empty Squares in a straight line",
+			"board": ["......", "......", "......", ".#..#.", ".#..#.", "......", "......", "..B..s"],
+			"to_move": "red",
+			"expect": {
+				"legal_moves": {
+					"c1": ["a1", "b1", "d1", "e1", "f1", "c2", "c3", "c4", "c5", "c6", "c7", "c8"]
+				}
+			}
+		},
+		{
+			"name": "a Buffoon stops before a friendly Piece and may Attack the first enemy Piece in its line",
+			"board": ["....s.", "......", "......", ".#..#.", "S#..#.", "......", "......", "B..n.."],
+			"to_move": "red",
+			"expect": { "legal_moves": { "a1": ["a2", "a3", "b1", "c1", "d1"] } }
+		},
+		{
+			"name": "a Buffoon cannot cross an Obstacle",
+			"board": ["....s.", "......", "......", ".#..#.", ".#..#.", "......", ".B....", "......"],
+			"to_move": "red",
+			"expect": { "legal_moves": { "b2": ["b3", "b1", "a2", "c2", "d2", "e2", "f2"] } }
+		},
+		{
+			"name": "a Piece cannot Move Back to the Square it just left on its owner's next turn",
+			"board": ["....s.", "......", "......", ".#..#.", ".#..#.", "..S...", "......", "S....."],
+			"to_move": "red",
+			"moves": ["c3-c4", "e8-e7"],
+			"expect": { "legal_moves": { "c4": ["c5", "d4"] }, "illegal_moves": ["c4-c3"] }
+		},
+		{
+			"name": "a Piece may Move Back once its owner has played another Move in between",
+			"board": ["....s.", "......", "......", ".#..#.", ".#..#.", "..S...", "......", "S....."],
+			"to_move": "red",
+			"moves": ["c3-c4", "e8-e7", "a1-a2", "e7-e6"],
+			"expect": { "legal_moves": { "c4": ["c3", "c5", "d4"] } }
+		},
+		{
+			"name": "the Move Back rule forbids only the exact Square a Buffoon left",
+			"board": ["....s.", "......", "......", ".#..#.", ".#..#.", "......", "......", "..B..."],
+			"to_move": "red",
+			"moves": ["c1-c3", "e8-e7"],
+			"expect": { "legal_moves": { "c3": ["c2", "c4", "c5", "c6", "c7", "c8", "a3", "b3", "d3", "e3", "f3"] } }
+		},
+		{
+			"name": "a player cannot move the opponent's Pieces",
+			"board": ["....s.", "......", "......", ".#..#.", ".#..#.", "..S...", "......", "......"],
+			"to_move": "red",
+			"expect": { "legal_moves": { "e8": [] }, "illegal_moves": ["e8-e7"] }
+		},
+		{
+			"name": "the players alternate turns",
+			"board": ["....s.", "......", "......", ".#..#.", ".#..#.", "..S...", "......", "......"],
+			"to_move": "red",
+			"moves": ["c3-c4"],
+			"expect": { "legal_moves": { "c4": [], "e8": ["d8", "f8", "e7"] }, "illegal_moves": ["c4-c5"] }
+		}
+	]
+}
