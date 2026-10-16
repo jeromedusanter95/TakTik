@@ -4,7 +4,7 @@ extends Control
 ## holding the device and covers it while the device changes hands.
 
 var _create_session: Callable = Callable()
-var _session: HotSeatSession = null
+var _session: MatchSession = null
 ## The player currently looking at the screen. Stays the mover after a Move
 ## until the device is handed over.
 var _viewer: Side.Id = Side.Id.RED
@@ -28,7 +28,7 @@ func _ready() -> void:
 
 
 ## Starts the first game. [param create_session] returns a new
-## HotSeatSession each time a game starts.
+## MatchSession each time a game starts.
 func start(create_session: Callable) -> void:
 	_create_session = create_session
 	_start_new_game()
@@ -51,9 +51,9 @@ func _on_handoff_continued() -> void:
 
 func _on_square_pressed(square: Vector2i) -> void:
 	match _session.phase():
-		HotSeatSession.Phase.SETUP:
+		MatchSession.Phase.SETUP:
 			_press_during_setup(square)
-		HotSeatSession.Phase.PLAYING:
+		MatchSession.Phase.PLAYING:
 			if not _turn_finished:
 				_press_during_play(square)
 
@@ -78,7 +78,7 @@ func _press_during_play(square: Vector2i) -> void:
 	elif _selected != BoardViewState.NO_SQUARE and square in game.legal_destinations(_selected):
 		_session.play(Move.new(_selected, square))
 		_selected = BoardViewState.NO_SQUARE
-		_turn_finished = _session.phase() == HotSeatSession.Phase.PLAYING
+		_turn_finished = _session.phase() == MatchSession.Phase.PLAYING
 	else:
 		_selected = BoardViewState.NO_SQUARE
 	_refresh()
@@ -92,18 +92,18 @@ func _on_shuffle_pressed() -> void:
 
 func _on_action_pressed() -> void:
 	match _session.phase():
-		HotSeatSession.Phase.SETUP:
+		MatchSession.Phase.SETUP:
 			_confirm_setup()
-		HotSeatSession.Phase.PLAYING:
+		MatchSession.Phase.PLAYING:
 			_hand_over_turn()
-		HotSeatSession.Phase.OVER:
+		MatchSession.Phase.OVER:
 			_start_new_game()
 
 
 func _confirm_setup() -> void:
 	_session.confirm_setup()
 	_selected = BoardViewState.NO_SQUARE
-	if _session.phase() == HotSeatSession.Phase.SETUP:
+	if _session.phase() == MatchSession.Phase.SETUP:
 		_handoff_screen.present(
 			"Pass the device to Green",
 			"Green, set up your Army. Red must not look.",
@@ -126,9 +126,9 @@ func _refresh() -> void:
 	_status_label.text = _status_text()
 	_info_label.text = _info_text()
 	_graveyard_label.text = _graveyard_text()
-	var phase: HotSeatSession.Phase = _session.phase()
-	_shuffle_button.visible = phase == HotSeatSession.Phase.SETUP
-	_action_button.visible = phase != HotSeatSession.Phase.PLAYING or _turn_finished
+	var phase: MatchSession.Phase = _session.phase()
+	_shuffle_button.visible = phase == MatchSession.Phase.SETUP
+	_action_button.visible = phase != MatchSession.Phase.PLAYING or _turn_finished
 	_action_button.text = _action_text()
 
 
@@ -136,11 +136,11 @@ func _board_state() -> BoardViewState:
 	var state: BoardViewState = BoardViewState.new()
 	state.board = _session.display_board()
 	state.viewer = _viewer
-	state.reveal_all = _session.phase() == HotSeatSession.Phase.OVER
+	state.reveal_all = _session.phase() == MatchSession.Phase.OVER
 	state.selected = _selected
 	var record: MoveRecord = _session.last_record()
 	state.last_move = record.move if record != null else null
-	if _session.phase() == HotSeatSession.Phase.PLAYING and _selected != BoardViewState.NO_SQUARE:
+	if _session.phase() == MatchSession.Phase.PLAYING and _selected != BoardViewState.NO_SQUARE:
 		state.destinations = _session.game().legal_destinations(_selected)
 	return state
 
@@ -148,9 +148,9 @@ func _board_state() -> BoardViewState:
 func _status_text() -> String:
 	var viewer: String = PieceNames.side_name(_viewer)
 	match _session.phase():
-		HotSeatSession.Phase.SETUP:
+		MatchSession.Phase.SETUP:
 			return "%s: arrange your Army" % viewer
-		HotSeatSession.Phase.PLAYING:
+		MatchSession.Phase.PLAYING:
 			return "Your turn is over" if _turn_finished else "%s to move" % viewer
 		_:
 			return MatchNarrator.describe_result(_session.game().result())
@@ -158,17 +158,17 @@ func _status_text() -> String:
 
 func _info_text() -> String:
 	var record: MoveRecord = _session.last_record()
-	if _session.phase() != HotSeatSession.Phase.SETUP and record != null and record.fight != null:
-		if _turn_finished or _session.phase() == HotSeatSession.Phase.OVER:
+	if _session.phase() != MatchSession.Phase.SETUP and record != null and record.fight != null:
+		if _turn_finished or _session.phase() == MatchSession.Phase.OVER:
 			return MatchNarrator.describe_fight(record.fight)
 	if _selected == BoardViewState.NO_SQUARE:
-		return "Tap one of your Pieces." if _session.phase() != HotSeatSession.Phase.OVER else ""
+		return "Tap one of your Pieces." if _session.phase() != MatchSession.Phase.OVER else ""
 	var piece: Piece = _session.display_board().piece_at(_selected)
 	return MatchNarrator.describe_piece(piece.type) if piece != null else ""
 
 
 func _graveyard_text() -> String:
-	if _session.phase() == HotSeatSession.Phase.SETUP:
+	if _session.phase() == MatchSession.Phase.SETUP:
 		return ""
 	return "%s\n%s" % [
 		MatchNarrator.describe_graveyard(Side.Id.RED, _session.graveyard(Side.Id.RED)),
@@ -178,9 +178,9 @@ func _graveyard_text() -> String:
 
 func _action_text() -> String:
 	match _session.phase():
-		HotSeatSession.Phase.SETUP:
+		MatchSession.Phase.SETUP:
 			return "Ready"
-		HotSeatSession.Phase.PLAYING:
+		MatchSession.Phase.PLAYING:
 			return "Pass the device"
 		_:
 			return "New game"

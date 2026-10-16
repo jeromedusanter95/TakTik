@@ -8,4 +8,4 @@ extends Node
 func _ready() -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.randomize()
-	_local_match.start(func() -> HotSeatSession: return HotSeatSession.new(rng))
+	_local_match.start(func() -> MatchSession: return MatchSession.new(rng))

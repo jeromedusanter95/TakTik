@@ -1,10 +1,10 @@
 extends GutTest
 ## Drives the real LocalMatch scene the way two players would.
 
-const LocalMatchScene: PackedScene = preload("res://game/hot_seat/local_match.tscn")
+const LocalMatchScene: PackedScene = preload("res://game/match/local_match.tscn")
 
 var _match: LocalMatch = null
-var _session: HotSeatSession = null
+var _session: MatchSession = null
 
 
 func before_each() -> void:
@@ -56,10 +56,10 @@ func test_tapping_an_illegal_square_plays_nothing() -> void:
 	assert_eq(_label("%StatusLabel", _match).text, "Red to move")
 
 
-func _create_session() -> HotSeatSession:
+func _create_session() -> MatchSession:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 5
-	_session = HotSeatSession.new(rng)
+	_session = MatchSession.new(rng)
 	return _session
 
 

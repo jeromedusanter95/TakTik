@@ -1,4 +1,4 @@
-class_name HotSeatSession
+class_name MatchSession
 extends RefCounted
 ## Two players sharing one device: Red then Green arrange their Setups, then
 ## they take turns. Knows whose eyes the Board must be shown to.
