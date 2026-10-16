@@ -8,9 +8,9 @@ extends SceneTree
 const PROFILE_DIRECTORY: String = "res://ai/profiles/%s.tres"
 const MAX_PLIES: int = 600
 
-## The longest whole turn and the longest single step seen per profile name
+## Every turn's duration and the longest single step, per profile name,
 ## during matches, in milliseconds.
-var _longest_turn: Dictionary[String, float] = {}
+var _turn_times: Dictionary[String, PackedFloat64Array] = {}
 var _longest_step: Dictionary[String, float] = {}
 
 
@@ -33,7 +33,7 @@ func _time_turns(position_count: int, names: PackedStringArray) -> void:
 		positions.append(_position(index))
 	for name: String in names:
 		var profile: BotProfile = _search_only(_profile(name))
-		var turn_times: Array[float] = []
+		var turn_times: PackedFloat64Array = PackedFloat64Array()
 		var longest_step: float = 0.0
 		for index: int in positions.size():
 			var game: Game = positions[index]
@@ -83,9 +83,12 @@ func _play_matches(first_name: String, second_name: String, game_count: int, fir
 		float(plies_total) / game_count, (Time.get_ticks_msec() - start) / 1000.0,
 	])
 	print("  %s by reason: %s" % [first_name, reasons])
-	for name: String in _longest_turn:
-		print("  %s longest turn %.0f ms, longest step %.0f ms" % [
-			name, _longest_turn[name], _longest_step[name],
+	for name: String in _turn_times:
+		var times: PackedFloat64Array = _turn_times[name]
+		times.sort()
+		print("  %s turn ms: mean %.0f, median %.0f, p95 %.0f, longest %.0f; longest step %.0f ms" % [
+			name, _mean(times), times[times.size() / 2], times[int(times.size() * 0.95)],
+			times[-1], _longest_step[name],
 		])
 
 
@@ -123,9 +126,9 @@ func _timed_turn(bot: Bot, game: Game) -> Move:
 		var step_ms: float = (Time.get_ticks_usec() - step_start) / 1000.0
 		var longest_step: float = _longest_step.get(name, 0.0)
 		_longest_step[name] = maxf(longest_step, step_ms)
-	var turn_ms: float = (Time.get_ticks_usec() - turn_start) / 1000.0
-	var longest_turn: float = _longest_turn.get(name, 0.0)
-	_longest_turn[name] = maxf(longest_turn, turn_ms)
+	if not _turn_times.has(name):
+		_turn_times[name] = PackedFloat64Array()
+	_turn_times[name].append((Time.get_ticks_usec() - turn_start) / 1000.0)
 	return thinking.chosen_move()
 
 
@@ -179,7 +182,7 @@ static func _profile(name: String) -> BotProfile:
 	return resource as BotProfile
 
 
-static func _mean(values: Array[float]) -> float:
+static func _mean(values: PackedFloat64Array) -> float:
 	var total: float = 0.0
 	for value: float in values:
 		total += value
