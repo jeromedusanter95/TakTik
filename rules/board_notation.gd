@@ -65,6 +65,11 @@ static func parse_board(rows: Array[String]) -> Board:
 	return board
 
 
+## A Game on the Board [param rows] describe, with Red to move.
+static func parse_board_game(rows: Array[String]) -> Game:
+	return Game.new(parse_board(rows), Side.Id.RED)
+
+
 static func format_board(board: Board) -> Array[String]:
 	var rows: Array[String] = []
 	for row: int in range(Board.ROWS - 1, -1, -1):

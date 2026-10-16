@@ -32,6 +32,12 @@ static func home_row(side: Side.Id) -> int:
 	return 0 if side == Side.Id.RED else ROWS - 1
 
 
+func duplicate_board() -> Board:
+	var copy: Board = Board.new()
+	copy._pieces = _pieces.duplicate()
+	return copy
+
+
 func piece_at(square: Vector2i) -> Piece:
 	if not _pieces.has(square):
 		return null

@@ -13,10 +13,12 @@ func _init(
 		starting_board: Board,
 		first_to_move: Side.Id = Side.Id.RED,
 		plies_already_without_fight: int = 0,
+		last_moves: Dictionary[Side.Id, Move] = {},
 ) -> void:
 	_board = starting_board
 	_side_to_move = first_to_move
 	_plies_without_fight = plies_already_without_fight
+	_last_move_by_side = last_moves.duplicate()
 
 
 func board() -> Board:
@@ -33,6 +35,23 @@ func plies_without_fight() -> int:
 
 func result() -> GameResult:
 	return _result
+
+
+## The last Move [param side] played, or null before its first Move. Public:
+## both players saw it.
+func last_move_of(side: Side.Id) -> Move:
+	if not _last_move_by_side.has(side):
+		return null
+	return _last_move_by_side[side]
+
+
+## An independent copy, for exploring Moves without touching this game.
+func duplicate_game() -> Game:
+	var copy: Game = Game.new(
+		_board.duplicate_board(), _side_to_move, _plies_without_fight, _last_move_by_side
+	)
+	copy._result = _result
+	return copy
 
 
 func legal_destinations(from: Vector2i) -> Array[Vector2i]:
