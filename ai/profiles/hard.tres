@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 display_name = "Hard"
-search_depth = 2
-sample_count = 16
+search_depth = 3
+sample_count = 8
 mistake_chance = 0.0
