@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3]
 
-[ext_resource type="Script" path="res://game/hot_seat/local_match.gd" id="1"]
+[ext_resource type="Script" path="res://game/match/local_match.gd" id="1"]
 [ext_resource type="PackedScene" path="res://game/board/board_view.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://game/ui/handoff_screen.tscn" id="3"]
 [ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="4"]
@@ -36,12 +36,28 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 12
 
-[node name="StatusLabel" type="Label" parent="Layout"]
+[node name="TopBar" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StatusLabel" type="Label" parent="Layout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 26
 horizontal_alignment = 1
 autowrap_mode = 3
+
+[node name="MenuButton" type="Button" parent="Layout/TopBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 48)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 20
+text = "Menu"
+
+[node name="PressScaleFeedback" type="Node" parent="Layout/TopBar/MenuButton"]
+script = ExtResource("4")
 
 [node name="BoardView" parent="Layout" instance=ExtResource("2")]
 unique_name_in_owner = true

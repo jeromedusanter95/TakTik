@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="1"]
+
+[node name="ChoiceButton" type="Button"]
+custom_minimum_size = Vector2(320, 64)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 24
+
+[node name="PressScaleFeedback" type="Node" parent="."]
+script = ExtResource("1")

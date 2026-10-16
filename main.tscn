@@ -1,10 +1,20 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://main.gd" id="1"]
-[ext_resource type="PackedScene" path="res://game/hot_seat/local_match.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://game/match/local_match.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://game/menu/main_menu.tscn" id="3"]
+[ext_resource type="Resource" path="res://ai/profiles/easy.tres" id="4"]
+[ext_resource type="Resource" path="res://ai/profiles/medium.tres" id="5"]
+[ext_resource type="Resource" path="res://ai/profiles/hard.tres" id="6"]
+[ext_resource type="Script" path="res://ai/bot_profile.gd" id="7"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1")
+bot_profiles = Array[ExtResource("7")]([ExtResource("4"), ExtResource("5"), ExtResource("6")])
 
 [node name="LocalMatch" parent="." instance=ExtResource("2")]
+unique_name_in_owner = true
+visible = false
+
+[node name="MainMenu" parent="." instance=ExtResource("3")]
 unique_name_in_owner = true
