@@ -1,0 +1,17 @@
+export { Board, COLUMNS, ROWS, type ReadonlyBoard } from "./rules/board";
+export { formatBoard, formatMove, formatSquare, parseBoard, parseMove, parseSetup, parseSquare } from "./rules/board-notation";
+export type { Fight } from "./rules/fight";
+export { resolveFight, type FightOutcome } from "./rules/fight-outcome";
+export { Game, type GameStart, type MoveAttempt } from "./rules/game";
+export { gameFromSetups } from "./rules/game-factory";
+export { isOver, type GameEndReason, type GameResult, type GameStatus } from "./rules/game-result";
+export type { Move } from "./rules/move";
+export type { MoveRecord } from "./rules/move-record";
+export type { Piece } from "./rules/piece";
+export { armyTypes, attackStrengthOf, defenseStrengthOf, PIECE_TYPES, type PieceType } from "./rules/piece-type";
+export { Setup } from "./rules/setup";
+export { opponentOf, SIDES, type Side } from "./rules/side";
+export { squareAt, type Square } from "./rules/square";
+export { NO_FIGHT_PLY_LIMIT } from "./rules/victory-judge";
+export { playerViewOf, type OwnPiece, type PlayerView } from "./view/player-view";
+export { publicMoveEventOf, type PublicMoveEvent, type RevealedFight } from "./view/public-move-event";
