@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<circle cx="64" cy="64" r="58" fill="#2e9e48" stroke="#2b1a0e" stroke-width="4"/>
+<circle cx="64" cy="64" r="51" fill="none" stroke="#74cc88" stroke-width="3" opacity="0.6"/>
+<path d="M42 80 Q44 112 64 118 Q84 112 86 80 Z" fill="#ffffff" stroke="#2b1a0e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="64" cy="74" r="22" fill="#f6cf9c" stroke="#2b1a0e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<ellipse cx="56" cy="72" rx="3.4" ry="4.5" fill="#2b1a0e"/>
+<circle cx="57" cy="70.4" r="1.3" fill="#ffffff"/>
+<ellipse cx="72" cy="72" rx="3.4" ry="4.5" fill="#2b1a0e"/>
+<circle cx="73" cy="70.4" r="1.3" fill="#ffffff"/>
+<circle cx="51" cy="80" r="4" fill="#f08a7a" opacity="0.7"/>
+<circle cx="77" cy="80" r="4" fill="#f08a7a" opacity="0.7"/>
+<path d="M50 86 Q57 80 64 86 Q71 80 78 86" fill="#ffffff" stroke="#2b1a0e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M38 58 Q54 34 60 14 Q72 4 86 12 Q74 14 72 24 Q78 42 90 58 Z" fill="#3e4bb0" stroke="#2b1a0e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<ellipse cx="64" cy="58" rx="32" ry="6" fill="#3e4bb0" stroke="#2b1a0e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="65.0,31.0 67.4,36.7 73.6,37.2 68.9,41.3 70.3,47.3 65.0,44.0 59.7,47.3 61.1,41.3 56.4,37.2 62.6,36.7" fill="#f5c43a" stroke="#2b1a0e" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="86" cy="12" r="4" fill="#f5c43a" stroke="#2b1a0e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
