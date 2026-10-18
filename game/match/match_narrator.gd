@@ -9,6 +9,7 @@ const _REASON_KEYS: Dictionary[GameResult.Reason, StringName] = {
 	GameResult.Reason.NO_FIGHT_LIMIT: &"REASON_NO_FIGHT_LIMIT",
 	GameResult.Reason.RESIGNED: &"REASON_RESIGNED",
 	GameResult.Reason.FORFEITED: &"REASON_FORFEITED",
+	GameResult.Reason.OUT_OF_TIME: &"REASON_OUT_OF_TIME",
 }
 
 

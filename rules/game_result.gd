@@ -19,6 +19,8 @@ enum Reason {
 	RESIGNED,
 	## Online only: the loser stayed disconnected too long.
 	FORFEITED,
+	## Online only: the loser ran out the Turn Timer, which is also a Forfeit.
+	OUT_OF_TIME,
 }
 
 var status: Status:

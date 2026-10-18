@@ -41,6 +41,7 @@ const _REASONS: Dictionary[String, GameResult.Reason] = {
 	"no_fight_limit": GameResult.Reason.NO_FIGHT_LIMIT,
 	"resigned": GameResult.Reason.RESIGNED,
 	"forfeited": GameResult.Reason.FORFEITED,
+	"out_of_time": GameResult.Reason.OUT_OF_TIME,
 }
 
 

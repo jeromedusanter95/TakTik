@@ -15,7 +15,8 @@ enum Kind {
 	MALFORMED,
 }
 
-const NO_SETUP_TIMER: int = -1
+## What a time left holds when the referee did not say.
+const NO_TIMER: int = -1
 
 var kind: Kind = Kind.MALFORMED
 ## SEATED: the side taken and the Opponent's nickname.
@@ -25,14 +26,17 @@ var opponent: String = ""
 var own_setup_done: bool = false
 var opponent_setup_done: bool = false
 ## SETUP_STATUS: how long the Setup Timer still ran when the referee sent it,
-## or NO_SETUP_TIMER when the referee did not say.
-var setup_time_left_msec: int = NO_SETUP_TIMER
+## or NO_TIMER when the referee did not say.
+var setup_time_left_msec: int = NO_TIMER
 ## GAME_STATE and MOVED: the game as this player now knows it.
 var position: KnownPosition = null
 ## GAME_STATE: every Move so far.
 var history: Array[PublicMoveEvent] = []
 ## MOVED: the Move just played.
 var event: PublicMoveEvent = null
+## GAME_STATE and MOVED while play goes on: how long the player to move still
+## had when the referee sent it, or NO_TIMER when the referee did not say.
+var turn_time_left_msec: int = NO_TIMER
 ## GAME_STATE and MOVED once the game is over: every Piece left, Types shown.
 ## Null before.
 var final_board: Board = null

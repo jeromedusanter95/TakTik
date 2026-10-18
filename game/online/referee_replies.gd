@@ -5,6 +5,9 @@ extends RefCounted
 ## crash.
 
 const _NO_SQUARE: Vector2i = Vector2i(-1, -1)
+## What _time_left returns for a time left that is there but not a whole
+## number of milliseconds.
+const _MALFORMED_TIME_LEFT: int = -2
 
 
 static func read(text: String) -> RefereeReply:
@@ -47,13 +50,12 @@ static func _read_seated(message: Dictionary, reply: RefereeReply) -> void:
 static func _read_setup_status(message: Dictionary, reply: RefereeReply) -> void:
 	var own: Variant = message.get("ownSetupDone")
 	var opponent: Variant = message.get("opponentSetupDone")
-	var says_time_left: bool = message.has("setupTimeLeftMs")
-	var time_left: int = WireJson.count(message.get("setupTimeLeftMs"))
-	if own is not bool or opponent is not bool or (says_time_left and time_left < 0):
+	var time_left: int = _time_left(message, "setupTimeLeftMs")
+	if own is not bool or opponent is not bool or time_left == _MALFORMED_TIME_LEFT:
 		return
 	reply.own_setup_done = own
 	reply.opponent_setup_done = opponent
-	reply.setup_time_left_msec = time_left if says_time_left else RefereeReply.NO_SETUP_TIMER
+	reply.setup_time_left_msec = time_left
 	reply.kind = RefereeReply.Kind.SETUP_STATUS
 
 
@@ -68,7 +70,8 @@ static func _read_game_state(message: Dictionary, reply: RefereeReply) -> void:
 		if event == null:
 			return
 		reply.history.append(event)
-	if not _read_final_board(message, reply):
+	reply.turn_time_left_msec = _time_left(message, "turnTimeLeftMs")
+	if not _read_final_board(message, reply) or reply.turn_time_left_msec == _MALFORMED_TIME_LEFT:
 		return
 	reply.kind = RefereeReply.Kind.GAME_STATE
 
@@ -76,7 +79,11 @@ static func _read_game_state(message: Dictionary, reply: RefereeReply) -> void:
 static func _read_moved(message: Dictionary, reply: RefereeReply) -> void:
 	reply.position = _position(WireJson.object(message.get("view")))
 	reply.event = _event(WireJson.object(message.get("event")))
-	if reply.position == null or reply.event == null or not _read_final_board(message, reply):
+	reply.turn_time_left_msec = _time_left(message, "turnTimeLeftMs")
+	if (
+		reply.position == null or reply.event == null or not _read_final_board(message, reply)
+		or reply.turn_time_left_msec == _MALFORMED_TIME_LEFT
+	):
 		return
 	reply.kind = RefereeReply.Kind.MOVED
 
@@ -97,6 +104,16 @@ static func _read_quick_chat(message: Dictionary, reply: RefereeReply) -> void:
 	reply.chat_side = WireNames.side(side_name)
 	reply.chat_message = chat
 	reply.kind = RefereeReply.Kind.QUICK_CHAT
+
+
+## The optional time left under [param key], in milliseconds:
+## RefereeReply.NO_TIMER when it is not there, _MALFORMED_TIME_LEFT when it is
+## not a whole number of zero or more.
+static func _time_left(message: Dictionary, key: String) -> int:
+	if not message.has(key):
+		return RefereeReply.NO_TIMER
+	var time_left: int = WireJson.count(message.get(key))
+	return time_left if time_left >= 0 else _MALFORMED_TIME_LEFT
 
 
 ## Reads the optional final Board. False when it is there but malformed.

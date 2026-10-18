@@ -301,13 +301,13 @@ func test_the_setup_timer_keeps_counting_while_waiting_for_the_opponent() -> voi
 
 func test_there_is_no_setup_timer_when_the_referee_does_not_say() -> void:
 	_arranging()
-	assert_eq(_session.setup_seconds_left(), OnlineSession.NO_SETUP_TIMER)
+	assert_eq(_session.setup_seconds_left(), OnlineSession.NO_TIMER)
 
 
 func test_the_setup_timer_is_gone_once_play_starts() -> void:
 	_arranging_with_time_left(60_000)
 	_playing("red")
-	assert_eq(_session.setup_seconds_left(), OnlineSession.NO_SETUP_TIMER)
+	assert_eq(_session.setup_seconds_left(), OnlineSession.NO_TIMER)
 
 
 func test_play_starting_during_arrangement_means_the_army_was_arranged_at_random() -> void:
@@ -331,6 +331,42 @@ func test_a_setup_that_starts_play_was_not_arranged_at_random() -> void:
 	_socket.receive({"type": "game_state", "view": _view("red", [], []), "history": []})
 	_session.poll()
 	assert_false(_session.was_setup_arranged_at_random())
+
+
+func test_it_counts_down_the_turn_timer_the_referee_announced() -> void:
+	_arranging()
+	var view: Dictionary = _view("red", [], [])
+	_socket.receive({"type": "game_state", "view": view, "history": [], "turnTimeLeftMs": 60_000})
+	_session.poll()
+	assert_eq(_session.turn_seconds_left(), 60)
+	_now_msec += 45_200
+	assert_eq(_session.turn_seconds_left(), 15, "rounded up")
+	assert_eq(_session.setup_seconds_left(), OnlineSession.NO_TIMER, "Setup is over")
+
+
+func test_the_turn_timer_starts_again_with_each_move() -> void:
+	_arranging()
+	var view: Dictionary = _view("red", [], [])
+	_socket.receive({"type": "game_state", "view": view, "history": [], "turnTimeLeftMs": 60_000})
+	_session.poll()
+	_now_msec += 50_000
+	var move: Dictionary = {"from": {"column": 2, "row": 2}, "to": {"column": 2, "row": 3}}
+	_socket.receive({
+		"type": "moved", "event": {"moverSide": "red", "move": move},
+		"view": _view("green", [], []), "turnTimeLeftMs": 60_000,
+	})
+	_session.poll()
+	assert_eq(_session.turn_seconds_left(), 60)
+
+
+func test_there_is_no_turn_timer_once_the_game_is_over() -> void:
+	_arranging()
+	var view: Dictionary = _view("green", [], [])
+	view["result"] = {"status": "green_wins", "reason": "out_of_time"}
+	_socket.receive({"type": "game_state", "view": view, "history": []})
+	_session.poll()
+	assert_eq(_session.turn_seconds_left(), OnlineSession.NO_TIMER)
+	assert_eq(_session.result().reason, GameResult.Reason.OUT_OF_TIME)
 
 
 func _ticks_msec() -> int:

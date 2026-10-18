@@ -23,9 +23,9 @@ enum Phase {
 	DISCONNECTED,
 }
 
-## What setup_seconds_left returns outside Setup, or when the referee did not
-## say how long the Setup Timer runs.
-const NO_SETUP_TIMER: int = -1
+## What setup_seconds_left and turn_seconds_left return when their timer does
+## not run, or when the referee did not say how long it runs.
+const NO_TIMER: int = -1
 
 var _socket: WireSocket
 var _seat: PairedSeat
@@ -43,8 +43,10 @@ var _opponent_connected: bool = true
 var _disconnection_reason: String = ""
 var _rematch_asked: bool = false
 var _opponent_wants_rematch: bool = false
-## When the Setup Timer runs out, on the _ticks_msec clock, or NO_SETUP_TIMER.
-var _setup_deadline_msec: int = NO_SETUP_TIMER
+## When the Setup Timer runs out, on the _ticks_msec clock, or NO_TIMER.
+var _setup_deadline_msec: int = NO_TIMER
+## When the current turn runs out, on the _ticks_msec clock, or NO_TIMER.
+var _turn_deadline_msec: int = NO_TIMER
 var _setup_arranged_at_random: bool = false
 
 
@@ -124,15 +126,18 @@ func position() -> KnownPosition:
 
 
 ## Whole seconds, rounded up, until the Setup Timer runs out, as long as this
-## Guest is in Setup; NO_SETUP_TIMER otherwise.
+## Guest is in Setup; NO_TIMER otherwise.
 func setup_seconds_left() -> int:
 	var in_setup: bool = (
 		_phase == Phase.ARRANGING or _phase == Phase.WAITING_FOR_OPPONENT_SETUP
 	)
-	if not in_setup or _setup_deadline_msec == NO_SETUP_TIMER:
-		return NO_SETUP_TIMER
-	var left_msec: int = maxi(0, _setup_deadline_msec - _now_msec())
-	return ceili(left_msec / 1000.0)
+	return _seconds_until(_setup_deadline_msec) if in_setup else NO_TIMER
+
+
+## Whole seconds, rounded up, until the player to move runs out the Turn
+## Timer, as long as play goes on; NO_TIMER otherwise.
+func turn_seconds_left() -> int:
+	return _seconds_until(_turn_deadline_msec) if _phase == Phase.PLAYING else NO_TIMER
 
 
 ## True once play has started because the Setup Timer ran out before this
@@ -302,9 +307,7 @@ func _handle(reply: RefereeReply) -> void:
 
 func _show_setup_status(reply: RefereeReply) -> void:
 	_awaiting_answer = false
-	_setup_deadline_msec = NO_SETUP_TIMER
-	if reply.setup_time_left_msec != RefereeReply.NO_SETUP_TIMER:
-		_setup_deadline_msec = _now_msec() + reply.setup_time_left_msec
+	_setup_deadline_msec = _deadline_after(reply.setup_time_left_msec)
 	if reply.own_setup_done:
 		_phase = Phase.WAITING_FOR_OPPONENT_SETUP
 		return
@@ -319,7 +322,21 @@ func _show_position(reply: RefereeReply) -> void:
 	_awaiting_answer = false
 	_position = reply.position
 	_final_board = reply.final_board
+	_turn_deadline_msec = _deadline_after(reply.turn_time_left_msec)
 	_phase = Phase.OVER if _position.result.is_over() else Phase.PLAYING
+
+
+## When [param time_left_msec] from now falls, or NO_TIMER when it is NO_TIMER.
+func _deadline_after(time_left_msec: int) -> int:
+	if time_left_msec == RefereeReply.NO_TIMER:
+		return NO_TIMER
+	return _now_msec() + time_left_msec
+
+
+func _seconds_until(deadline_msec: int) -> int:
+	if deadline_msec == NO_TIMER:
+		return NO_TIMER
+	return ceili(maxi(0, deadline_msec - _now_msec()) / 1000.0)
 
 
 func _now_msec() -> int:
