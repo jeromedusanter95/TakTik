@@ -90,6 +90,10 @@ func use_preferences(preferences: PlayerPreferences) -> void:
 	_screen.use_preferences(preferences)
 
 
+func use_sound(sound: SoundOutput) -> void:
+	_screen.use_sound(sound)
+
+
 func set_phone(phone: bool) -> void:
 	_screen.set_phone(phone)
 

@@ -8,6 +8,8 @@ extends PanelContainer
 signal menu_pressed
 signal resign_pressed
 signal chat_pressed
+## The timer ring beat in one of its last seconds.
+signal timer_beat
 
 @onready var _logo: Label = %Logo
 @onready var _divider: VSeparator = %Divider
@@ -22,6 +24,7 @@ signal chat_pressed
 @onready var _unread_label: Label = %UnreadLabel
 @onready var _menu_button: Button = %MenuButton
 @onready var _phone_menu_button: Button = %PhoneMenuButton
+@onready var _sound_toggle: SoundToggle = %SoundToggle
 
 var _phone: bool = false
 var _resign_allowed: bool = false
@@ -33,6 +36,7 @@ func _ready() -> void:
 	_phone_menu_button.pressed.connect(_on_menu_pressed)
 	_resign_button.pressed.connect(_on_resign_pressed)
 	_chat_button.pressed.connect(_on_chat_pressed)
+	_timer_ring.beat.connect(_on_timer_beat)
 	show_unread(0)
 	hide_timer()
 	_refresh()
@@ -97,6 +101,10 @@ func set_phone(phone: bool) -> void:
 	_refresh()
 
 
+func use_preferences(preferences: PlayerPreferences) -> void:
+	_sound_toggle.use_preferences(preferences)
+
+
 func set_reduced_motion(reduced: bool) -> void:
 	_timer_ring.reduced_motion = reduced
 	_status_dot.reduced_motion = reduced
@@ -108,6 +116,7 @@ func _refresh() -> void:
 	_subtitle.visible = not _phone
 	_phone_menu_button.visible = _phone
 	_menu_button.visible = not _phone
+	_sound_toggle.visible = not _phone
 	_resign_button.visible = _resign_allowed and not _phone
 	_chat_button.visible = _phone and _has_chat
 
@@ -122,3 +131,7 @@ func _on_resign_pressed() -> void:
 
 func _on_chat_pressed() -> void:
 	chat_pressed.emit()
+
+
+func _on_timer_beat() -> void:
+	timer_beat.emit()

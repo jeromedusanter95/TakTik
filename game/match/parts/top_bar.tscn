@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="7"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/crown.svg" id="8"]
 [ext_resource type="Script" path="res://game/ui/components/ui_icon.gd" id="9"]
+[ext_resource type="Script" path="res://game/ui/components/sound_toggle.gd" id="10"]
 
 [node name="TopBar" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 76)
@@ -149,6 +150,12 @@ layout_mode = 2
 theme_type_variation = &"CaptionStrong"
 auto_translate_mode = 2
 horizontal_alignment = 1
+
+[node name="SoundToggle" type="Button" parent="Columns/Right"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+script = ExtResource("10")
 
 [node name="MenuButton" type="Button" parent="Columns/Right"]
 unique_name_in_owner = true

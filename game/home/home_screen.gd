@@ -16,6 +16,7 @@ var _server_url: String = ""
 ## Returns a new WireSocket for each connection.
 var _open_socket: Callable = Callable()
 var _preferences: PlayerPreferences = null
+var _sound: SoundOutput = null
 var _profiles: Array[BotProfile] = []
 var _lobby: LobbyClient = null
 ## A Quick Match asked for while the Lobby was still being entered.
@@ -45,6 +46,7 @@ var _active: bool = false
 @onready var _online_panel: OnlinePanel = %OnlinePanel
 @onready var _language_switch: SegmentedControl = %LanguageSwitch
 @onready var _top_right: HBoxContainer = %TopRight
+@onready var _sound_toggle: SoundToggle = %SoundToggle
 
 
 func _ready() -> void:
@@ -64,6 +66,7 @@ func _ready() -> void:
 	_online_panel.withdraw_requested.connect(_on_withdraw_requested)
 	_online_panel.answer_requested.connect(_on_answer_requested)
 	_online_panel.retry_requested.connect(_enter_lobby)
+	_online_panel.challenge_shown.connect(_on_challenge_shown)
 	_apply_layout()
 	_show_quick_match()
 
@@ -85,7 +88,13 @@ func use_preferences(preferences: PlayerPreferences) -> void:
 	_preferences = preferences
 	_preferences.changed.connect(_show_preferences)
 	_name_edit.text = preferences.nickname
+	_sound_toggle.use_preferences(preferences)
 	_show_preferences()
+
+
+## Where the Challenge sound goes; without one the screen stays silent.
+func use_sound(sound: SoundOutput) -> void:
+	_sound = sound
 
 
 ## Adds one Difficulty option per Bot profile, in the order given.
@@ -240,7 +249,7 @@ func _apply_layout() -> void:
 	_margin.add_theme_constant_override("margin_top", 72 if _phone else 56)
 	_margin.add_theme_constant_override("margin_bottom", UiTokens.SPACE_L if _phone else 44)
 	# Beside the left column on large screens; in the corner on phones.
-	_top_right.offset_left = -136.0 - (UiTokens.SPACE_L if _phone else 508.0)
+	_top_right.offset_left = -190.0 - (UiTokens.SPACE_L if _phone else 508.0)
 	_top_right.offset_right = -(UiTokens.SPACE_L if _phone else 508.0)
 	_top_right.offset_top = UiTokens.SPACE_L if _phone else 28.0
 	_mode_cards.vertical = _phone
@@ -342,6 +351,11 @@ func _on_lobby_failed(reason: String) -> void:
 
 func _on_challenge_ended(nickname: String, reason: String) -> void:
 	_online_panel.show_message(OnlineMatchTexts.challenge_end(nickname, reason))
+
+
+func _on_challenge_shown() -> void:
+	if _sound != null:
+		_sound.play(SoundCue.Id.CHALLENGE)
 
 
 func _on_challenge_requested(guest_id: String) -> void:

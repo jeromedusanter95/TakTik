@@ -24,6 +24,7 @@ var _fitted: bool = false
 @onready var _home: HomeScreen = %HomeScreen
 @onready var _local_match: LocalMatch = %LocalMatch
 @onready var _online_match: OnlineMatch = %OnlineMatch
+@onready var _sound: SoundPlayer = %SoundPlayer
 
 
 func _ready() -> void:
@@ -40,6 +41,10 @@ func _ready() -> void:
 	var theme: Theme = TaktikTheme.build()
 	for screen: Control in [_home, _local_match, _online_match]:
 		screen.theme = theme
+	_sound.use_preferences(_preferences)
+	_home.use_sound(_sound)
+	_local_match.use_sound(_sound)
+	_online_match.use_sound(_sound)
 	_home.configure(online_server_url, _open_socket)
 	_home.use_preferences(_preferences)
 	_home.show_difficulties(bot_profiles)

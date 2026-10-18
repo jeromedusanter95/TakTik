@@ -28,6 +28,8 @@ const BURST_TIME: float = 0.12
 ## A Setup swap: both Pieces cross along an arc.
 const SWAP_TIME: float = 0.26
 const SWAP_ARC: float = 16.0
+## About how long a Fight plays, until the loser is gone.
+const FIGHT_SECONDS: float = 0.9
 ## With reduced motion, a Move is a short fade and slide.
 const REDUCED_TIME: float = 0.15
 

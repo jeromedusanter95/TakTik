@@ -46,6 +46,7 @@ const PHONE_MAX_CELL: float = 64.0
 const PHONE_MIN_CELL: float = 48.0
 
 var _preferences: PlayerPreferences = null
+var _sound: SoundOutput = null
 var _phone: bool = false
 var _has_chat: bool = true
 var _resign_allowed: bool = false
@@ -99,14 +100,21 @@ func _ready() -> void:
 	_chat_panel.quick_chat_chosen.connect(_on_quick_chat_chosen)
 	_chat_panel.message_added.connect(_on_message_added)
 	_chat_sheet.closed.connect(_on_chat_sheet_closed)
+	_top_bar.timer_beat.connect(_play.bind(SoundCue.Id.TICK))
 	_apply_layout()
 
 
 func use_preferences(preferences: PlayerPreferences) -> void:
 	_preferences = preferences
 	_game_menu.use_preferences(preferences)
+	_top_bar.use_preferences(preferences)
 	_preferences.changed.connect(_on_preferences_changed)
 	_apply_motion()
+
+
+## Where the game's sound cues go; without one the screen stays silent.
+func use_sound(sound: SoundOutput) -> void:
+	_sound = sound
 
 
 ## Whether the colour-blind palette is on.
@@ -225,10 +233,14 @@ func show_board(state: BoardViewState) -> void:
 
 func play_move(event: PublicMoveEvent) -> void:
 	_board_view.play_move(event)
+	_play(SoundCue.Id.FIGHT if event.has_fight else SoundCue.Id.MOVE)
+	if event.has_fight:
+		get_tree().create_timer(BoardMotion.FIGHT_SECONDS).timeout.connect(_play.bind(SoundCue.Id.CAPTURE))
 
 
 func play_swap(first: Vector2i, second: Vector2i) -> void:
 	_board_view.play_swap(first, second)
+	_play(SoundCue.Id.SWAP)
 
 
 ## The buttons under the Board: Shuffle when [param shuffle], and the gold
@@ -253,6 +265,8 @@ func clear_chat() -> void:
 
 func add_chat(author: String, text: String, is_you: bool) -> void:
 	_chat_panel.add_chat(author, text, is_you)
+	if not is_you:
+		_play(SoundCue.Id.CHAT)
 	_chat_bar.text = Translated.text(&"CHAT_LINE", {"name": author, "message": text})
 
 
@@ -276,10 +290,12 @@ func set_chips_enabled(enabled: bool) -> void:
 
 func play_turn_banner() -> void:
 	_turn_banner.play()
+	_play(SoundCue.Id.TURN)
 
 
 func show_result(view: MatchResultView) -> void:
 	_result_modal.present(view, adapted_colours())
+	_play(SoundCue.Id.VICTORY if view.mood == MatchResultView.Mood.VICTORY else SoundCue.Id.DEFEAT)
 	_board_view.modulate.a = BOARD_DIM
 
 
@@ -315,6 +331,11 @@ func close_overlays() -> void:
 	_connection_dialog.hide()
 	_chat_sheet.close()
 	hide_result()
+
+
+func _play(cue: SoundCue.Id) -> void:
+	if _sound != null:
+		_sound.play(cue)
 
 
 func _badges(slot: Slot) -> Array[PlayerBadge]:

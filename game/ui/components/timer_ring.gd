@@ -4,6 +4,9 @@ extends Control
 ## its centre. Under 10 seconds it turns red; in the last 3 it beats once a
 ## second.
 
+## One of the last seconds started.
+signal beat
+
 const RING_WIDTH: float = 5.0
 const WARNING_SECONDS: int = 10
 const BEAT_SECONDS: int = 3
@@ -53,6 +56,7 @@ func show_time(seconds_left: int, total_seconds: int) -> void:
 	_total_seconds = maxi(1, total_seconds)
 	queue_redraw()
 	if changed and _seconds_left > 0 and _seconds_left <= BEAT_SECONDS:
+		beat.emit()
 		_play_beat()
 
 

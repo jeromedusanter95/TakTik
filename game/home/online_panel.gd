@@ -8,6 +8,8 @@ signal challenge_requested(guest_id: String)
 signal withdraw_requested
 signal answer_requested(guest_id: String, accept: bool)
 signal retry_requested
+## A Challenge card appeared for a new challenger.
+signal challenge_shown
 
 const CARD_IN_TIME: float = 0.3
 const CARD_OUT_TIME: float = 0.2
@@ -133,6 +135,7 @@ func show_challenge(challenger: ListedGuest, seconds_left: float, total_seconds:
 	_more_label.text = Translated.text(&"LOBBY_MORE_CHALLENGES", {"count": others})
 	if is_new:
 		_slide_card_in()
+		challenge_shown.emit()
 
 
 func hide_challenge() -> void:

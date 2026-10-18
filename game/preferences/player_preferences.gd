@@ -1,7 +1,7 @@
 class_name PlayerPreferences
 extends RefCounted
-## The player's choices: language, nickname, Bot Difficulty, reduced motion
-## and adapted colours. Each change is saved at once and reported.
+## The player's choices: language, nickname, Bot Difficulty, reduced motion,
+## adapted colours and sound. Each change is saved at once and reported.
 
 signal changed
 
@@ -10,6 +10,7 @@ const NICKNAME: String = "nickname"
 const DIFFICULTY: String = "difficulty"
 const REDUCED_MOTION: String = "reduced_motion"
 const ADAPTED_COLOURS: String = "adapted_colours"
+const SOUND: String = "sound"
 const _YES: String = "yes"
 const _NO: String = "no"
 
@@ -29,6 +30,9 @@ var reduced_motion: bool:
 var adapted_colours: bool:
 	get:
 		return _adapted_colours
+var sound_on: bool:
+	get:
+		return _sound_on
 
 var _store: PreferenceStore
 var _language: String = Languages.ENGLISH
@@ -36,6 +40,7 @@ var _nickname: String = ""
 var _difficulty: int = 1
 var _reduced_motion: bool = false
 var _adapted_colours: bool = false
+var _sound_on: bool = true
 
 
 ## Reads what [param store] kept. [param device_language] and
@@ -51,6 +56,7 @@ func _init(
 		_difficulty = maxi(0, saved_difficulty.to_int())
 	_reduced_motion = _flag(store.load_value(REDUCED_MOTION), device_prefers_reduced_motion)
 	_adapted_colours = _flag(store.load_value(ADAPTED_COLOURS), false)
+	_sound_on = _flag(store.load_value(SOUND), true)
 
 
 func set_language(code: String) -> void:
@@ -95,6 +101,14 @@ func set_adapted_colours(enabled: bool) -> void:
 		return
 	_adapted_colours = enabled
 	_store.save_value(ADAPTED_COLOURS, _YES if enabled else _NO)
+	changed.emit()
+
+
+func set_sound_on(enabled: bool) -> void:
+	if enabled == _sound_on:
+		return
+	_sound_on = enabled
+	_store.save_value(SOUND, _YES if enabled else _NO)
 	changed.emit()
 
 

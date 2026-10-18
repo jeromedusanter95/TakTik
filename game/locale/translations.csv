@@ -185,3 +185,4 @@ LOBBY_CHALLENGE_EXPIRES,The Challenge expires in {time},Le défi expire dans {ti
 LOBBY_MORE_CHALLENGES,+ {count} more Challenges,+ {count} autres défis
 LOBBY_STATUS_IN_GAME,In a game,En partie
 LOBBY_BUSY,{nickname} is in a game.,{nickname} est en partie.
+SOUND_TOGGLE,Sound on or off,Son activé ou coupé
