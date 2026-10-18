@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseMove, parseSetup, parseSquare } from "../../src/rules/board-notation";
 import { gameFromSetups } from "../../src/rules/game-factory";
 import { OnlineGame } from "../../src/referee/online-game";
+import type { SetupDraws } from "../../src/rules/setup";
 import { playerViewOf } from "../../src/view/player-view";
 import { GREEN_SETUP, placementsOf, RED_SETUP, SEATING, WINNING_MOVE } from "./fixtures";
 
@@ -223,6 +224,37 @@ describe("an online game", () => {
 		it("refuses a record whose Moves cannot be replayed", () => {
 			const record = gameInPlay().toRecord();
 			expect(() => OnlineGame.fromRecord({ ...record, moves: [parseMove("b3-b4")] })).toThrow();
+		});
+	});
+
+	describe("when the Setup Timer runs out", () => {
+		const firstSquare: SetupDraws = { below: () => 0 };
+
+		it("gives a Random Setup to the side still without one and starts play", () => {
+			const game = OnlineGame.open(SEATING);
+			game.submitSetup("red", placementsOf("red", RED_SETUP));
+			game.arrangeMissingSetupsAtRandom(firstSquare);
+
+			expect(game.phase()).toBe("playing");
+			expect(game.toRecord().setups.red).toEqual(placementsOf("red", RED_SETUP));
+			expect(game.viewOf("green").ownPieces).toHaveLength(18);
+		});
+
+		it("records the Random Setup so the game replays", () => {
+			const game = OnlineGame.open(SEATING);
+			game.arrangeMissingSetupsAtRandom(firstSquare);
+			game.play("red", parseMove("c3-c4"));
+			const rebuilt = OnlineGame.fromRecord(JSON.parse(JSON.stringify(game.toRecord())));
+
+			expect(rebuilt.viewOf("red")).toEqual(game.viewOf("red"));
+			expect(rebuilt.viewOf("green")).toEqual(game.viewOf("green"));
+		});
+
+		it("changes nothing once play has started", () => {
+			const game = gameInPlay();
+			const before = game.toRecord();
+			game.arrangeMissingSetupsAtRandom(firstSquare);
+			expect(game.toRecord()).toEqual(before);
 		});
 	});
 });

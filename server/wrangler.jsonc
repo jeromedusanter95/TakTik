@@ -3,8 +3,13 @@
 	"name": "taktik-referee",
 	"main": "src/worker/index.ts",
 	"compatibility_date": "2026-10-01",
-	// How long a player may stay disconnected during play before they Forfeit.
-	"vars": { "FORFEIT_AFTER_SECONDS": 120 },
+	"vars": {
+		// How long a player may stay disconnected during play before they Forfeit.
+		"FORFEIT_AFTER_SECONDS": 120,
+		// The Setup Timer: how long both players have to finish Setup before the
+		// Pieces of whoever is not done get a Random Setup.
+		"SETUP_TIMER_SECONDS": 180
+	},
 	"durable_objects": {
 		"bindings": [
 			{ "name": "LOBBY", "class_name": "LobbyHost" },

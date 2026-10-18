@@ -1,22 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestHarness, type TestHarness } from "wrangler";
-import type { LobbyReply } from "../../src/lobby/protocol";
 import type { RefereeReply } from "../../src/referee/protocol";
 import { parseMove } from "../../src/rules/board-notation";
 import type { Side } from "../../src/rules/side";
 import { GREEN_SETUP, placementsOf, RED_SETUP, WINNING_MOVE } from "../referee/fixtures";
 import { JsonSocket, socketUrl } from "./json-socket";
-
-type PlayerSocket = JsonSocket<RefereeReply>;
+import { pairTwoGuests, takeSeat, type PairedSeat, type PlayerSocket } from "./paired-guests";
 
 /** Short, so a Forfeit happens within one test. */
 const FORFEIT_AFTER_SECONDS = 2;
-
-interface PairedSeat {
-	readonly gameId: string;
-	readonly seatToken: string;
-	readonly opponent: string;
-}
 
 describe("the Referee Worker", () => {
 	let harness: TestHarness;
@@ -38,43 +30,10 @@ describe("the Referee Worker", () => {
 		await harness.close();
 	});
 
-	/** Pairs two Guests through Quick Match in the Lobby and returns each side's seat. */
-	async function pairTwoGuests(): Promise<Record<Side, PairedSeat>> {
-		const guests: JsonSocket<LobbyReply>[] = [];
-		for (const nickname of ["Ada", "Bob"]) {
-			const guest = await JsonSocket.open<LobbyReply>(socketUrl(base, "/lobby"));
-			guest.send({ type: "enter", nickname });
-			guest.send({ type: "quick_match" });
-			await guest.replyWhere((reply) => reply.type === "entered");
-			guests.push(guest);
-		}
-		const seats: Partial<Record<Side, PairedSeat>> = {};
-		for (const guest of guests) {
-			const paired = await guest.replyWhere((reply) => reply.type === "paired" || reply.type === "refused");
-			guest.leave();
-			if (paired?.type !== "paired") {
-				throw new Error(`a Guest was not paired: ${JSON.stringify(guest.replies)}`);
-			}
-			seats[paired.side] = { gameId: paired.gameId, seatToken: paired.seatToken, opponent: paired.opponent };
-		}
-		const { red, green } = seats;
-		if (red === undefined || green === undefined) {
-			throw new Error("both sides should be seated");
-		}
-		return { red, green };
-	}
-
-	async function takeSeat(seat: PairedSeat): Promise<PlayerSocket> {
-		const player = await JsonSocket.open<RefereeReply>(socketUrl(base, `/games/${seat.gameId}`));
-		player.send({ type: "take_seat", seatToken: seat.seatToken });
-		await player.replyCount(2);
-		return player;
-	}
-
 	async function startGame(): Promise<{ seats: Record<Side, PairedSeat>; red: PlayerSocket; green: PlayerSocket }> {
-		const seats = await pairTwoGuests();
-		const red = await takeSeat(seats.red);
-		const green = await takeSeat(seats.green);
+		const seats = await pairTwoGuests(base);
+		const red = await takeSeat(base, seats.red);
+		const green = await takeSeat(base, seats.green);
 		red.send({ type: "setup", placements: placementsOf("red", RED_SETUP) });
 		await Promise.all([red.replyCount(3), green.replyCount(3)]);
 		green.send({ type: "setup", placements: placementsOf("green", GREEN_SETUP) });
@@ -83,16 +42,16 @@ describe("the Referee Worker", () => {
 	}
 
 	it("seats both Guests and plays a game from Setup to Victory", async () => {
-		const seats = await pairTwoGuests();
-		const red = await takeSeat(seats.red);
+		const seats = await pairTwoGuests(base);
+		const red = await takeSeat(base, seats.red);
 		expect(red.replies).toEqual([
 			{ type: "seated", side: "red", opponent: seats.red.opponent },
-			{ type: "setup_status", ownSetupDone: false, opponentSetupDone: false },
+			{ type: "setup_status", ownSetupDone: false, opponentSetupDone: false, setupTimeLeftMs: expect.any(Number) },
 		]);
-		const green = await takeSeat(seats.green);
+		const green = await takeSeat(base, seats.green);
 
 		red.send({ type: "setup", placements: placementsOf("red", RED_SETUP) });
-		expect(await green.reply(2)).toEqual({ type: "setup_status", ownSetupDone: false, opponentSetupDone: true });
+		expect(await green.reply(2)).toMatchObject({ type: "setup_status", ownSetupDone: false, opponentSetupDone: true });
 
 		green.send({ type: "setup", placements: placementsOf("green", GREEN_SETUP) });
 		const redStart = await red.reply(3);
@@ -135,7 +94,7 @@ describe("the Referee Worker", () => {
 		green.leave();
 		await green.closed;
 
-		const back = await takeSeat(seats.green);
+		const back = await takeSeat(base, seats.green);
 		expect(back.replies[1]).toMatchObject({
 			type: "game_state",
 			view: { side: "green", sideToMove: "green" },
@@ -159,7 +118,7 @@ describe("the Referee Worker", () => {
 		green.leave();
 		expect(await red.reply(4)).toEqual({ type: "opponent_presence", connected: false });
 
-		await takeSeat(seats.green);
+		await takeSeat(base, seats.green);
 		expect(await red.reply(5)).toEqual({ type: "opponent_presence", connected: true });
 	});
 
@@ -204,12 +163,12 @@ describe("the Referee Worker", () => {
 		expect(redRematch.side).toBe("green");
 		expect(greenRematch.side).toBe("red");
 
-		const back = await takeSeat({ gameId: redRematch.gameId, seatToken: redRematch.seatToken, opponent: "" });
+		const back = await takeSeat(base, { gameId: redRematch.gameId, seatToken: redRematch.seatToken, opponent: "" });
 		expect(back.replies[0]).toMatchObject({ type: "seated", side: "green", opponent: seats.red.opponent });
 	});
 
 	it("shows out a socket with a wrong Seat Token", async () => {
-		const seats = await pairTwoGuests();
+		const seats = await pairTwoGuests(base);
 		const intruder = await JsonSocket.open<RefereeReply>(socketUrl(base, `/games/${seats.red.gameId}`));
 		intruder.send({ type: "take_seat", seatToken: "0".repeat(64) });
 

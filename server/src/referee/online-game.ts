@@ -2,7 +2,7 @@ import type { Game } from "../rules/game";
 import { gameFromSetups } from "../rules/game-factory";
 import { isOver, type ConcessionReason } from "../rules/game-result";
 import type { Move } from "../rules/move";
-import { Setup } from "../rules/setup";
+import { Setup, type SetupDraws } from "../rules/setup";
 import { opponentOf, SIDES, type Side } from "../rules/side";
 import { compareSquares, sameSquare } from "../rules/square";
 import { playerViewOf, type PlayerView } from "../view/player-view";
@@ -125,6 +125,18 @@ export class OnlineGame {
 		return { accepted: true };
 	}
 
+	/** Gives a Random Setup to each side still without a Setup, which starts play. Only during Setup. */
+	arrangeMissingSetupsAtRandom(draws: SetupDraws): void {
+		if (this.phase() !== "setup") {
+			return;
+		}
+		for (const side of SIDES.filter((missing) => !this.hasSetup(missing))) {
+			if (!this.submitSetup(side, placementsOf(Setup.random(side, draws))).accepted) {
+				throw new Error(`The Random Setup of ${side} is not valid`);
+			}
+		}
+	}
+
 	play(side: Side, move: Move): OnlineMoveAttempt {
 		const game = this.game;
 		if (game === undefined) {
@@ -225,6 +237,13 @@ function setupOf(side: Side, placements: readonly Placement[]): Setup | undefine
 		setup.place(square, type);
 	}
 	return setup.isValid() ? setup : undefined;
+}
+
+function placementsOf(setup: Setup): Placement[] {
+	return Setup.squaresFor(setup.side).flatMap((square) => {
+		const type = setup.typeAt(square);
+		return type === undefined ? [] : [{ square, type }];
+	});
 }
 
 /** Compares in time that does not depend on where the texts first differ, so a Seat Token cannot be guessed by timing. */

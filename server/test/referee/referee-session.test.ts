@@ -8,6 +8,8 @@ import type { RefereeRefusal, RefereeReply } from "../../src/referee/protocol";
 import type { RefereeAlarm } from "../../src/referee/referee-alarm";
 import { RefereeSession, type GameStore, type SeatConnections } from "../../src/referee/referee-session";
 import type { OpenedRematch, RematchMaker } from "../../src/referee/rematch-maker";
+import { SetupTimer } from "../../src/referee/setup-timer";
+import type { SetupDraws } from "../../src/rules/setup";
 import { GREEN_SETUP, placementsOf, RED_SETUP, SEATING, WINNING_MOVE } from "./fixtures";
 
 /** Sockets held in memory, seated in the order they take their seats. */
@@ -110,6 +112,11 @@ class FakeClock implements Clock {
 }
 
 const FORFEIT_AFTER_MS = 60_000;
+const SETUP_TIMER_MS = 180_000;
+const SETUP_DEADLINE = 1_000 + SETUP_TIMER_MS;
+
+/** Always draws the first Square left, so a Random Setup follows the order of the Army. */
+const FIRST_SQUARE: SetupDraws = { below: () => 0 };
 
 function text(message: unknown): string {
 	return JSON.stringify(message);
@@ -125,8 +132,10 @@ describe("a Referee session", () => {
 	let session: RefereeSession<string>;
 	let rematches: FakeRematchMaker;
 
-	function watchFrom(record: AbsenceRecord): ForfeitWatch {
-		return new ForfeitWatch(record, { forfeitAfterMs: FORFEIT_AFTER_MS, clock, store: absences });
+	function sessionOf(onlineGame: OnlineGame, absent: AbsenceRecord): RefereeSession<string> {
+		const forfeitWatch = new ForfeitWatch(absent, { forfeitAfterMs: FORFEIT_AFTER_MS, clock, store: absences });
+		const setupTimer = new SetupTimer(SETUP_DEADLINE, clock);
+		return new RefereeSession(onlineGame, seats, store, { setupTimer, forfeitWatch, alarm }, FIRST_SQUARE, rematches);
 	}
 
 	beforeEach(() => {
@@ -137,7 +146,7 @@ describe("a Referee session", () => {
 		alarm = new FakeAlarm();
 		clock = new FakeClock();
 		rematches = new FakeRematchMaker();
-		session = new RefereeSession(game, seats, store, watchFrom({}), alarm, rematches);
+		session = sessionOf(game, {});
 	});
 
 	/** The socket closing, as the server sees it. */
@@ -164,7 +173,7 @@ describe("a Referee session", () => {
 			expect(seats.sideOf("ada")).toBe("red");
 			expect(seats.repliesTo("ada")).toEqual([
 				{ type: "seated", side: "red", opponent: "Bob" },
-				{ type: "setup_status", ownSetupDone: false, opponentSetupDone: false },
+				{ type: "setup_status", ownSetupDone: false, opponentSetupDone: false, setupTimeLeftMs: SETUP_TIMER_MS },
 			]);
 		});
 
@@ -221,8 +230,8 @@ describe("a Referee session", () => {
 			await seatBoth();
 			await session.receive("bob", text({ type: "setup", placements: placementsOf("green", GREEN_SETUP) }));
 
-			expect(seats.lastReplyTo("ada")).toEqual({ type: "setup_status", ownSetupDone: false, opponentSetupDone: true });
-			expect(seats.lastReplyTo("bob")).toEqual({ type: "setup_status", ownSetupDone: true, opponentSetupDone: false });
+			expect(seats.lastReplyTo("ada")).toMatchObject({ type: "setup_status", ownSetupDone: false, opponentSetupDone: true });
+			expect(seats.lastReplyTo("bob")).toMatchObject({ type: "setup_status", ownSetupDone: true, opponentSetupDone: false });
 			expect(store.saved.at(-1)?.setups.green).toEqual(placementsOf("green", GREEN_SETUP));
 		});
 
@@ -431,11 +440,11 @@ describe("a Referee session", () => {
 			expect(game.viewOf("green").result).toEqual({ status: "green_wins", reason: "forfeited" });
 		});
 
-		it("waits for play to start before setting the alarm", async () => {
+		it("waits for play to start before Forfeiting a player who left during Setup", async () => {
 			await seatBoth();
 			await session.receive("bob", text({ type: "setup", placements: placementsOf("green", GREEN_SETUP) }));
 			await drop("bob");
-			expect(alarm.time).toBeUndefined();
+			expect(alarm.time).toBe(SETUP_DEADLINE);
 
 			await session.receive("ada", text({ type: "setup", placements: placementsOf("red", RED_SETUP) }));
 			expect(alarm.time).toBe(1_000 + FORFEIT_AFTER_MS);
@@ -445,11 +454,18 @@ describe("a Referee session", () => {
 			await startPlay();
 			await drop("bob");
 			const rebuilt = OnlineGame.fromRecord(game.toRecord());
-			const restarted = new RefereeSession(rebuilt, seats, store, watchFrom(absences.saved), alarm, rematches);
+			const restarted = sessionOf(rebuilt, absences.saved);
 			clock.time += FORFEIT_AFTER_MS;
 			await restarted.alarmRang();
 
 			expect(rebuilt.viewOf("red").result).toEqual({ status: "red_wins", reason: "forfeited" });
+		});
+
+		it("cancels the alarm when a Resign ends the game", async () => {
+			await startPlay();
+			await drop("bob");
+			await session.receive("ada", text({ type: "resign" }));
+			expect(alarm.time).toBeUndefined();
 		});
 
 		it("cancels the alarm when a Move ends the game", async () => {
@@ -547,6 +563,84 @@ describe("a Referee session", () => {
 			await session.receive("bob", text({ type: "rematch" }));
 
 			expect(seats.lastReplyTo("ada")).toEqual({ type: "refused", reason: "rematch_unavailable" });
+		});
+	});
+
+	describe("the Setup Timer", () => {
+		it("tells each player how long it still runs", async () => {
+			await session.receive("ada", text({ type: "take_seat", seatToken: "red-token" }));
+			clock.time += 30_000;
+			await session.receive("bob", text({ type: "take_seat", seatToken: "green-token" }));
+
+			expect(seats.lastReplyTo("bob")).toMatchObject({ type: "setup_status", setupTimeLeftMs: SETUP_TIMER_MS - 30_000 });
+		});
+
+		it("is what the alarm rings for during Setup", async () => {
+			await session.scheduleAlarm();
+			expect(alarm.time).toBe(SETUP_DEADLINE);
+		});
+
+		it("changes nothing when the alarm rings before it runs out", async () => {
+			await seatBoth();
+			clock.time = SETUP_DEADLINE - 1;
+			await session.alarmRang();
+
+			expect(game.phase()).toBe("setup");
+			expect(store.saved).toEqual([]);
+			expect(alarm.time).toBe(SETUP_DEADLINE);
+		});
+
+		it("gives a Random Setup to a side still without one, keeps the other and starts play", async () => {
+			await seatBoth();
+			await session.receive("ada", text({ type: "setup", placements: placementsOf("red", RED_SETUP) }));
+			clock.time = SETUP_DEADLINE;
+			await session.alarmRang();
+
+			const record = store.saved.at(-1);
+			expect(game.phase()).toBe("playing");
+			expect(record?.setups.red).toEqual(placementsOf("red", RED_SETUP));
+			expect(record?.setups.green).toHaveLength(18);
+			expect(seats.lastReplyTo("ada")).toEqual({ type: "game_state", view: game.viewOf("red"), history: [] });
+			expect(seats.lastReplyTo("bob")).toEqual({ type: "game_state", view: game.viewOf("green"), history: [] });
+		});
+
+		it("gives both sides a Random Setup when neither handed one in", async () => {
+			await seatBoth();
+			clock.time = SETUP_DEADLINE;
+			await session.alarmRang();
+
+			expect(game.phase()).toBe("playing");
+			expect(game.viewOf("red").ownPieces).toHaveLength(18);
+			expect(game.viewOf("green").ownPieces).toHaveLength(18);
+		});
+
+		it("leaves a game it started replayable from its record", async () => {
+			await seatBoth();
+			clock.time = SETUP_DEADLINE;
+			await session.alarmRang();
+
+			expect(OnlineGame.fromRecord(game.toRecord()).viewOf("green")).toEqual(game.viewOf("green"));
+		});
+
+		it("hands a player who left during Setup over to the Forfeit deadline", async () => {
+			await seatBoth();
+			clock.time = SETUP_DEADLINE - 10_000;
+			await drop("bob");
+			clock.time = SETUP_DEADLINE;
+			await session.alarmRang();
+
+			expect(game.phase()).toBe("playing");
+			expect(alarm.time).toBe(SETUP_DEADLINE - 10_000 + FORFEIT_AFTER_MS);
+		});
+
+		it("Forfeits at once a player who has already been away longer than the Forfeit delay", async () => {
+			await seatBoth();
+			await drop("bob");
+			clock.time = SETUP_DEADLINE;
+			await session.alarmRang();
+
+			expect(game.viewOf("red").result).toEqual({ status: "red_wins", reason: "forfeited" });
+			expect(seats.lastReplyTo("ada")).toMatchObject({ view: { result: { reason: "forfeited" } } });
 		});
 	});
 });
