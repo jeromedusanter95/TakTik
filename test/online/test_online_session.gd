@@ -382,6 +382,20 @@ func _arranging_with_time_left(time_left_msec: int) -> void:
 	_session.poll()
 
 
+func test_a_sent_setup_stays_sent_when_the_opponent_finishes_first() -> void:
+	_arranging()
+	_session.confirm_setup()
+	var sent_before: int = _socket.sent.size()
+	_socket.receive({"type": "setup_status", "ownSetupDone": false, "opponentSetupDone": true, "setupTimeLeftMs": 90_000})
+	_session.poll()
+	assert_true(_session.is_awaiting_answer(), "the referee has not answered this Guest's Setup yet")
+	_session.confirm_setup()
+	assert_eq(_socket.sent.size(), sent_before, "the Setup is never sent twice")
+	_socket.receive({"type": "setup_status", "ownSetupDone": true, "opponentSetupDone": true, "setupTimeLeftMs": 90_000})
+	_session.poll()
+	assert_false(_session.is_awaiting_answer())
+
+
 func _arranging() -> void:
 	_socket.receive({"type": "seated", "side": "red", "opponent": "Bob"})
 	_socket.receive({"type": "setup_status", "ownSetupDone": false, "opponentSetupDone": false})

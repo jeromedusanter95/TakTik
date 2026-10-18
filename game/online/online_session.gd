@@ -305,12 +305,17 @@ func _handle(reply: RefereeReply) -> void:
 	changed.emit()
 
 
+## A status that says this Guest's Setup is not in yet can be the one sent
+## when the Opponent finished, crossing this Guest's own Setup on its way:
+## a Setup already sent then stays awaited, so it is never sent twice.
 func _show_setup_status(reply: RefereeReply) -> void:
-	_awaiting_answer = false
+	var setup_on_its_way: bool = _phase == Phase.ARRANGING and _awaiting_answer
 	_setup_deadline_msec = _deadline_after(reply.setup_time_left_msec)
 	if reply.own_setup_done:
+		_awaiting_answer = false
 		_phase = Phase.WAITING_FOR_OPPONENT_SETUP
 		return
+	_awaiting_answer = setup_on_its_way
 	if _setup == null:
 		_setup = Setup.random(_seat.side, _rng)
 	_phase = Phase.ARRANGING
