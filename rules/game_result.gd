@@ -15,6 +15,10 @@ enum Reason {
 	PRINCESS_REACHED_HOME_ROW,
 	BLOCKED,
 	NO_FIGHT_LIMIT,
+	## Online only: the loser gave the game away on purpose.
+	RESIGNED,
+	## Online only: the loser stayed disconnected too long.
+	FORFEITED,
 }
 
 var status: Status:

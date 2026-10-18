@@ -2,7 +2,7 @@ class_name OnlineMatch
 extends Control
 ## A game against another Guest through the online server: find an Opponent
 ## with Quick Match, arrange the Army, then play, always seeing the Board from
-## this Guest's side.
+## this Guest's side, with the choice to Resign.
 
 signal menu_requested
 
@@ -23,6 +23,8 @@ var _notice: String = ""
 @onready var _graveyard_label: Label = %GraveyardLabel
 @onready var _shuffle_button: Button = %ShuffleButton
 @onready var _action_button: Button = %ActionButton
+@onready var _resign_button: Button = %ResignButton
+@onready var _resign_dialog: ConfirmationDialog = %ResignDialog
 
 
 func _ready() -> void:
@@ -33,6 +35,8 @@ func _ready() -> void:
 	_board_view.square_pressed.connect(_on_square_pressed)
 	_shuffle_button.pressed.connect(_on_shuffle_pressed)
 	_action_button.pressed.connect(_on_action_pressed)
+	_resign_button.pressed.connect(_on_resign_pressed)
+	_resign_dialog.confirmed.connect(_on_resign_confirmed)
 
 
 func _process(_delta: float) -> void:
@@ -142,6 +146,24 @@ func _on_action_pressed() -> void:
 			_find_panel.show_entry("")
 
 
+func _on_resign_pressed() -> void:
+	_resign_dialog.title = Translated.text(&"ONLINE_RESIGN_TITLE")
+	_resign_dialog.dialog_text = Translated.text(
+		&"ONLINE_RESIGN_CONFIRM", {"opponent": _session.opponent()}
+	)
+	_resign_dialog.ok_button_text = Translated.text(&"ONLINE_RESIGN")
+	_resign_dialog.cancel_button_text = Translated.text(&"ONLINE_KEEP_PLAYING")
+	_resign_dialog.popup_centered()
+
+
+func _on_resign_confirmed() -> void:
+	if _session == null:
+		return
+	_selected = BoardViewState.NO_SQUARE
+	_session.resign()
+	_refresh()
+
+
 func _refresh() -> void:
 	if _session == null:
 		return
@@ -153,6 +175,12 @@ func _refresh() -> void:
 	_shuffle_button.visible = phase == OnlineSession.Phase.ARRANGING and not _session.is_awaiting_answer()
 	_action_button.visible = _action_text(phase) != "" and not _session.is_awaiting_answer()
 	_action_button.text = _action_text(phase)
+	var can_resign: bool = (
+		phase == OnlineSession.Phase.PLAYING and not _session.is_awaiting_answer()
+	)
+	_resign_button.visible = can_resign
+	if not can_resign and _resign_dialog.visible:
+		_resign_dialog.hide()
 
 
 func _board_state() -> BoardViewState:

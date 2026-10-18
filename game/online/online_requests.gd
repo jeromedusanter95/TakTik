@@ -28,5 +28,9 @@ static func move(played: Move) -> String:
 	})
 
 
+static func resign() -> String:
+	return JSON.stringify({"type": "resign"})
+
+
 static func _square(square: Vector2i) -> Dictionary[String, int]:
 	return {"column": square.x, "row": square.y}

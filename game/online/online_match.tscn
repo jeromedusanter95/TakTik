@@ -105,6 +105,20 @@ text = "MATCH_READY"
 [node name="PressScaleFeedback" type="Node" parent="Layout/Buttons/ActionButton"]
 script = ExtResource("4")
 
+[node name="ResignButton" type="Button" parent="Layout/Buttons"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(160, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "ONLINE_RESIGN"
+
+[node name="PressScaleFeedback" type="Node" parent="Layout/Buttons/ResignButton"]
+script = ExtResource("4")
+
+[node name="ResignDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+
 [node name="FindOpponentPanel" parent="." instance=ExtResource("3")]
 unique_name_in_owner = true
 layout_mode = 1

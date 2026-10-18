@@ -36,6 +36,8 @@ static func referee(text: String) -> RefereeReply:
 			_read_game_state(message, reply)
 		"moved":
 			_read_moved(message, reply)
+		"opponent_presence":
+			_read_opponent_presence(message, reply)
 		"refused":
 			reply.refusal = _text(message.get("reason"))
 			reply.kind = RefereeReply.Kind.REFUSED
@@ -97,6 +99,14 @@ static func _read_moved(message: Dictionary, reply: RefereeReply) -> void:
 	if reply.position == null or reply.event == null or not _read_final_board(message, reply):
 		return
 	reply.kind = RefereeReply.Kind.MOVED
+
+
+static func _read_opponent_presence(message: Dictionary, reply: RefereeReply) -> void:
+	var connected: Variant = message.get("connected")
+	if connected is not bool:
+		return
+	reply.opponent_connected = connected
+	reply.kind = RefereeReply.Kind.OPPONENT_PRESENCE
 
 
 ## Reads the optional final Board. False when it is there but malformed.

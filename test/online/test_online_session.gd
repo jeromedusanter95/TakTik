@@ -168,6 +168,55 @@ func test_a_finished_game_stays_over_when_the_socket_closes() -> void:
 	assert_eq(_session.phase(), OnlineSession.Phase.OVER)
 
 
+func test_resigning_asks_the_referee_and_waits() -> void:
+	_playing("green")
+	assert_true(_session.resign())
+	assert_eq(_socket.last_sent(), {"type": "resign"})
+	assert_true(_session.is_awaiting_answer())
+	assert_false(_session.resign(), "no second resignation before the answer")
+
+
+func test_no_resignation_is_sent_during_setup() -> void:
+	_arranging()
+	var sent_before: int = _socket.sent.size()
+	assert_false(_session.resign())
+	assert_eq(_socket.sent.size(), sent_before)
+
+
+func test_a_resignation_ends_the_game() -> void:
+	_playing("red")
+	_session.resign()
+	var view: Dictionary = _view("red", [], [])
+	view["result"] = {"status": "green_wins", "reason": "resigned"}
+	_socket.receive({"type": "game_state", "view": view, "history": []})
+	_session.poll()
+	assert_eq(_session.phase(), OnlineSession.Phase.OVER)
+	assert_eq(_session.result().reason, GameResult.Reason.RESIGNED)
+	assert_false(_session.is_awaiting_answer())
+
+
+func test_it_knows_when_the_opponent_leaves_and_comes_back() -> void:
+	_playing("red")
+	assert_true(_session.is_opponent_connected())
+	_socket.receive({"type": "opponent_presence", "connected": false})
+	_session.poll()
+	assert_false(_session.is_opponent_connected())
+	assert_signal_emitted(_session, "changed")
+	_socket.receive({"type": "opponent_presence", "connected": true})
+	_session.poll()
+	assert_true(_session.is_opponent_connected())
+
+
+func test_reconnecting_forgets_the_opponents_old_presence() -> void:
+	_playing("red")
+	_socket.receive({"type": "opponent_presence", "connected": false})
+	_session.poll()
+	_socket.close()
+	_session.poll()
+	_session.reconnect()
+	assert_true(_session.is_opponent_connected(), "the referee says again if they are still away")
+
+
 func _arranging() -> void:
 	_socket.receive({"type": "seated", "side": "red", "opponent": "Bob"})
 	_socket.receive({"type": "setup_status", "ownSetupDone": false, "opponentSetupDone": false})

@@ -7,6 +7,8 @@ const _REASON_KEYS: Dictionary[GameResult.Reason, StringName] = {
 	GameResult.Reason.PRINCESS_REACHED_HOME_ROW: &"REASON_PRINCESS_REACHED_HOME_ROW",
 	GameResult.Reason.BLOCKED: &"REASON_BLOCKED",
 	GameResult.Reason.NO_FIGHT_LIMIT: &"REASON_NO_FIGHT_LIMIT",
+	GameResult.Reason.RESIGNED: &"REASON_RESIGNED",
+	GameResult.Reason.FORFEITED: &"REASON_FORFEITED",
 }
 
 
@@ -54,16 +56,13 @@ static func describe_event_fight(event: PublicMoveEvent) -> String:
 
 
 static func describe_result(result: GameResult) -> String:
-	var reason: String = (
-		Translated.text(_REASON_KEYS[result.reason]) if _REASON_KEYS.has(result.reason) else ""
-	)
 	match result.status:
 		GameResult.Status.RED_WINS:
-			return _win_text(Side.Id.RED, reason)
+			return _win_text(Side.Id.RED, result.reason)
 		GameResult.Status.GREEN_WINS:
-			return _win_text(Side.Id.GREEN, reason)
+			return _win_text(Side.Id.GREEN, result.reason)
 		GameResult.Status.DRAW:
-			return Translated.text(&"RESULT_DRAW", {"reason": reason})
+			return Translated.text(&"RESULT_DRAW", {"reason": _reason_text(result.reason, {})})
 		_:
 			return ""
 
@@ -86,8 +85,17 @@ static func describe_graveyard(side: Side.Id, types: Array[PieceType.Id]) -> Str
 	return Translated.text(&"GRAVEYARD", {"side": PieceNames.side_name(side), "pieces": pieces})
 
 
-static func _win_text(winner: Side.Id, reason: String) -> String:
-	return Translated.text(&"RESULT_WINS", {"side": PieceNames.side_name(winner), "reason": reason})
+static func _win_text(winner: Side.Id, reason: GameResult.Reason) -> String:
+	var loser: Dictionary[String, Variant] = {"loser": PieceNames.side_name(Side.opponent(winner))}
+	return Translated.text(&"RESULT_WINS", {
+		"side": PieceNames.side_name(winner),
+		"reason": _reason_text(reason, loser),
+	})
+
+
+## Why the game ended; [param values] fill the reasons that name the loser.
+static func _reason_text(reason: GameResult.Reason, values: Dictionary[String, Variant]) -> String:
+	return Translated.text(_REASON_KEYS[reason], values) if _REASON_KEYS.has(reason) else ""
 
 
 static func _describe_clash(
