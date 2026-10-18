@@ -104,3 +104,82 @@ CHAT_OOPS,Oops!,Oups !
 CHAT_GOOD_GAME,Good game!,Bonne partie !
 ONLINE_TIME_LEFT,Time left: {time},Temps restant : {time}
 ONLINE_SETUP_TIMER_RAN_OUT,"Time ran out, so your Army was arranged at random.","Temps écoulé : votre Armée a été disposée au hasard."
+GRAVEYARD_NONE,None,Aucune
+PLAYER_DETAIL,"{count} Pieces · {army}","{count} pièces · {army}"
+ARMY_RED,red Army,armée rouge
+ARMY_GREEN,green Army,armée verte
+PLAYER_YOU,You,Vous
+PLAYER_LOSSES,Losses,Pertes
+PLAYER_READY,Ready,Prêt
+PLAYER_ARRANGING,Arranging their Army...,Dispose son armée...
+PLAYER_AWAY,Connection lost {time},Connexion perdue {time}
+FIGHT_TITLE,Last Fight,Dernier combat
+FIGHT_ATTACK,Attack {value},Attaque {value}
+FIGHT_DEFENSE,Defense {value},Défense {value}
+FIGHT_RESULT_WINS,The {piece} wins,{piece} l'emporte
+FIGHT_RESULT_HOLDS,The {piece} holds,{piece} résiste
+FIGHT_RESULT_BOTH,Both Pieces fall,Les deux pièces tombent
+FIGHT_NONE,No Fight yet.,Aucun combat pour l'instant.
+FIGHT_PILL,"{attacker} {attack} against {defender} {defense}: {result}","{attacker} {attack} contre {defender} {defense} : {result}"
+SELECTED_TITLE,Selected Piece,Pièce sélectionnée
+SELECTED_SQUARE,Square {square},Case {square}
+SELECTED_HINT_SWAP,Tap another of your Pieces to swap them.,Touchez une autre de vos pièces pour les échanger.
+SELECTED_HINT_PICK,"Tap one of your Pieces to see it, then another to swap them.","Touchez une de vos pièces pour la voir, puis une autre pour les échanger."
+STAT_ATTACK,Attack,Attaque
+STAT_DEFENSE,Defense,Défense
+ZONE_HIDDEN,{name}'s zone · Pieces hidden,Zone de {name} · pièces cachées
+SUBTITLE_AGAINST,Against {opponent},Contre {opponent}
+SUBTITLE_ONLINE,Online against {opponent},En ligne contre {opponent}
+CHAT_TAB_DISCUSSION,Discussion,Discussion
+CHAT_TAB_JOURNAL,Journal,Journal
+CHAT_QUICK,Quick Chat,Messages rapides
+CHAT_OPEN,Open the chat,Ouvrir la discussion
+CHAT_CLOSE,Close,Fermer
+CHAT_SETUP_TIME,{minutes} minutes to place your Pieces,{minutes} minutes pour placer vos pièces
+CHAT_GAME_STARTS,"Both Armies are ready. {side} moves first.","Les deux armées sont prêtes. {side} joue en premier."
+RESULT_LOST,{name} lost,{name} a perdu
+RESULT_TITLE_VICTORY,Victory!,Victoire !
+RESULT_TITLE_DEFEAT,Defeat,Défaite
+RESULT_TITLE_DRAW,Draw,Partie nulle
+RESULT_TITLE_WINNER,{side} wins!,{side} gagne !
+RESULT_GAME_OVER,Game over,Partie terminée
+RESULT_REMATCH_NOTICE,{opponent} wants a Rematch,{opponent} veut une revanche
+PREFERENCE_NO,No,Non
+PREFERENCE_YES,Yes,Oui
+PREFERENCE_LANGUAGE,Language,Langue
+PREFERENCE_REDUCED_MOTION,Reduced motion,Animations réduites
+PREFERENCE_ADAPTED_COLOURS,Adapted colours,Couleurs adaptées
+MENU_RESUME,Resume,Reprendre
+MENU_QUIT,Quit the game,Quitter la partie
+MENU_CANCEL,Cancel,Annuler
+RESIGN_DETAIL,Your opponent wins the game.,Votre adversaire remporte la partie.
+PLAYER_DISCONNECTED,Connection lost,Connexion perdue
+ONLINE_RECONNECTING,Reconnecting...,Reconnexion...
+ONLINE_RECONNECT_DETAIL,The game waits for you while you reconnect.,La partie vous attend pendant la reconnexion.
+HOME_OVERLINE,Remake of the Palm OS classic,Remake du classique Palm OS
+HOME_TAGLINE,Hide your Princess. Capture theirs.,Cachez votre Princesse. Capturez la sienne.
+HOME_NAME_LABEL,Your player name,Votre nom de joueur
+HOME_NAME_PLACEHOLDER,For example Jeje z,Par exemple Jeje z
+HOME_NAME_HELPER,Visible to other players,Visible par les autres joueurs
+HOME_NAME_ERROR,2 to 16 characters,2 à 16 caractères
+HOME_QUICK_MATCH_DETAIL,Face the first available player,Affrontez le premier joueur disponible
+HOME_SEARCHING,Finding an opponent...,Recherche d'un adversaire...
+HOME_SEARCHING_CANCEL,Tap to cancel,Touchez pour annuler
+HOME_BOT_TITLE,Against a Bot,Contre un bot
+HOME_TWO_TITLE,Two players,Deux joueurs
+HOME_TWO_DETAIL,"On the same device, taking turns.","Sur le même appareil, chacun son tour."
+HOME_PLAY,Play,Jouer
+HOME_TAB_PLAY,Play,Jouer
+HOME_TAB_ONLINE,Online,En ligne
+LOBBY_ONLINE,Online,En ligne
+LOBBY_COUNT,{count} players,{count} joueurs
+LOBBY_IN_LOBBY,In the Lobby,Dans le salon
+LOBBY_EMPTY_HINT,Start a Quick Match: you will play as soon as someone arrives.,Lancez une Partie rapide : vous jouerez dès qu'un joueur arrive.
+LOBBY_NAME_FIRST,Set your name to appear online.,Choisissez votre nom pour apparaître en ligne.
+LOBBY_RETRY,Try again,Réessayer
+LOBBY_STATUS_AVAILABLE,Available,Disponible
+LOBBY_STATUS_SEARCHING,Looking for a game,Cherche une partie
+LOBBY_STATUS_CHALLENGED_YOU,Challenged you,Vous a défié
+LOBBY_STATUS_CHALLENGE_SENT,Challenge sent...,Défi envoyé...
+LOBBY_CHALLENGE_EXPIRES,The Challenge expires in {time},Le défi expire dans {time}
+LOBBY_MORE_CHALLENGES,+ {count} more Challenges,+ {count} autres défis

@@ -43,6 +43,7 @@ var _opponent_connected: bool = true
 var _disconnection_reason: String = ""
 var _rematch_asked: bool = false
 var _opponent_wants_rematch: bool = false
+var _opponent_setup_done: bool = false
 ## When the Setup Timer runs out, on the _ticks_msec clock, or NO_TIMER.
 var _setup_deadline_msec: int = NO_TIMER
 ## When the current turn runs out, on the _ticks_msec clock, or NO_TIMER.
@@ -144,6 +145,11 @@ func turn_seconds_left() -> int:
 ## Guest handed in their Setup, so the referee arranged their Army at random.
 func was_setup_arranged_at_random() -> bool:
 	return _setup_arranged_at_random
+
+
+## True once the referee said the Opponent handed in their Setup.
+func is_opponent_setup_done() -> bool:
+	return _opponent_setup_done
 
 
 ## True while a Move or a Setup waits for the referee's answer.
@@ -310,6 +316,7 @@ func _handle(reply: RefereeReply) -> void:
 ## a Setup already sent then stays awaited, so it is never sent twice.
 func _show_setup_status(reply: RefereeReply) -> void:
 	var setup_on_its_way: bool = _phase == Phase.ARRANGING and _awaiting_answer
+	_opponent_setup_done = reply.opponent_setup_done
 	_setup_deadline_msec = _deadline_after(reply.setup_time_left_msec)
 	if reply.own_setup_done:
 		_awaiting_answer = false

@@ -26,6 +26,7 @@ static func build() -> Theme:
 	_add_bars(theme)
 	_add_scroll(theme)
 	_add_popups(theme)
+	_add_separators(theme)
 	return theme
 
 
@@ -45,6 +46,12 @@ static func _add_labels(theme: Theme) -> void:
 	_label(theme, &"TitleLGold", display, UiTokens.TITLE_L, UiTokens.GOLD_TEXT)
 	_label(theme, &"TitleM", display, UiTokens.TITLE_M, UiTokens.TEXT_PRIMARY)
 	_label(theme, &"TitleMGold", display, UiTokens.TITLE_M, UiTokens.GOLD_TEXT)
+	_label(theme, &"DisplayMOnGold", display, UiTokens.DISPLAY_M, UiTokens.TEXT_ON_GOLD)
+	_label(theme, &"CaptionOnGold", UiFonts.nunito(800), UiTokens.LABEL, Color(UiTokens.TEXT_ON_GOLD, 0.75))
+	_label(theme, &"LogoPhone", display, UiTokens.DISPLAY_PHONE, UiTokens.GOLD_TEXT)
+	_label(theme, &"LogoTablet", display, UiTokens.DISPLAY_TABLET, UiTokens.GOLD_TEXT)
+	_label(theme, &"TitleMOnGold", display, UiTokens.TITLE_M, UiTokens.TEXT_ON_GOLD)
+	_label(theme, &"DisplayLPrimary", display, UiTokens.DISPLAY_L, UiTokens.TEXT_PRIMARY)
 	_label(theme, &"TitleS", display, UiTokens.TITLE_S, UiTokens.TEXT_PRIMARY)
 	_label(theme, &"TitleSGold", display, UiTokens.TITLE_S, UiTokens.GOLD_TEXT)
 	_label(theme, &"BodyL", UiFonts.nunito(800), UiTokens.BODY_L, UiTokens.TEXT_PRIMARY)
@@ -59,13 +66,18 @@ static func _add_labels(theme: Theme) -> void:
 	_label(theme, &"CaptionStrong", UiFonts.nunito(900), UiTokens.CAPTION, UiTokens.TEXT_SECONDARY)
 	_label(theme, &"CaptionFaint", UiFonts.nunito(700), UiTokens.CAPTION, UiTokens.TEXT_FAINT)
 	_label(theme, &"CaptionGold", UiFonts.nunito(800), UiTokens.CAPTION, UiTokens.GOLD_TEXT)
+	_label(theme, &"CaptionAttack", UiFonts.nunito(900), UiTokens.CAPTION, UiTokens.RED_TEXT)
+	_label(theme, &"CaptionDefense", UiFonts.nunito(900), UiTokens.CAPTION, UiTokens.DEF_TEXT)
+	_label(theme, &"CaptionGreen", UiFonts.nunito(900), UiTokens.CAPTION, UiTokens.GREEN_TEXT)
 	_label(theme, &"Overline", UiFonts.nunito(800), UiTokens.OVERLINE, UiTokens.TEXT_MUTED)
 	_label(theme, &"OverlineGold", UiFonts.nunito(800), UiTokens.OVERLINE, Color(UiTokens.GOLD_TEXT, 0.85))
-	for logo: StringName in [&"DisplayXL", &"DisplayL"]:
+	for logo: StringName in [&"DisplayXL", &"DisplayL", &"LogoPhone", &"LogoTablet"]:
 		theme.set_color(&"font_shadow_color", logo, UiTokens.GOLD_DEEP)
 		theme.set_constant(&"shadow_offset_x", logo, 0)
 	theme.set_constant(&"shadow_offset_y", &"DisplayXL", 7)
 	theme.set_constant(&"shadow_offset_y", &"DisplayL", 5)
+	theme.set_constant(&"shadow_offset_y", &"LogoPhone", 4)
+	theme.set_constant(&"shadow_offset_y", &"LogoTablet", 5)
 	theme.set_constant(&"line_spacing", &"Body", 4)
 	theme.set_constant(&"line_spacing", &"BodySecondary", 4)
 
@@ -95,6 +107,15 @@ static func _add_panels(theme: Theme) -> void:
 	_panel(theme, &"BubbleThem", UiTokens.SURFACE_SUNKEN, Color.TRANSPARENT, 0, UiTokens.RADIUS_L, UiTokens.SPACE_M)
 	_panel(theme, &"BubbleYou", UiTokens.RED_BUBBLE, Color.TRANSPARENT, 0, UiTokens.RADIUS_L, UiTokens.SPACE_M)
 	_panel(theme, &"Veil", Color(0.0, 0.0, 0.0, 0.6), Color.TRANSPARENT, 0, 0, 0)
+	_active_card(theme, &"CardActive", UiTokens.SURFACE_1)
+	_active_card(theme, &"CardSelfActive", UiTokens.SURFACE_2)
+	_panel(theme, &"Strip", UiTokens.SURFACE_1, UiTokens.BORDER_1, 1, UiTokens.RADIUS_L, UiTokens.SPACE_S)
+	_panel(theme, &"StripSelf", UiTokens.SURFACE_2, UiTokens.BORDER_2, 1, UiTokens.RADIUS_L, UiTokens.SPACE_S)
+	_active_card(theme, &"StripActive", UiTokens.SURFACE_1, UiTokens.SPACE_S, UiTokens.RADIUS_L)
+	_active_card(theme, &"StripSelfActive", UiTokens.SURFACE_2, UiTokens.SPACE_S, UiTokens.RADIUS_L)
+	var ribbon: StyleBoxFlat = UiStyles.gold_button(UiTokens.RADIUS_M, Vector4i(56, 10, 56, 10))
+	theme.set_type_variation(&"GoldRibbon", &"PanelContainer")
+	theme.set_stylebox(&"panel", &"GoldRibbon", ribbon)
 	_pill(theme, &"Pill", UiTokens.SURFACE_SUNKEN, UiTokens.BORDER_2)
 	_pill(theme, &"PillGreen", UiTokens.GREEN_700, UiTokens.GREEN_500)
 	_pill(theme, &"PillSelf", UiTokens.RED_700, UiTokens.RED_400)
@@ -150,6 +171,21 @@ static func _panel(
 	theme.set_stylebox(&"panel", name, UiStyles.box(fill, radius, UiStyles.even(padding), border, border_width))
 
 
+## A card whose player is to move: a 2 px green-400 outline with a glow.
+static func _active_card(
+		theme: Theme,
+		name: StringName,
+		fill: Color,
+		padding: int = 18,
+		radius: int = UiTokens.RADIUS_XL,
+) -> void:
+	theme.set_type_variation(name, &"PanelContainer")
+	var style: StyleBoxFlat = UiStyles.box(fill, radius, UiStyles.even(padding - 1), UiTokens.GREEN_400, 2)
+	style.shadow_color = Color(UiTokens.GREEN_400, 0.3)
+	style.shadow_size = 14
+	theme.set_stylebox(&"panel", name, style)
+
+
 static func _pill(theme: Theme, name: StringName, fill: Color, border: Color) -> void:
 	theme.set_type_variation(name, &"PanelContainer")
 	theme.set_stylebox(&"panel", name, UiStyles.box(fill, UiTokens.RADIUS_PILL, _PILL_PADDING, border, 1))
@@ -177,6 +213,12 @@ static func _add_buttons(theme: Theme) -> void:
 	_add_button_look(
 		theme, &"WoodButtonSmall", UiStyles.wood_button(UiTokens.RADIUS_M, Vector4i(16, 4, 16, 4)),
 		UiTokens.TEXT_PRIMARY, UiFonts.nunito(800), UiTokens.LABEL, UiTokens.RADIUS_M
+	)
+	var danger: StyleBoxFlat = UiStyles.raised(
+		UiTokens.RED_400, UiTokens.RED_700, 5, UiTokens.RADIUS_L, Vector4i(20, 6, 20, 6)
+	)
+	_add_button_look(
+		theme, &"DangerButton", danger, UiTokens.TEXT_PRIMARY, UiFonts.display(), 22, UiTokens.RADIUS_L
 	)
 	var outline: StyleBoxFlat = UiStyles.box(
 		Color.TRANSPARENT, UiTokens.RADIUS_M, Vector4i(16, 4, 16, 4), UiTokens.GOLD_500, 2
@@ -377,3 +419,13 @@ static func _add_popups(theme: Theme) -> void:
 	theme.set_stylebox(
 		&"embedded_border", &"Window", UiStyles.panel(UiTokens.SURFACE_1, UiTokens.BORDER_1, UiTokens.RADIUS_L, 8)
 	)
+
+
+static func _add_separators(theme: Theme) -> void:
+	for type: StringName in [&"VSeparator", &"HSeparator"]:
+		var line: StyleBoxLine = StyleBoxLine.new()
+		line.color = UiTokens.BORDER_1
+		line.thickness = 1
+		line.vertical = type == &"VSeparator"
+		theme.set_stylebox(&"separator", type, line)
+		theme.set_constant(&"separation", type, 1)

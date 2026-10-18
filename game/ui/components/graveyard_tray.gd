@@ -2,7 +2,8 @@ class_name GraveyardTray
 extends HFlowContainer
 ## The Pieces one side lost, small and grey, or "None" while it lost none.
 
-const TOKEN_SIZE: Vector2 = Vector2(34, 34)
+## The size of each lost Piece.
+@export var token_size: Vector2 = Vector2(34, 34)
 
 
 func _init() -> void:
@@ -24,6 +25,6 @@ func show_graveyard(types: Array[PieceType.Id], side: Side.Id, adapted: bool = f
 		return
 	for type: PieceType.Id in types:
 		var picture: PiecePicture = PiecePicture.new()
-		picture.custom_minimum_size = TOKEN_SIZE
+		picture.custom_minimum_size = token_size
 		picture.show_piece(type, side, true, adapted)
 		add_child(picture)

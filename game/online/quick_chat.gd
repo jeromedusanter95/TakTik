@@ -29,3 +29,9 @@ static func is_message(name: String) -> bool:
 ## The words of [param name], which must be one of [constant MESSAGES].
 static func text(name: String) -> String:
 	return Translated.text(_KEYS[name])
+
+
+## The translation key of [param name], for controls that translate their own
+## text when the language changes.
+static func key(name: String) -> StringName:
+	return _KEYS[name]

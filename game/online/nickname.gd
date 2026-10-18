@@ -3,6 +3,9 @@ extends RefCounted
 ## The rules for a Guest's nickname, as the online server checks them, so a
 ## Guest learns of a bad one before sending it. The server stays the judge.
 
+## The game asks for at least two characters, a little stricter than the
+## server, which takes one.
+const MIN_LENGTH: int = 2
 const MAX_LENGTH: int = 16
 
 ## Code point ranges of control characters (Unicode Cc) and of the invisible
@@ -29,7 +32,7 @@ const _UNPRINTABLE_RANGES: Array[Vector2i] = [
 ## [param text] trimmed, or an empty String when it is not a valid nickname.
 static func cleaned(text: String) -> String:
 	var nickname: String = text.strip_edges()
-	if nickname.is_empty() or nickname.length() > MAX_LENGTH or _has_unprintable(nickname):
+	if nickname.length() < MIN_LENGTH or nickname.length() > MAX_LENGTH or _has_unprintable(nickname):
 		return ""
 	return nickname
 

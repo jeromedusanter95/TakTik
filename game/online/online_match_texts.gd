@@ -1,58 +1,56 @@
 class_name OnlineMatchTexts
 extends RefCounted
-## The sentences the online match screen shows for where a session stands.
+## The sentences the online game screen shows for where a session stands.
 
 
+## The one line in the top bar: what is happening now.
 static func status(session: OnlineSession) -> String:
 	match session.phase():
 		OnlineSession.Phase.CONNECTING:
 			return Translated.text(&"ONLINE_CONNECTING")
 		OnlineSession.Phase.ARRANGING:
-			var arrange: String = _with_time_left(
-				Translated.text(&"ONLINE_ARRANGE"), session.setup_seconds_left()
-			)
-			return _with_presence(session, arrange, &"ONLINE_OPPONENT_AWAY_SETUP")
+			return Translated.text(&"ONLINE_ARRANGE")
 		OnlineSession.Phase.WAITING_FOR_OPPONENT_SETUP:
-			var waiting: String = _with_time_left(Translated.text(
-				&"ONLINE_WAITING_SETUP", {"opponent": session.opponent()}
-			), session.setup_seconds_left())
-			return _with_presence(session, waiting, &"ONLINE_OPPONENT_AWAY_SETUP")
+			return Translated.text(&"ONLINE_WAITING_SETUP", {"opponent": session.opponent()})
 		OnlineSession.Phase.PLAYING:
-			var turn: String = _with_time_left(_turn_text(session), session.turn_seconds_left())
-			return _with_presence(session, turn, &"ONLINE_OPPONENT_AWAY")
+			return _turn_text(session)
 		OnlineSession.Phase.OVER:
-			return MatchNarrator.describe_result(session.result())
+			return Translated.text(&"RESULT_GAME_OVER")
 		_:
 			if session.disconnection_reason() == "seat_taken_elsewhere":
 				return Translated.text(&"ONLINE_SEAT_TAKEN")
 			return Translated.text(&"ONLINE_DISCONNECTED")
 
 
-## What to read under the Board: the selected Piece, else the last Move, else
-## that the Setup Timer arranged this Guest's Army, else who plays whom.
-static func info(session: OnlineSession, selected: Vector2i) -> String:
-	if selected != BoardViewState.NO_SQUARE:
-		var piece: Piece = session.display_board().piece_at(selected)
-		if piece != null and piece.side == session.side():
-			return MatchNarrator.describe_piece(piece.type)
-	var last: PublicMoveEvent = session.last_event()
-	if last != null:
-		return MatchNarrator.describe_event(last)
-	if session.was_setup_arranged_at_random():
-		return Translated.text(&"ONLINE_SETUP_TIMER_RAN_OUT")
-	return Translated.text(&"ONLINE_PLAYING_AGAINST", {
-		"side": PieceNames.side_name(session.side()),
-		"opponent": session.opponent(),
+## The line on the Opponent's card: arranging, ready, or gone.
+static func opponent_status(session: OnlineSession) -> String:
+	if not session.is_opponent_connected():
+		return Translated.text(&"PLAYER_DISCONNECTED")
+	match session.phase():
+		OnlineSession.Phase.ARRANGING, OnlineSession.Phase.WAITING_FOR_OPPONENT_SETUP:
+			if session.is_opponent_setup_done():
+				return Translated.text(&"PLAYER_READY")
+			return Translated.text(&"PLAYER_ARRANGING")
+		_:
+			return ""
+
+
+## The line on this Guest's card: ready once their Setup is in.
+static func own_status(session: OnlineSession) -> String:
+	if session.phase() == OnlineSession.Phase.WAITING_FOR_OPPONENT_SETUP:
+		return Translated.text(&"PLAYER_READY")
+	return ""
+
+
+## The Fight of [param event] in one line, for the chat.
+static func fight_line(event: PublicMoveEvent) -> String:
+	return Translated.text(&"FIGHT_PILL", {
+		"attacker": PieceNames.display_name(event.attacker_type),
+		"attack": PieceType.attack_strength(event.attacker_type),
+		"defender": PieceNames.display_name(event.defender_type),
+		"defense": PieceType.defense_strength(event.defender_type),
+		"result": FightCard.result_text(event),
 	})
-
-
-static func graveyards(session: OnlineSession) -> String:
-	if session.position() == null:
-		return ""
-	return "%s\n%s" % [
-		MatchNarrator.describe_graveyard(Side.Id.RED, session.graveyard(Side.Id.RED)),
-		MatchNarrator.describe_graveyard(Side.Id.GREEN, session.graveyard(Side.Id.GREEN)),
-	]
 
 
 ## Why the Lobby was left, for the server's [param reason].
@@ -66,13 +64,18 @@ static func lobby_failure(reason: String) -> String:
 			return Translated.text(&"ONLINE_FAILED_OTHER")
 
 
-## The Rematch button: ask, accept the Opponent's ask, or wait for theirs.
+## The Rematch button: ask, or wait for the Opponent's answer.
 static func rematch_button(session: OnlineSession) -> String:
 	if session.has_asked_for_rematch():
 		return Translated.text(&"ONLINE_REMATCH_WAITING", {"opponent": session.opponent()})
-	if session.opponent_wants_rematch():
-		return Translated.text(&"ONLINE_REMATCH_ACCEPT", {"opponent": session.opponent()})
 	return Translated.text(&"ONLINE_REMATCH")
+
+
+## The notice above the buttons once the Opponent asked for a Rematch.
+static func rematch_notice(session: OnlineSession) -> String:
+	if session.opponent_wants_rematch() and not session.has_asked_for_rematch():
+		return Translated.text(&"RESULT_REMATCH_NOTICE", {"opponent": session.opponent()})
+	return ""
 
 
 ## What a Guest reads when a Challenge with [param nickname] ends.
@@ -86,32 +89,10 @@ static func challenge_end(nickname: String, reason: String) -> String:
 			return Translated.text(&"LOBBY_GONE", {"nickname": nickname})
 
 
-## [param text], followed by the [param seconds] a timer still runs, as m:ss,
-## unless they are OnlineSession.NO_TIMER.
-static func _with_time_left(text: String, seconds: int) -> String:
-	if seconds == OnlineSession.NO_TIMER:
-		return text
-	var time: String = "%d:%02d" % [floori(seconds / 60.0), seconds % 60]
-	var time_left: String = Translated.text(&"ONLINE_TIME_LEFT", {"time": time})
-	return time_left if text.is_empty() else "%s\n%s" % [text, time_left]
-
-
-## [param text], followed while the Opponent is disconnected by the
-## [param away_key] notice.
-static func _with_presence(session: OnlineSession, text: String, away_key: StringName) -> String:
-	if session.is_opponent_connected():
-		return text
-	var away: String = Translated.text(away_key, {"opponent": session.opponent()})
-	return away if text.is_empty() else "%s\n%s" % [text, away]
-
-
-## Whose turn it is; empty on the Opponent's turn while they are
-## disconnected, since they are not playing.
+## Whose turn it is.
 static func _turn_text(session: OnlineSession) -> String:
 	if session.is_awaiting_answer():
 		return Translated.text(&"ONLINE_SENDING")
 	if session.is_own_turn():
 		return Translated.text(&"ONLINE_YOUR_TURN")
-	if not session.is_opponent_connected():
-		return ""
 	return Translated.text(&"ONLINE_OPPONENT_TURN", {"opponent": session.opponent()})

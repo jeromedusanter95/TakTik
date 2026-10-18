@@ -82,6 +82,9 @@ const NEUTRAL_AVATARS: Array[Color] = [
 const DISPLAY_XL: int = 136
 const DISPLAY_L: int = 80
 const DISPLAY_M: int = 34
+## The home logo on phones and on narrow screens.
+const DISPLAY_PHONE: int = 72
+const DISPLAY_TABLET: int = 96
 const TITLE_L: int = 30
 const TITLE_M: int = 26
 const TITLE_S: int = 22

@@ -123,6 +123,7 @@ func test_nicknames_follow_the_servers_rules() -> void:
 	assert_eq(Nickname.cleaned("é".repeat(Nickname.MAX_LENGTH)), "é".repeat(Nickname.MAX_LENGTH))
 	assert_eq(Nickname.cleaned(""), "")
 	assert_eq(Nickname.cleaned("   "), "")
+	assert_eq(Nickname.cleaned(" A "), "", "one character is too short")
 	assert_eq(Nickname.cleaned("a".repeat(Nickname.MAX_LENGTH + 1)), "")
 	assert_eq(Nickname.cleaned("Ad" + char(7) + "a"), "")
 	assert_eq(Nickname.cleaned("Ada" + char(7)), "Ada", "edge control characters are trimmed away")
