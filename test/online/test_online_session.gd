@@ -217,6 +217,66 @@ func test_reconnecting_forgets_the_opponents_old_presence() -> void:
 	assert_true(_session.is_opponent_connected(), "the referee says again if they are still away")
 
 
+func test_a_quick_chat_is_sent_and_received() -> void:
+	_playing("red")
+	_session.send_quick_chat("good_luck")
+	assert_eq(_socket.last_sent(), {"type": "quick_chat", "message": "good_luck"})
+	_socket.receive({"type": "quick_chat", "side": "green", "message": "well_played"})
+	_session.poll()
+	assert_signal_emitted_with_parameters(_session, "quick_chat_received", [Side.Id.GREEN, "well_played"])
+
+
+func test_a_message_outside_the_fixed_set_is_never_sent() -> void:
+	_playing("red")
+	var sent_before: int = _socket.sent.size()
+	_session.send_quick_chat("rude words")
+	assert_eq(_socket.sent.size(), sent_before)
+
+
+func test_a_rematch_is_only_asked_once_the_game_is_over() -> void:
+	_playing("red")
+	assert_false(_session.ask_for_rematch())
+	_game_over()
+	assert_true(_session.ask_for_rematch())
+	assert_eq(_socket.last_sent(), {"type": "rematch"})
+	assert_true(_session.has_asked_for_rematch())
+
+
+func test_the_opponents_rematch_offer_is_remembered() -> void:
+	_game_over()
+	_socket.receive({"type": "rematch_offered"})
+	_session.poll()
+	assert_true(_session.opponent_wants_rematch())
+
+
+func test_the_rematch_seat_is_handed_over() -> void:
+	_game_over()
+	_socket.receive({"type": "rematch_ready", "gameId": "g2", "side": "green", "seatToken": "t2", "opponent": "Bob"})
+	_session.poll()
+	assert_signal_emitted(_session, "rematch_ready")
+	var seat: Variant = get_signal_parameters(_session, "rematch_ready")[0]
+	assert_true(seat is PairedSeat)
+	var rematch_seat: PairedSeat = seat
+	assert_eq(rematch_seat.game_id, "g2")
+	assert_eq(rematch_seat.side, Side.Id.GREEN)
+
+
+func test_an_unavailable_rematch_can_be_asked_again() -> void:
+	_game_over()
+	_session.ask_for_rematch()
+	_socket.receive({"type": "refused", "reason": "rematch_unavailable"})
+	_session.poll()
+	assert_false(_session.has_asked_for_rematch())
+
+
+func _game_over() -> void:
+	_playing("red")
+	var view: Dictionary = _view("green", [], [])
+	view["result"] = {"status": "red_wins", "reason": "resigned"}
+	_socket.receive({"type": "game_state", "view": view, "history": []})
+	_session.poll()
+
+
 func _arranging() -> void:
 	_socket.receive({"type": "seated", "side": "red", "opponent": "Bob"})
 	_socket.receive({"type": "setup_status", "ownSetupDone": false, "opponentSetupDone": false})

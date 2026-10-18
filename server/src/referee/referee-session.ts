@@ -2,7 +2,14 @@ import type { Move } from "../rules/move";
 import { opponentOf, SIDES, type Side } from "../rules/side";
 import type { ForfeitWatch } from "./forfeit-watch";
 import type { GameRecord, OnlineGame } from "./online-game";
-import { parseRefereeRequest, type Placement, type RefereeRefusal, type RefereeReply } from "./protocol";
+import {
+	parseRefereeRequest,
+	type Placement,
+	type QuickChatMessage,
+	type RefereeRefusal,
+	type RefereeReply,
+} from "./protocol";
+import type { OpenedRematch, RematchMaker } from "./rematch-maker";
 
 /** The open sockets of one game and the side each one has taken. */
 export interface SeatConnections<Connection> {
@@ -15,6 +22,10 @@ export interface SeatConnections<Connection> {
 	send(connection: Connection, reply: RefereeReply): void;
 	/** Closes the socket with [reason] in the close frame. */
 	refuseAndClose(connection: Connection, reason: RefereeRefusal): void;
+	/** Remembers on [connection] that its player asks for a Rematch. */
+	markWantsRematch(connection: Connection): void;
+	/** True when an open socket of [side] asks for a Rematch. */
+	wantsRematch(side: Side): boolean;
 }
 
 /** Keeps a game's record safe across restarts. */
@@ -27,7 +38,7 @@ export interface GameStore {
  * Token, takes Setups, Moves and resignations from them, tells each player
  * when their Opponent leaves or comes back, Forfeits one who stays away too
  * long, saves every change, and sends each player only what their side may
- * know.
+ * know. Relays Quick Chats, and opens a Rematch once both players ask for one.
  */
 export class RefereeSession<Connection> {
 	constructor(
@@ -35,7 +46,11 @@ export class RefereeSession<Connection> {
 		private readonly connections: SeatConnections<Connection>,
 		private readonly store: GameStore,
 		private readonly forfeitWatch: ForfeitWatch,
+		private readonly rematchMaker: RematchMaker,
 	) {}
+
+	/** The Rematch already opened from this game, kept to answer a repeated request. */
+	private rematch: OpenedRematch | undefined;
 
 	async receive(connection: Connection, text: string): Promise<void> {
 		const parse = parseRefereeRequest(text);
@@ -62,6 +77,12 @@ export class RefereeSession<Connection> {
 				return;
 			case "resign":
 				await this.resign(connection, side);
+				return;
+			case "quick_chat":
+				this.relayQuickChat(side, request.message);
+				return;
+			case "rematch":
+				await this.askForRematch(connection, side);
 				return;
 		}
 	}
@@ -155,6 +176,49 @@ export class RefereeSession<Connection> {
 			return;
 		}
 		await this.endByConcession();
+	}
+
+	private relayQuickChat(side: Side, message: QuickChatMessage): void {
+		this.tellBothSides(() => ({ type: "quick_chat", side, message }));
+	}
+
+	/** Opens the Rematch once both players asked, sides swapped; until then, tells the Opponent. */
+	private async askForRematch(connection: Connection, side: Side): Promise<void> {
+		if (this.game.phase() !== "over") {
+			this.refuse(connection, "game_not_over");
+			return;
+		}
+		if (this.rematch !== undefined) {
+			this.connections.send(connection, this.rematchSeat(this.rematch, opponentOf(side)));
+			return;
+		}
+		this.connections.markWantsRematch(connection);
+		if (!this.connections.wantsRematch(opponentOf(side))) {
+			this.tellOpponentOf(side, { type: "rematch_offered" });
+			return;
+		}
+		try {
+			this.rematch = await this.rematchMaker.open({
+				red: this.game.nicknameOf("green"),
+				green: this.game.nicknameOf("red"),
+			});
+		} catch {
+			this.tellBothSides(() => ({ type: "refused", reason: "rematch_unavailable" }));
+			return;
+		}
+		const opened = this.rematch;
+		this.tellBothSides((viewer) => this.rematchSeat(opened, opponentOf(viewer)));
+	}
+
+	/** The seat in [rematch] of the player who sat on [newSide]. */
+	private rematchSeat(rematch: OpenedRematch, newSide: Side): RefereeReply {
+		return {
+			type: "rematch_ready",
+			gameId: rematch.gameId,
+			side: newSide,
+			seatToken: rematch.seating[newSide].seatToken,
+			opponent: rematch.seating[opponentOf(newSide)].nickname,
+		};
 	}
 
 	private async endByConcession(): Promise<void> {

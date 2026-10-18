@@ -28,5 +28,13 @@ static func resign() -> String:
 	return JSON.stringify({"type": "resign"})
 
 
+static func quick_chat(message: String) -> String:
+	return JSON.stringify({"type": "quick_chat", "message": message})
+
+
+static func rematch() -> String:
+	return JSON.stringify({"type": "rematch"})
+
+
 static func _square(square: Vector2i) -> Dictionary[String, int]:
 	return {"column": square.x, "row": square.y}

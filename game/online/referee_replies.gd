@@ -21,6 +21,14 @@ static func read(text: String) -> RefereeReply:
 			_read_moved(message, reply)
 		"opponent_presence":
 			_read_opponent_presence(message, reply)
+		"quick_chat":
+			_read_quick_chat(message, reply)
+		"rematch_offered":
+			reply.kind = RefereeReply.Kind.REMATCH_OFFERED
+		"rematch_ready":
+			reply.rematch_seat = PairedSeatReader.read(message)
+			if reply.rematch_seat != null:
+				reply.kind = RefereeReply.Kind.REMATCH_READY
 		"refused":
 			reply.refusal = WireJson.text(message.get("reason"))
 			reply.kind = RefereeReply.Kind.REFUSED
@@ -76,6 +84,16 @@ static func _read_opponent_presence(message: Dictionary, reply: RefereeReply) ->
 		return
 	reply.opponent_connected = connected
 	reply.kind = RefereeReply.Kind.OPPONENT_PRESENCE
+
+
+static func _read_quick_chat(message: Dictionary, reply: RefereeReply) -> void:
+	var side_name: Variant = message.get("side")
+	var chat: String = WireJson.text(message.get("message"))
+	if not WireNames.is_side(side_name) or not QuickChat.is_message(chat):
+		return
+	reply.chat_side = WireNames.side(side_name)
+	reply.chat_message = chat
+	reply.kind = RefereeReply.Kind.QUICK_CHAT
 
 
 ## Reads the optional final Board. False when it is there but malformed.

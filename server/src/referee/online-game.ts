@@ -93,6 +93,10 @@ export class OnlineGame {
 		return SIDES.find((side) => sameSecret(this.seating[side].seatToken, seatToken));
 	}
 
+	nicknameOf(side: Side): string {
+		return this.seating[side].nickname;
+	}
+
 	opponentNicknameOf(side: Side): string {
 		return this.seating[opponentOf(side)].nickname;
 	}

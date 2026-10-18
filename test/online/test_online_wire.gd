@@ -245,6 +245,30 @@ func test_a_fight_eliminates_the_loser_of_each_side() -> void:
 	assert_eq(tied.eliminated_types().size(), 2)
 
 
+func test_quick_chat_and_rematch_requests() -> void:
+	assert_eq(_parsed(RefereeRequests.quick_chat("thanks")), {"type": "quick_chat", "message": "thanks"})
+	assert_eq(_parsed(RefereeRequests.rematch()), {"type": "rematch"})
+
+
+func test_the_referee_relays_a_quick_chat() -> void:
+	var reply: RefereeReply = RefereeReplies.read('{"type":"quick_chat","side":"green","message":"oops"}')
+	assert_eq(reply.kind, RefereeReply.Kind.QUICK_CHAT)
+	assert_eq(reply.chat_side, Side.Id.GREEN)
+	assert_eq(reply.chat_message, "oops")
+	var unknown: RefereeReply = RefereeReplies.read('{"type":"quick_chat","side":"green","message":"rude"}')
+	assert_eq(unknown.kind, RefereeReply.Kind.MALFORMED)
+
+
+func test_the_referee_offers_and_seats_a_rematch() -> void:
+	assert_eq(RefereeReplies.read('{"type":"rematch_offered"}').kind, RefereeReply.Kind.REMATCH_OFFERED)
+	var ready: RefereeReply = RefereeReplies.read(JSON.stringify({
+		"type": "rematch_ready", "gameId": "g2", "side": "red", "seatToken": "t2", "opponent": "Bob",
+	}))
+	assert_eq(ready.kind, RefereeReply.Kind.REMATCH_READY)
+	assert_eq(ready.rematch_seat.game_id, "g2")
+	assert_eq(ready.rematch_seat.side, Side.Id.RED)
+
+
 func _parsed(text: String) -> Dictionary:
 	var value: Variant = JSON.parse_string(text)
 	if value is Dictionary:

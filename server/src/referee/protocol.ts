@@ -9,15 +9,23 @@ import { asObject, parseJsonObject } from "../wire/json-object";
 
 /**
  * The messages of a game's WebSocket. A Guest first takes their seat with the
- * Seat Token Quick Match gave them, then sends their Setup and their Moves,
- * and may Resign at any point of play.
+ * Seat Token the Lobby gave them, then sends their Setup and their Moves, and
+ * may Resign at any point of play. Either player may send a Quick Chat at any
+ * time and ask for a Rematch once the game is over.
  * Squares are { column, row } with column 0 as "a" and row 0 as rank 1.
  */
 export type RefereeRequest =
 	| { readonly type: "take_seat"; readonly seatToken: string }
 	| { readonly type: "setup"; readonly placements: readonly Placement[] }
 	| { readonly type: "move"; readonly move: Move }
-	| { readonly type: "resign" };
+	| { readonly type: "resign" }
+	| { readonly type: "quick_chat"; readonly message: QuickChatMessage }
+	| { readonly type: "rematch" };
+
+/** The fixed set of messages a player can send during an online game. */
+export const QUICK_CHAT_MESSAGES = ["hello", "good_luck", "well_played", "thanks", "oops", "good_game"] as const;
+
+export type QuickChatMessage = (typeof QUICK_CHAT_MESSAGES)[number];
 
 /** One Piece of a Setup. */
 export interface Placement {
@@ -55,6 +63,18 @@ export type RefereeReply =
 	 * again, and on taking a seat while the Opponent is away.
 	 */
 	| { readonly type: "opponent_presence"; readonly connected: boolean }
+	/** A Quick Chat [side] sent, relayed to both players. */
+	| { readonly type: "quick_chat"; readonly side: Side; readonly message: QuickChatMessage }
+	/** The Opponent asks for a Rematch. */
+	| { readonly type: "rematch_offered" }
+	/** Both players asked for a Rematch: the seat in the new game, sides swapped. */
+	| {
+			readonly type: "rematch_ready";
+			readonly gameId: string;
+			readonly side: Side;
+			readonly seatToken: string;
+			readonly opponent: string;
+	  }
 	| { readonly type: "refused"; readonly reason: RefereeRefusal };
 
 export type RefereeRefusal =
@@ -68,7 +88,9 @@ export type RefereeRefusal =
 	| "game_not_started"
 	| "game_over"
 	| "not_your_turn"
-	| "illegal_move";
+	| "illegal_move"
+	| "game_not_over"
+	| "rematch_unavailable";
 
 export type RefereeRequestParse = { readonly valid: true; readonly request: RefereeRequest } | { readonly valid: false };
 
@@ -97,6 +119,10 @@ function requestFrom(message: Record<string, unknown>): RefereeRequest | undefin
 			return moveRequestFrom(message["move"]);
 		case "resign":
 			return { type: "resign" };
+		case "quick_chat":
+			return quickChatFrom(message["message"]);
+		case "rematch":
+			return { type: "rematch" };
 		default:
 			return undefined;
 	}
@@ -107,6 +133,11 @@ function takeSeatFrom(value: unknown): RefereeRequest | undefined {
 		return undefined;
 	}
 	return { type: "take_seat", seatToken: value };
+}
+
+function quickChatFrom(value: unknown): RefereeRequest | undefined {
+	const message = QUICK_CHAT_MESSAGES.find((known) => known === value);
+	return message === undefined ? undefined : { type: "quick_chat", message };
 }
 
 function setupFrom(value: unknown): RefereeRequest | undefined {
