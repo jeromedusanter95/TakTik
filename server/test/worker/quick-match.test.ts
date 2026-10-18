@@ -32,7 +32,7 @@ describe("the Quick Match Worker", () => {
 		await harness.close();
 	});
 
-	it("pairs two Guests into one game on opposite sides and closes their sockets", async () => {
+	it("pairs two Guests into one game on opposite sides", async () => {
 		const ada = await openGuest(quickMatchUrl);
 		join(ada, "Ada");
 		expect(await ada.replyCount(1)).toEqual([{ type: "waiting" }]);
@@ -41,7 +41,6 @@ describe("the Quick Match Worker", () => {
 		join(bob, "Bob");
 		const [adaPaired] = (await ada.replyCount(2)).slice(1);
 		const [bobPaired] = await bob.replyCount(1);
-		await Promise.all([ada.closed, bob.closed]);
 
 		if (adaPaired?.type !== "paired" || bobPaired?.type !== "paired") {
 			throw new Error(`expected both Guests to be paired, got ${JSON.stringify([adaPaired, bobPaired])}`);
@@ -70,7 +69,7 @@ describe("the Quick Match Worker", () => {
 		const guest = await openGuest(quickMatchUrl);
 		join(guest, "   ");
 		expect(await guest.replyCount(1)).toEqual([{ type: "refused", reason: "invalid_nickname" }]);
-		await guest.closed;
+		expect(await guest.closed).toBe("invalid_nickname");
 	});
 
 	it("answers anything but a WebSocket upgrade with 426", async () => {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { QuickMatchReply } from "../../src/quick-match/protocol";
+import type { QuickMatchReply, RefusalReason } from "../../src/quick-match/protocol";
 import {
 	QuickMatchPairer,
 	type GameOpener,
@@ -13,6 +13,7 @@ import type { Seating } from "../../src/referee/seating";
 class FakeConnections implements GuestConnections<string> {
 	readonly sent = new Map<string, QuickMatchReply[]>();
 	readonly closed = new Set<string>();
+	readonly closeReasons = new Map<string, RefusalReason>();
 	private readonly waiting: WaitingGuest<string>[] = [];
 	private readonly joined = new Set<string>();
 
@@ -41,7 +42,13 @@ class FakeConnections implements GuestConnections<string> {
 		this.sent.set(connection, [...this.repliesTo(connection), reply]);
 	}
 
-	close(connection: string): void {
+	refuseAndClose(connection: string, reason: RefusalReason): void {
+		this.closed.add(connection);
+		this.closeReasons.set(connection, reason);
+	}
+
+	/** The Guest closing their own socket. */
+	leave(connection: string): void {
 		this.closed.add(connection);
 	}
 
@@ -128,11 +135,12 @@ describe("the Quick Match pairer", () => {
 		expect(opener.opened[0]?.green.nickname).toBe("Bob");
 	});
 
-	it("closes both sockets once paired", async () => {
+	it("leaves closing their sockets to the paired Guests", async () => {
 		await pairer.receive("ada", join("Ada"));
 		await pairer.receive("bob", join("Bob"));
 
-		expect([...connections.closed].sort()).toEqual(["ada", "bob"]);
+		expect([...connections.closed]).toEqual([]);
+		expect(connections.waitingGuests()).toEqual([]);
 	});
 
 	it("pairs the Guest who has waited longest", async () => {
@@ -149,7 +157,7 @@ describe("the Quick Match pairer", () => {
 
 	it("never pairs a Guest whose socket has closed", async () => {
 		await pairer.receive("ada", join("Ada"));
-		connections.close("ada");
+		connections.leave("ada");
 		await pairer.receive("bob", join("Bob"));
 
 		expect(connections.repliesTo("bob")).toEqual([{ type: "waiting" }]);
@@ -176,7 +184,7 @@ describe("the Quick Match pairer", () => {
 		await pairer.receive("ada", join(""));
 
 		expect(connections.repliesTo("ada")).toEqual([{ type: "refused", reason: "invalid_nickname" }]);
-		expect(connections.closed.has("ada")).toBe(true);
+		expect(connections.closeReasons.get("ada")).toBe("invalid_nickname");
 		expect(connections.waitingGuests()).toEqual([]);
 	});
 

@@ -3,8 +3,9 @@ import { parseJsonObject } from "../wire/json-object";
 
 /**
  * The messages of the Quick Match WebSocket. A Guest sends one join; the
- * server answers waiting, then paired once an Opponent turns up, and closes the
- * socket. A refused join also closes it.
+ * server answers waiting, then paired once an Opponent turns up, and the Guest
+ * then closes the socket. A refused join is closed by the server, with the
+ * refusal also given as the close reason.
  */
 export type QuickMatchRequest = { readonly type: "join"; readonly nickname: string };
 
