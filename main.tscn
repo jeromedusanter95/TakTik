@@ -12,6 +12,7 @@
 [node name="Main" type="Node"]
 script = ExtResource("1")
 bot_profiles = Array[ExtResource("7")]([ExtResource("4"), ExtResource("5"), ExtResource("6")])
+online_server_url = "wss://taktik-referee.dusanterjerome.workers.dev"
 
 [node name="LocalMatch" parent="." instance=ExtResource("2")]
 unique_name_in_owner = true
