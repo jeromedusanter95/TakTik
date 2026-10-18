@@ -126,6 +126,10 @@ _Avoid_: Invite, request
 Being paired automatically with any other Guest who is also waiting.
 _Avoid_: Matchmaking, queue, random match
 
+**Seat Token**:
+The secret the server gives each Guest when Quick Match pairs them, which proves to the referee which side of the game they play.
+_Avoid_: Password, key, session
+
 **Turn Timer**:
 The time a player has to make a Move in an online game. Running out loses the game.
 _Avoid_: Clock, countdown
