@@ -31,6 +31,15 @@ The referee answers `seated` with the side and the Opponent's nickname, then whe
 Taking a seat again, from a new tab or after a dropped connection, moves the seat to the new socket, closes the old one and resends the game so far.
 The messages are defined in [src/referee/protocol.ts](src/referee/protocol.ts).
 
+## Playing against a local server
+
+Run `npm run dev`, set `online_server_url` on the Main node to `ws://localhost:8787` in the Godot editor (without saving it), and choose Play online in two game windows.
+`test/online/online_smoke.gd` plays a whole game between two headless clients through the running server:
+
+```bash
+Godot --headless --path .. -s test/online/online_smoke.gd
+```
+
 ## Commands
 
 ```bash
@@ -51,6 +60,13 @@ npm run dev
 ```
 
 Serves the Worker on `http://localhost:8787`.
+
+```bash
+npm run deploy
+```
+
+Deploys the Worker to Cloudflare after a one-time `npx wrangler login`.
+Its address, `wss://taktik-referee.<your subdomain>.workers.dev`, goes into `online_server_url` on the Main node in `main.tscn`.
 
 ```bash
 npm run types
