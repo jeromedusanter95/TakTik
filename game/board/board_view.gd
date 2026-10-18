@@ -134,6 +134,21 @@ func play_swap(first: Vector2i, second: Vector2i) -> void:
 
 ## The picture of the Piece on [param square] as the viewer sees it now, or
 ## null when the Square is empty.
+## Animates the viewer's Pieces sliding from [param before] to the
+## arrangement shown now.
+func play_shuffle(before: Board) -> void:
+	_motion.reduced_motion = reduced_motion
+	_hidden_squares = _state.board.squares_of(_state.viewer)
+	queue_redraw()
+	_motion.play_shuffle(before, self)
+
+
+## The global rectangle of the Piece on [param square].
+func global_piece_rect(square: Vector2i) -> Rect2:
+	var rect: Rect2 = geometry().piece_rect_of(square)
+	return Rect2(get_global_transform() * rect.position, rect.size * get_global_transform().get_scale())
+
+
 func picture_of(square: Vector2i) -> Texture2D:
 	var piece: Piece = _state.board.piece_at(square)
 	if piece == null:

@@ -18,6 +18,14 @@ func show_graveyard(types: Array[PieceType.Id]) -> void:
 	_tray.show_graveyard(types, _side, _adapted)
 
 
+func last_loss_rect() -> Rect2:
+	return PlayerBadge._last_slot(_tray)
+
+
+func pulse_tray() -> void:
+	PlayerBadge._flash(_tray)
+
+
 func _show_identity(name: String) -> void:
 	_name_label.text = name
 	_avatar.show_player(name, UiTokens.army_fill(_side, _adapted), UiTokens.army_colour(_side, _adapted))

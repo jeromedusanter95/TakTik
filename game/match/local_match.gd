@@ -231,9 +231,11 @@ func _show_move(record: MoveRecord) -> void:
 
 
 func _on_shuffle_pressed() -> void:
+	var before: Board = _board_state().board
 	_session.shuffle_active_setup()
 	_selected = BoardViewState.NO_SQUARE
 	_refresh()
+	_screen.play_shuffle(before)
 
 
 func _on_action_pressed() -> void:

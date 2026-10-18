@@ -40,6 +40,15 @@ func show_turn(active: bool, fraction: float) -> void:
 @abstract func show_graveyard(types: Array[PieceType.Id]) -> void
 
 
+## Where the last lost Piece sits, as a global rectangle, for a captured
+## Piece to fly to.
+@abstract func last_loss_rect() -> Rect2
+
+
+## A short flash on the losses tray, when a captured Piece lands in it.
+@abstract func pulse_tray() -> void
+
+
 @abstract func _show_identity(name: String) -> void
 
 
@@ -59,3 +68,19 @@ func _army_detail(lost: int) -> String:
 		"count": ARMY_SIZE - lost,
 		"army": Translated.text(&"ARMY_RED" if _side == Side.Id.RED else &"ARMY_GREEN"),
 	})
+
+
+## The global rectangle of the last Piece in [param tray], else of the tray.
+static func _last_slot(tray: GraveyardTray) -> Rect2:
+	var count: int = tray.get_child_count()
+	if count > 0:
+		var last: Node = tray.get_child(count - 1)
+		if last is Control:
+			return (last as Control).get_global_rect()
+	return Rect2(tray.get_global_rect().position, tray.token_size)
+
+
+static func _flash(tray: GraveyardTray) -> void:
+	var tween: Tween = tray.create_tween()
+	tween.tween_property(tray, "modulate", Color(1.4, 1.25, 0.9), 0.1)
+	tween.tween_property(tray, "modulate", Color.WHITE, 0.25)

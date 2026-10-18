@@ -74,6 +74,7 @@ var _unread: int = 0
 @onready var _chat_bar: Button = %ChatBar
 @onready var _chat_bar_margin: MarginContainer = %ChatBarMargin
 @onready var _turn_banner: TurnBanner = %TurnBanner
+@onready var _capture_flight: CaptureFlight = %CaptureFlight
 @onready var _result_modal: ResultModal = %ResultModal
 @onready var _chat_sheet: ChatSheet = %ChatSheet
 @onready var _game_menu: GameMenu = %GameMenu
@@ -235,7 +236,14 @@ func play_move(event: PublicMoveEvent) -> void:
 	_board_view.play_move(event)
 	_play(SoundCue.Id.FIGHT if event.has_fight else SoundCue.Id.MOVE)
 	if event.has_fight:
-		get_tree().create_timer(BoardMotion.FIGHT_SECONDS).timeout.connect(_play.bind(SoundCue.Id.CAPTURE))
+		get_tree().create_timer(BoardMotion.FIGHT_SECONDS).timeout.connect(_fly_captures.bind(event))
+
+
+## Animates the viewer's Pieces sliding to the arrangement shown now, from
+## [param before].
+func play_shuffle(before: Board) -> void:
+	_board_view.play_shuffle(before)
+	_play(SoundCue.Id.SWAP)
 
 
 func play_swap(first: Vector2i, second: Vector2i) -> void:
@@ -331,6 +339,28 @@ func close_overlays() -> void:
 	_connection_dialog.hide()
 	_chat_sheet.close()
 	hide_result()
+
+
+## Flies each Piece [param event]'s Fight eliminated to its owner's losses.
+func _fly_captures(event: PublicMoveEvent) -> void:
+	_play(SoundCue.Id.CAPTURE)
+	if _preferences != null and _preferences.reduced_motion:
+		return
+	var viewer: Side.Id = _board_view.state().viewer
+	var eliminated: Dictionary[Side.Id, PieceType.Id] = event.eliminated_types()
+	for side: Side.Id in eliminated:
+		var square: Vector2i = event.move.from if side == event.mover_side else event.move.to
+		var badge: PlayerBadge = _shown_badge(MatchScreen.Slot.YOU if side == viewer else MatchScreen.Slot.OPPONENT)
+		_capture_flight.fly(
+			PieceArt.token(eliminated[side], side, adapted_colours()),
+			_board_view.global_piece_rect(square), badge.last_loss_rect(), badge.pulse_tray
+		)
+
+
+## The card on large screens, the strip on phones.
+func _shown_badge(slot: Slot) -> PlayerBadge:
+	var badges: Array[PlayerBadge] = _badges(slot)
+	return badges[1] if _phone else badges[0]
 
 
 func _play(cue: SoundCue.Id) -> void:

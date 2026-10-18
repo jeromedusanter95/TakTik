@@ -25,6 +25,9 @@ const FADE_TIME: float = 0.3
 const LOSER_SCALE: float = 0.5
 const WINNER_TIME: float = 0.22
 const BURST_TIME: float = 0.12
+## A Shuffle: every Piece slides to its new Square, one after another.
+const SHUFFLE_TIME: float = 0.22
+const SHUFFLE_STAGGER: float = 0.02
 ## A Setup swap: both Pieces cross along an arc.
 const SWAP_TIME: float = 0.26
 const SWAP_ARC: float = 16.0
@@ -66,6 +69,48 @@ func play_swap(first: Vector2i, second: Vector2i, board: BoardView) -> void:
 			0.0, 1.0, SWAP_TIME
 		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	_tween.finished.connect(_finish)
+
+
+## Every Piece of the viewer slides from where it stood in [param before] to
+## where it stands now, one after another.
+func play_shuffle(before: Board, board: BoardView) -> void:
+	_stop()
+	var geometry: BoardGeometry = board.geometry()
+	var after: Board = board.state().board
+	var viewer: Side.Id = board.state().viewer
+	var moves: Array[Move] = BoardMotion.shuffle_moves(before, after, viewer)
+	_tween = board.create_tween().set_parallel()
+	for index: int in moves.size():
+		var move: Move = moves[index]
+		var copy: PiecePicture = _copy(board, board.picture_of(move.to), geometry.piece_rect_of(move.from))
+		var target: Vector2 = geometry.piece_rect_of(move.to).position
+		var duration: float = REDUCED_TIME if reduced_motion else SHUFFLE_TIME
+		var delay: float = 0.0 if reduced_motion else SHUFFLE_STAGGER * index
+		_tween.tween_property(copy, "position", target, duration).set_delay(delay).set_trans(
+			Tween.TRANS_CUBIC
+		).set_ease(Tween.EASE_OUT)
+	if moves.is_empty():
+		_tween.tween_interval(0.0)
+	_tween.finished.connect(_finish)
+
+
+## Where each of [param viewer]'s Pieces went between two arrangements: the
+## Pieces of one Type are matched in Square order.
+static func shuffle_moves(before: Board, after: Board, viewer: Side.Id) -> Array[Move]:
+	var moves: Array[Move] = []
+	var targets: Dictionary[PieceType.Id, Array] = {}
+	for square: Vector2i in after.squares_of(viewer):
+		var type: PieceType.Id = after.piece_at(square).type
+		if not targets.has(type):
+			targets[type] = []
+		targets[type].append(square)
+	for square: Vector2i in before.squares_of(viewer):
+		var type: PieceType.Id = before.piece_at(square).type
+		if not targets.has(type) or targets[type].is_empty():
+			continue
+		var target: Vector2i = targets[type].pop_front()
+		moves.append(Move.new(square, target))
+	return moves
 
 
 func is_playing() -> bool:

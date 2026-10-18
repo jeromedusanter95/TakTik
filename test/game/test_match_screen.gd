@@ -86,3 +86,15 @@ func test_the_menu_button_opens_the_game_menu() -> void:
 	button.pressed.emit()
 	var menu: Control = _screen.get_node("%GameMenu")
 	assert_true(menu.visible)
+
+
+func test_a_fight_flies_the_loser_to_its_losses_tray() -> void:
+	var event: PublicMoveEvent = PublicMoveEvent.of_move(
+		Side.Id.RED, Move.new(Vector2i(1, 2), Vector2i(1, 3))
+	).with_fight(PieceType.Id.KNIGHT, PieceType.Id.SOLDIER, FightOutcome.Id.ATTACKER_WINS)
+	_screen.play_move(event)
+	var flight: Control = _screen.get_node("%CaptureFlight")
+	await wait_seconds(BoardMotion.FIGHT_SECONDS + 0.1)
+	assert_eq(flight.get_child_count(), 1, "the beaten Soldier is in the air")
+	await wait_seconds(CaptureFlight.FLIGHT_TIME + 0.2)
+	assert_eq(flight.get_child_count(), 0, "and has landed")

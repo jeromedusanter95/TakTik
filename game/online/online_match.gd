@@ -211,9 +211,10 @@ func _press_during_play(square: Vector2i) -> void:
 
 
 func _on_shuffle_pressed() -> void:
-	_session.shuffle_setup()
+	var before: Board = _session.display_board()
 	_selected = BoardViewState.NO_SQUARE
-	_refresh()
+	_session.shuffle_setup()
+	_screen.play_shuffle(before)
 
 
 func _on_action_pressed() -> void:
