@@ -9,6 +9,9 @@ import { JsonSocket, socketUrl } from "./json-socket";
 
 type PlayerSocket = JsonSocket<RefereeReply>;
 
+/** Short, so a Forfeit happens within one test. */
+const FORFEIT_AFTER_SECONDS = 2;
+
 interface PairedSeat {
 	readonly gameId: string;
 	readonly seatToken: string;
@@ -20,7 +23,9 @@ describe("the Referee Worker", () => {
 	let base: URL;
 
 	beforeAll(async () => {
-		harness = createTestHarness({ workers: [{ configPath: "./wrangler.jsonc" }] });
+		harness = createTestHarness({
+			workers: [{ configPath: "./wrangler.jsonc", vars: { FORFEIT_AFTER_SECONDS } }],
+		});
 		await harness.listen();
 	});
 
@@ -135,6 +140,34 @@ describe("the Referee Worker", () => {
 			view: { side: "green", sideToMove: "green" },
 			history: [{ moverSide: "red", move: parseMove("c3-c4") }],
 		});
+	});
+
+	it("gives Victory to the Opponent of a Guest who Resigns", async () => {
+		const { red, green } = await startGame();
+		green.send({ type: "resign" });
+
+		for (const player of [red, green]) {
+			const end = await player.reply(4);
+			expect(end).toMatchObject({ type: "game_state", view: { result: { status: "red_wins", reason: "resigned" } } });
+			expect(end.type === "game_state" ? end.finalBoard : undefined).toHaveLength(36);
+		}
+	});
+
+	it("tells a Guest when their Opponent disconnects and comes back", async () => {
+		const { seats, red, green } = await startGame();
+		green.leave();
+		expect(await red.reply(4)).toEqual({ type: "opponent_presence", connected: false });
+
+		await takeSeat(seats.green);
+		expect(await red.reply(5)).toEqual({ type: "opponent_presence", connected: true });
+	});
+
+	it("Forfeits a Guest who stays disconnected too long", async () => {
+		const { red, green } = await startGame();
+		green.leave();
+
+		const end = await red.replyWhere((reply) => reply.type === "game_state" && reply.view.result.status !== "in_progress");
+		expect(end).toMatchObject({ view: { result: { status: "red_wins", reason: "forfeited" } } });
 	});
 
 	it("refuses an illegal Move and keeps the game going", async () => {

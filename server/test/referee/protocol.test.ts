@@ -30,6 +30,10 @@ describe("a Referee request", () => {
 		expect(parseRefereeRequest(text({ type: "move", move }))).toEqual({ valid: true, request: { type: "move", move } });
 	});
 
+	it("reads a resignation", () => {
+		expect(parseRefereeRequest(text({ type: "resign" }))).toEqual({ valid: true, request: { type: "resign" } });
+	});
+
 	it.each([
 		["not JSON", "move c3-c4"],
 		["of an unknown type", text({ type: "dance" })],

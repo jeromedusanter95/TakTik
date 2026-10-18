@@ -7,7 +7,7 @@ A Cloudflare Worker, as decided in [ADR 0001](../docs/adr/0001-cloudflare-refere
 - `src/referee`: the game protocol, the online game (Setups, Moves, what each side may see) and the session that referees it over sockets, also free of Cloudflare types.
 - `src/worker`: the Worker entry and the Durable Objects, thin adapters around the code above.
   - `QuickMatchHost`: one named instance every Quick Match socket connects to.
-  - `Referee`: one instance per online game. It stores the record (seats, both Setups, every Move) and rebuilds the game from it when it wakes from hibernation.
+  - `Referee`: one instance per online game. It stores the record (seats, both Setups, every Move, a Resign or Forfeit) and who is away, and rebuilds the game from them when it wakes from hibernation. Its alarm rings when an away player would Forfeit.
 
 ## Quick Match
 
@@ -26,6 +26,9 @@ The referee answers `seated` with the side and the Opponent's nickname, then whe
 - Once both Setups are in, each Guest gets `game_state` with their own `PlayerView` and the public `history` of every Move so far.
 - A Guest sends `{"type":"move","move":{"from":…,"to":…}}`. Both Guests then get `moved` with the public Move event and their own `PlayerView`.
 - When a Move ends the game, `moved` also carries `finalBoard`: every Piece left, with its Piece Type.
+- A Guest sends `{"type":"resign"}` to Resign during play. Both Guests then get `game_state` with the result (`"reason":"resigned"`) and `finalBoard`.
+- When a Guest's last socket closes, their Opponent gets `{"type":"opponent_presence","connected":false}`, and `"connected":true` once they take their seat again. A Guest taking their seat while the Opponent is away also gets `"connected":false`.
+- A Guest who stays away during play for `FORFEIT_AFTER_SECONDS` (in `wrangler.jsonc`) Forfeits: both get `game_state` with `"reason":"forfeited"`. The clock counts during Setup too, but a Forfeit only happens once play has started.
 - A wrong message gets `refused` with a reason. A socket that never took a seat is then closed; a seated one stays open.
 
 Taking a seat again, from a new tab or after a dropped connection, moves the seat to the new socket, closes the old one and resends the game so far.
