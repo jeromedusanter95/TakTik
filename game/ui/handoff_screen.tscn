@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://game/ui/handoff_screen.gd" id="1"]
 [ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="2"]
+[ext_resource type="Script" path="res://game/ui/components/page_background.gd" id="3"]
 
 [node name="HandoffScreen" type="Control"]
 layout_mode = 3
@@ -12,48 +13,57 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.12, 0.08, 0.05, 1)
+script = ExtResource("3")
 
-[node name="Content" type="VBoxContainer" parent="."]
+[node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 32.0
-offset_right = -32.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
-theme_override_constants/separation = 24
 
-[node name="TitleLabel" type="Label" parent="Content"]
-unique_name_in_owner = true
+[node name="Card" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(340, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
+theme_type_variation = &"SidePanel"
+
+[node name="Content" type="VBoxContainer" parent="Center/Card"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="Center/Card/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_type_variation = &"TitleLGold"
+auto_translate_mode = 2
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="SummaryLabel" type="Label" parent="Content"]
+[node name="SummaryLabel" type="Label" parent="Center/Card/Content"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"BodySecondary"
+auto_translate_mode = 2
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="ContinueButton" type="Button" parent="Content"]
+[node name="ContinueButton" type="Button" parent="Center/Card/Content"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 64)
+custom_minimum_size = Vector2(240, 60)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 24
+theme_type_variation = &"GoldButton"
 text = "HANDOFF_CONTINUE"
 
-[node name="PressScaleFeedback" type="Node" parent="Content/ContinueButton"]
+[node name="PressScaleFeedback" type="Node" parent="Center/Card/Content/ContinueButton"]
 script = ExtResource("2")

@@ -17,6 +17,7 @@ const CONNECTION_LOST: String = "connection_lost"
 var _socket: WireSocket
 var _active: bool = false
 var _entered: bool = false
+var _own_id: String = ""
 var _guests: Array[ListedGuest] = []
 var _waiting: bool = false
 ## The Guest this Guest challenged, or null.
@@ -44,6 +45,11 @@ func is_active() -> bool:
 ## True once the server let this Guest in.
 func has_entered() -> bool:
 	return _entered
+
+
+## The id the server gave this Guest, once entered.
+func own_id() -> String:
+	return _own_id
 
 
 ## The other Guests, the longest there first.
@@ -109,6 +115,7 @@ func _handle(reply: LobbyReply) -> void:
 	match reply.kind:
 		LobbyReply.Kind.ENTERED:
 			_entered = true
+			_own_id = reply.guest_id
 		LobbyReply.Kind.GUESTS:
 			_guests = reply.guests
 		LobbyReply.Kind.QUICK_MATCH:

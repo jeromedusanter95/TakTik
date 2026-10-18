@@ -1,0 +1,244 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://game/match/parts/result_modal.gd" id="1"]
+[ext_resource type="Script" path="res://game/ui/components/sun_rays.gd" id="2"]
+[ext_resource type="Script" path="res://game/ui/components/piece_picture.gd" id="3"]
+[ext_resource type="Script" path="res://game/ui/components/sparkle.gd" id="4"]
+[ext_resource type="Script" path="res://game/ui/components/graveyard_tray.gd" id="5"]
+[ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="6"]
+
+[node name="ResultModal" type="Control"]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="Rays" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -490.0
+offset_top = -490.0
+offset_right = 490.0
+offset_bottom = 490.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2")
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Stack" type="VBoxContainer" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="HeroSpace" type="Control" parent="Center/Stack"]
+z_index = 1
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Hero" type="TextureRect" parent="Center/Stack/HeroSpace"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -78.0
+offset_right = 78.0
+offset_bottom = 156.0
+grow_horizontal = 2
+script = ExtResource("3")
+
+[node name="SparkleA" type="Control" parent="Center/Stack/HeroSpace"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -120.0
+offset_top = 10.0
+offset_right = -96.0
+offset_bottom = 34.0
+script = ExtResource("4")
+
+[node name="SparkleB" type="Control" parent="Center/Stack/HeroSpace"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = 92.0
+offset_top = -6.0
+offset_right = 112.0
+offset_bottom = 14.0
+script = ExtResource("4")
+
+[node name="SparkleC" type="Control" parent="Center/Stack/HeroSpace"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = 104.0
+offset_top = 60.0
+offset_right = 120.0
+offset_bottom = 76.0
+script = ExtResource("4")
+
+[node name="Panel" type="PanelContainer" parent="Center/Stack"]
+layout_mode = 2
+theme_type_variation = &"Modal"
+
+[node name="Content" type="VBoxContainer" parent="Center/Stack/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="Center/Stack/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"DisplayL"
+auto_translate_mode = 2
+horizontal_alignment = 1
+
+[node name="ReasonLabel" type="Label" parent="Center/Stack/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodySecondary"
+auto_translate_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="FinalFight" type="PanelContainer" parent="Center/Stack/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Sunken"
+
+[node name="Row" type="HBoxContainer" parent="Center/Stack/Panel/Content/FinalFight"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="FightAttacker" type="TextureRect" parent="Center/Stack/Panel/Content/FinalFight/Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(38, 38)
+layout_mode = 2
+script = ExtResource("3")
+
+[node name="FightDefender" type="TextureRect" parent="Center/Stack/Panel/Content/FinalFight/Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(38, 38)
+layout_mode = 2
+script = ExtResource("3")
+
+[node name="FightLabel" type="Label" parent="Center/Stack/Panel/Content/FinalFight/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelStrong"
+auto_translate_mode = 2
+
+[node name="Losses" type="HBoxContainer" parent="Center/Stack/Panel/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RedLoss" type="PanelContainer" parent="Center/Stack/Panel/Content/Losses"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LossBox"
+
+[node name="Column" type="VBoxContainer" parent="Center/Stack/Panel/Content/Losses/RedLoss"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RedLossTitle" type="Label" parent="Center/Stack/Panel/Content/Losses/RedLoss/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CaptionAttack"
+auto_translate_mode = 2
+text_overrun_behavior = 3
+
+[node name="RedTray" type="HFlowContainer" parent="Center/Stack/Panel/Content/Losses/RedLoss/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("5")
+token_size = Vector2(38, 38)
+
+[node name="GreenLoss" type="PanelContainer" parent="Center/Stack/Panel/Content/Losses"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LossBox"
+
+[node name="Column" type="VBoxContainer" parent="Center/Stack/Panel/Content/Losses/GreenLoss"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="GreenLossTitle" type="Label" parent="Center/Stack/Panel/Content/Losses/GreenLoss/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CaptionGreen"
+auto_translate_mode = 2
+text_overrun_behavior = 3
+
+[node name="GreenTray" type="HFlowContainer" parent="Center/Stack/Panel/Content/Losses/GreenLoss/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("5")
+token_size = Vector2(38, 38)
+
+[node name="Notice" type="PanelContainer" parent="Center/Stack/Panel/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 4
+theme_type_variation = &"PillGreen"
+
+[node name="NoticeLabel" type="Label" parent="Center/Stack/Panel/Content/Notice"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CaptionStrong"
+auto_translate_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="Center/Stack/Panel/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PrimaryButton" type="Button" parent="Center/Stack/Panel/Content/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"GoldButton"
+auto_translate_mode = 2
+
+[node name="PressScaleFeedback" type="Node" parent="Center/Stack/Panel/Content/Buttons/PrimaryButton"]
+script = ExtResource("6")
+
+[node name="SecondaryButton" type="Button" parent="Center/Stack/Panel/Content/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"WoodButton"
+auto_translate_mode = 2
+
+[node name="PressScaleFeedback" type="Node" parent="Center/Stack/Panel/Content/Buttons/SecondaryButton"]
+script = ExtResource("6")

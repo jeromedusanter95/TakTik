@@ -1,0 +1,103 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://game/match/parts/fight_card.gd" id="1"]
+[ext_resource type="Script" path="res://game/ui/components/piece_picture.gd" id="2"]
+[ext_resource type="Script" path="res://game/ui/components/loser_slash.gd" id="3"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/chevron_right.svg" id="4"]
+[ext_resource type="Script" path="res://game/ui/components/ui_icon.gd" id="5"]
+
+[node name="FightCard" type="PanelContainer"]
+theme_type_variation = &"Card"
+script = ExtResource("1")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="Content"]
+layout_mode = 2
+theme_type_variation = &"Overline"
+text = "FIGHT_TITLE"
+uppercase = true
+
+[node name="FightRow" type="HBoxContainer" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="Attacker" type="VBoxContainer" parent="Content/FightRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="AttackerPicture" type="TextureRect" parent="Content/FightRow/Attacker"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+script = ExtResource("2")
+
+[node name="AttackerSlash" type="Control" parent="Content/FightRow/Attacker/AttackerPicture"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("3")
+
+[node name="AttackLabel" type="Label" parent="Content/FightRow/Attacker"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CaptionAttack"
+auto_translate_mode = 2
+horizontal_alignment = 1
+
+[node name="Arrow" type="TextureRect" parent="Content/FightRow"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("4")
+script = ExtResource("5")
+tone = 3
+
+[node name="Defender" type="VBoxContainer" parent="Content/FightRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="DefenderPicture" type="TextureRect" parent="Content/FightRow/Defender"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+script = ExtResource("2")
+
+[node name="DefenderSlash" type="Control" parent="Content/FightRow/Defender/DefenderPicture"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("3")
+
+[node name="DefenseLabel" type="Label" parent="Content/FightRow/Defender"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CaptionDefense"
+auto_translate_mode = 2
+horizontal_alignment = 1
+
+[node name="ResultLabel" type="Label" parent="Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"TitleS"
+auto_translate_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="EmptyLabel" type="Label" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyMuted"
+text = "FIGHT_NONE"
+autowrap_mode = 3

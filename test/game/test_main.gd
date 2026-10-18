@@ -1,15 +1,17 @@
 extends GutTest
-## Drives the composition root: the menu starts each kind of game and the
-## match screen leads back to the menu.
+## Drives the composition root: the home screen starts each kind of game and
+## each game leads back to the home screen.
 
 const MainScene: PackedScene = preload("res://main.tscn")
+const MemoryPreferenceStore: GDScript = preload("res://test/preferences/memory_preference_store.gd")
 
 var _main: Main = null
-var _store: FakeLanguageStore = null
+var _store: MemoryPreferenceStore = null
 
 
 func before_each() -> void:
-	_store = FakeLanguageStore.new(Languages.ENGLISH)
+	_store = MemoryPreferenceStore.new()
+	_store.values = {"language": "en"}
 	_start_main()
 
 
@@ -17,75 +19,67 @@ func after_all() -> void:
 	TranslationServer.set_locale(Languages.ENGLISH)
 
 
-func test_the_game_opens_on_the_menu_with_three_difficulties() -> void:
-	assert_true(_menu().visible)
+func test_the_game_opens_on_the_home_screen_with_three_difficulties() -> void:
+	assert_true(_home().visible)
 	assert_false(_match().visible)
-	assert_eq(_menu().get_node("%BotChoices").get_child_count(), 3)
+	var difficulty: SegmentedControl = _home().get_node("%Difficulty")
+	assert_eq(difficulty.option(2).text, "DIFFICULTY_HARD")
+
+
+func test_every_screen_gets_the_theme() -> void:
+	for screen: Control in [_home(), _match()]:
+		assert_not_null(screen.theme)
+		assert_true(screen.theme.has_stylebox(&"normal", &"GoldButton"))
 
 
 func test_two_players_opens_the_hot_seat_handoff() -> void:
-	_button("%TwoPlayersButton", _menu()).pressed.emit()
+	_button("%TwoPlayersButton", _home()).pressed.emit()
 	assert_true(_match().visible)
-	assert_false(_menu().visible)
+	assert_false(_home().visible)
 	assert_true(_handoff().visible)
 
 
-func test_a_difficulty_opens_a_game_against_the_bot_without_handoff() -> void:
-	var first: Node = _menu().get_node("%BotChoices").get_child(0)
-	assert_true(first is Button)
-	var easy: Button = first
-	easy.pressed.emit()
+func test_play_against_the_bot_opens_a_game_without_handoff() -> void:
+	_button("%BotButton", _home()).pressed.emit()
 	assert_true(_match().visible)
 	assert_false(_handoff().visible)
-	assert_eq(_label("%StatusLabel").text, "Red: arrange your Army")
+	assert_eq(_status(), "Arrange your Army")
+	assert_eq(_subtitle(), "Against Medium Bot", "Medium is the default Difficulty")
 
 
-func test_the_menu_button_leads_back_to_the_menu() -> void:
-	_button("%TwoPlayersButton", _menu()).pressed.emit()
-	_button("%MenuButton", _match()).pressed.emit()
-	assert_true(_menu().visible)
+func test_the_chosen_difficulty_is_remembered() -> void:
+	var difficulty: SegmentedControl = _home().get_node("%Difficulty")
+	difficulty.option(0).pressed.emit()
+	var saved: String = _store.values.get("difficulty", "")
+	assert_eq(saved, "0")
+	_button("%BotButton", _home()).pressed.emit()
+	assert_eq(_subtitle(), "Against Easy Bot")
+
+
+func test_quitting_a_game_leads_back_home() -> void:
+	_button("%TwoPlayersButton", _home()).pressed.emit()
+	var menu: Node = _screen().get_node("%GameMenu")
+	_button("%QuitButton", menu).pressed.emit()
+	assert_true(_home().visible)
 	assert_false(_match().visible)
 
 
 func test_the_game_opens_in_the_saved_language() -> void:
 	_main.free()
-	_store = FakeLanguageStore.new("fr")
+	_store.values = {"language": "fr"}
 	_start_main()
 	assert_eq(TranslationServer.get_locale(), "fr")
-	assert_eq(_button("%LanguageButton", _menu()).text, "English")
 
 
-func test_the_language_button_switches_to_french_and_remembers_it() -> void:
-	assert_eq(_button("%LanguageButton", _menu()).text, "Français")
-	_button("%LanguageButton", _menu()).pressed.emit()
+func test_the_language_switch_changes_and_remembers_the_language() -> void:
+	var switch: SegmentedControl = _home().get_node("%LanguageSwitch")
+	switch.option(0).pressed.emit()
 	assert_eq(TranslationServer.get_locale(), "fr")
-	assert_eq(_store.saved, "fr")
-	assert_eq(_button("%LanguageButton", _menu()).text, "English")
-	var first: Node = _menu().get_node("%BotChoices").get_child(0)
-	assert_true(first is Button)
-	var easy: Button = first
-	assert_eq(easy.text, "Bot Facile")
-	easy.pressed.emit()
-	assert_eq(_label("%StatusLabel").text, "Rouge : disposez votre Armée")
-
-
-func test_play_online_opens_the_lobby_entry_and_back_returns_to_the_menu() -> void:
-	_button("%OnlineButton", _menu()).pressed.emit()
-	assert_true(_online().visible)
-	assert_false(_menu().visible)
-	assert_false(_match().visible)
-	var panel: Node = _online().get_node("%LobbyPanel")
-	assert_true(panel is LobbyPanel and (panel as LobbyPanel).visible)
-	_button("%BackButton", panel).pressed.emit()
-	assert_true(_menu().visible)
-	assert_false(_online().visible)
-
-
-func test_pressing_the_language_button_twice_returns_to_english() -> void:
-	_button("%LanguageButton", _menu()).pressed.emit()
-	_button("%LanguageButton", _menu()).pressed.emit()
-	assert_eq(TranslationServer.get_locale(), Languages.ENGLISH)
-	assert_eq(_store.saved, Languages.ENGLISH)
+	var saved: String = _store.values["language"]
+	assert_eq(saved, "fr")
+	_button("%BotButton", _home()).pressed.emit()
+	assert_eq(_status(), "Disposez votre Armée")
+	TranslationServer.set_locale(Languages.ENGLISH)
 
 
 func _start_main() -> void:
@@ -94,13 +88,13 @@ func _start_main() -> void:
 		fail_test("main.tscn root should be a Main")
 		return
 	_main = instance
-	_main.language_store = _store
+	_main.preference_store = _store
 	add_child_autofree(_main)
 
 
-func _menu() -> MainMenu:
-	var node: Node = _main.get_node("%MainMenu")
-	assert_true(node is MainMenu)
+func _home() -> HomeScreen:
+	var node: Node = _main.get_node("%HomeScreen")
+	assert_true(node is HomeScreen)
 	return node
 
 
@@ -110,9 +104,9 @@ func _match() -> LocalMatch:
 	return node
 
 
-func _online() -> OnlineMatch:
-	var node: Node = _main.get_node("%OnlineMatch")
-	assert_true(node is OnlineMatch)
+func _screen() -> MatchScreen:
+	var node: Node = _match().get_node("%MatchScreen")
+	assert_true(node is MatchScreen)
 	return node
 
 
@@ -122,31 +116,17 @@ func _handoff() -> HandoffScreen:
 	return node
 
 
-func _label(path: String) -> Label:
-	var node: Node = _match().get_node(path)
-	assert_true(node is Label, path)
-	return node
+func _status() -> String:
+	var label: Label = _screen().get_node("%TopBar").get_node("%StatusLabel")
+	return label.text
+
+
+func _subtitle() -> String:
+	var label: Label = _screen().get_node("%TopBar").get_node("%Subtitle")
+	return label.text
 
 
 func _button(path: String, owner_node: Node) -> Button:
 	var node: Node = owner_node.get_node(path)
 	assert_true(node is Button, path)
 	return node
-
-
-class FakeLanguageStore:
-	extends LanguageStore
-
-	var saved: String = ""
-
-
-	func _init(initial: String) -> void:
-		saved = initial
-
-
-	func load_language() -> String:
-		return saved
-
-
-	func save_language(code: String) -> void:
-		saved = code

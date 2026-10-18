@@ -1,0 +1,317 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://game/home/home_screen.gd" id="1"]
+[ext_resource type="Script" path="res://game/ui/components/page_background.gd" id="2"]
+[ext_resource type="Script" path="res://game/ui/components/segmented_control.gd" id="3"]
+[ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="4"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/chevron_right.svg" id="5"]
+[ext_resource type="Script" path="res://game/ui/components/ui_icon.gd" id="6"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/bot.svg" id="7"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/users.svg" id="8"]
+[ext_resource type="Script" path="res://game/home/home_illustration.gd" id="9"]
+[ext_resource type="PackedScene" path="res://game/home/online_panel.tscn" id="10"]
+
+[node name="HomeScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2")
+glow_center = Vector2(0.35, 0.5)
+glow_radius = 0.6
+
+[node name="Margin" type="MarginContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 80
+theme_override_constants/margin_top = 56
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 44
+
+[node name="Layout" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="PhoneTabs" type="PanelContainer" parent="Margin/Layout"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+script = ExtResource("3")
+option_minimum_size = Vector2(0, 44)
+
+[node name="Columns" type="HBoxContainer" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 48
+
+[node name="LeftScroll" type="ScrollContainer" parent="Margin/Layout/Columns"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_scroll_mode = 0
+
+[node name="Left" type="HBoxContainer" parent="Margin/Layout/Columns/LeftScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="Hero" type="VBoxContainer" parent="Margin/Layout/Columns/LeftScroll/Left"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+theme_override_constants/separation = 30
+
+[node name="Overline" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero"]
+layout_mode = 2
+theme_type_variation = &"OverlineGold"
+text = "HOME_OVERLINE"
+uppercase = true
+
+[node name="Logo" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"DisplayXL"
+text = "TakTik"
+auto_translate_mode = 2
+
+[node name="Tagline" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero"]
+layout_mode = 2
+theme_type_variation = &"Tagline"
+text = "HOME_TAGLINE"
+autowrap_mode = 3
+
+[node name="NameBlock" type="VBoxContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NameLabel" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/NameBlock"]
+layout_mode = 2
+theme_type_variation = &"LabelMuted"
+text = "HOME_NAME_LABEL"
+
+[node name="NameRow" type="HFlowContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/NameBlock"]
+layout_mode = 2
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 6
+
+[node name="NameEdit" type="LineEdit" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/NameBlock/NameRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 54)
+layout_mode = 2
+placeholder_text = "HOME_NAME_PLACEHOLDER"
+
+[node name="Helper" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/NameBlock/NameRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
+text = "HOME_NAME_HELPER"
+
+[node name="NameError" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/NameBlock"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"LabelError"
+text = "HOME_NAME_ERROR"
+
+[node name="Modes" type="VBoxContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/separation = 16
+
+[node name="QuickMatchButton" type="Button" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(358, 92)
+layout_mode = 2
+theme_type_variation = &"GoldButtonHero"
+
+[node name="PressScaleFeedback" type="Node" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/QuickMatchButton"]
+script = ExtResource("4")
+
+[node name="Inside" type="MarginContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/QuickMatchButton"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 6
+
+[node name="Row" type="HBoxContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/QuickMatchButton/Inside"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Texts" type="VBoxContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/QuickMatchButton/Inside/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="QuickMatchTitle" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/QuickMatchButton/Inside/Row/Texts"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"DisplayMOnGold"
+auto_translate_mode = 2
+
+[node name="QuickMatchDetail" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/QuickMatchButton/Inside/Row/Texts"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CaptionOnGold"
+auto_translate_mode = 2
+text_overrun_behavior = 3
+
+[node name="Chevron" type="TextureRect" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/QuickMatchButton/Inside/Row"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("5")
+script = ExtResource("6")
+tone = 5
+
+[node name="ModeCards" type="BoxContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BotCard" type="PanelContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards"]
+custom_minimum_size = Vector2(272, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Card"
+
+[node name="Column" type="VBoxContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/BotCard"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="HBoxContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/BotCard/Column"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Icon" type="TextureRect" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/BotCard/Column/Title"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("7")
+script = ExtResource("6")
+tone = 4
+
+[node name="Label" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/BotCard/Column/Title"]
+layout_mode = 2
+theme_type_variation = &"TitleS"
+text = "HOME_BOT_TITLE"
+
+[node name="Difficulty" type="PanelContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/BotCard/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("3")
+option_minimum_size = Vector2(0, 38)
+
+[node name="BotButton" type="Button" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/BotCard/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_type_variation = &"GoldButtonSmall"
+text = "HOME_PLAY"
+
+[node name="PressScaleFeedback" type="Node" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/BotCard/Column/BotButton"]
+script = ExtResource("4")
+
+[node name="TwoCard" type="PanelContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards"]
+custom_minimum_size = Vector2(272, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Card"
+
+[node name="Column" type="VBoxContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/TwoCard"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="HBoxContainer" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/TwoCard/Column"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Icon" type="TextureRect" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/TwoCard/Column/Title"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("8")
+script = ExtResource("6")
+tone = 4
+
+[node name="Label" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/TwoCard/Column/Title"]
+layout_mode = 2
+theme_type_variation = &"TitleS"
+text = "HOME_TWO_TITLE"
+
+[node name="Description" type="Label" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/TwoCard/Column"]
+custom_minimum_size = Vector2(200, 38)
+layout_mode = 2
+theme_type_variation = &"BodyMuted"
+text = "HOME_TWO_DETAIL"
+autowrap_mode = 3
+
+[node name="TwoPlayersButton" type="Button" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/TwoCard/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_type_variation = &"WoodButton"
+text = "HOME_PLAY"
+
+[node name="PressScaleFeedback" type="Node" parent="Margin/Layout/Columns/LeftScroll/Left/Hero/Modes/ModeCards/TwoCard/Column/TwoPlayersButton"]
+script = ExtResource("4")
+
+[node name="Illustration" type="Control" parent="Margin/Layout/Columns/LeftScroll/Left"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 600)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("9")
+
+[node name="OnlinePanel" parent="Margin/Layout/Columns" instance=ExtResource("10")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TopRight" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -644.0
+offset_top = 28.0
+offset_right = -508.0
+offset_bottom = 64.0
+grow_horizontal = 0
+
+[node name="LanguageSwitch" type="PanelContainer" parent="TopRight"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("3")
+option_minimum_size = Vector2(48, 36)

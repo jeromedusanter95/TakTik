@@ -68,6 +68,19 @@ static func describe_result(result: GameResult) -> String:
 			return ""
 
 
+## Why [param result] ended the game, for example "the enemy Princess was
+## captured".
+static func describe_reason(result: GameResult) -> String:
+	var values: Dictionary[String, Variant] = {}
+	match result.status:
+		GameResult.Status.RED_WINS:
+			values["loser"] = PieceNames.side_name(Side.Id.GREEN)
+		GameResult.Status.GREEN_WINS:
+			values["loser"] = PieceNames.side_name(Side.Id.RED)
+	var reason: String = _reason_text(result.reason, values)
+	return reason.left(1).to_upper() + reason.substr(1) + "." if not reason.is_empty() else ""
+
+
 static func describe_piece(type: PieceType.Id) -> String:
 	return Translated.text(&"PIECE_DESCRIPTION", {
 		"piece": PieceNames.display_name(type),
