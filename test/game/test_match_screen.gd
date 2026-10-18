@@ -115,3 +115,27 @@ func test_hiding_the_chat_drops_the_opponents_messages_for_this_game() -> void:
 	_screen.clear_chat()
 	_screen.add_chat("Bob", "Hello!", false)
 	assert_eq(panel.message_count(), 1, "a new game shows them again")
+
+
+func test_medium_screens_fold_the_cards_into_strips_and_keep_a_narrower_chat() -> void:
+	_screen.set_chat_enabled(true)
+	_screen.set_layout(ScreenLayout.Id.MEDIUM)
+	assert_false((_screen.get_node("%LeftColumn") as Control).visible)
+	assert_true((_screen.get_node("%OpponentStrip") as Control).visible)
+	var column: Control = _screen.get_node("%RightColumn")
+	assert_true(column.visible)
+	assert_eq(column.custom_minimum_size.x, 320.0)
+
+
+func test_narrow_screens_open_the_chat_as_a_drawer_from_the_right() -> void:
+	_screen.set_chat_enabled(true)
+	_screen.set_layout(ScreenLayout.Id.NARROW)
+	assert_false((_screen.get_node("%RightColumn") as Control).visible)
+	var chat_button: Control = _screen.get_node("%TopBar").get_node("%ChatButton")
+	assert_true(chat_button.visible)
+	var sheet: ChatSheet = _screen.get_node("%ChatSheet")
+	var panel: Node = _screen.get_node("%ChatPanel")
+	assert_true(sheet.body().is_ancestor_of(panel))
+	var drawer: Control = sheet.get_node("%Sheet")
+	assert_eq(drawer.anchor_left, 1.0, "anchored to the right edge")
+	assert_eq(drawer.theme_type_variation, &"Drawer")

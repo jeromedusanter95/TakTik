@@ -44,10 +44,12 @@ enum Phase {
 const BOARD_DIM: float = 0.4
 const PHONE_MAX_CELL: float = 64.0
 const PHONE_MIN_CELL: float = 48.0
+## The chat column between 1024 and 1279 pixels.
+const MEDIUM_CHAT_WIDTH: int = 320
 
 var _preferences: PlayerPreferences = null
 var _sound: SoundOutput = null
-var _phone: bool = false
+var _layout: ScreenLayout.Id = ScreenLayout.Id.WIDE
 var _has_chat: bool = true
 var _resign_allowed: bool = false
 var _phase: Phase = Phase.SETUP
@@ -147,15 +149,19 @@ func set_phase(phase: Phase) -> void:
 	_apply_board_size()
 
 
-func set_phone(phone: bool) -> void:
-	if phone == _phone:
+func set_layout(layout: ScreenLayout.Id) -> void:
+	if layout == _layout:
 		return
-	_phone = phone
+	_layout = layout
 	_apply_layout()
 
 
+func set_phone(phone: bool) -> void:
+	set_layout(ScreenLayout.Id.PHONE if phone else ScreenLayout.Id.WIDE)
+
+
 func is_phone() -> bool:
-	return _phone
+	return _layout == ScreenLayout.Id.PHONE
 
 
 # The top bar.
@@ -220,7 +226,7 @@ func show_last_fight(event: PublicMoveEvent) -> void:
 	_fight_strip_label.text = "%s · %s" % [
 		Translated.text(&"FIGHT_TITLE"), FightCard.result_text(event),
 	]
-	_fight_strip.visible = _phone and _phase != Phase.SETUP
+	_fight_strip.visible = _uses_strips() and not _has_chat_column() and _phase != Phase.SETUP
 
 
 func show_no_fight() -> void:
@@ -364,10 +370,30 @@ func _fly_captures(event: PublicMoveEvent) -> void:
 		)
 
 
-## The card on large screens, the strip on phones.
+## The card on wide screens, the strip elsewhere.
 func _shown_badge(slot: Slot) -> PlayerBadge:
 	var badges: Array[PlayerBadge] = _badges(slot)
-	return badges[1] if _phone else badges[0]
+	return badges[1] if _uses_strips() else badges[0]
+
+
+## Player strips around the Board instead of cards in a left column.
+func _uses_strips() -> bool:
+	return _layout != ScreenLayout.Id.WIDE
+
+
+## The chat in a column on the right, rather than in a drawer or a sheet.
+func _has_chat_column() -> bool:
+	return _has_chat and (_layout == ScreenLayout.Id.WIDE or _layout == ScreenLayout.Id.MEDIUM)
+
+
+## The chat opens over the game: a drawer from the right, or a bottom sheet
+## on phones.
+func _chat_in_drawer() -> bool:
+	return _layout == ScreenLayout.Id.NARROW or _layout == ScreenLayout.Id.PHONE
+
+
+func _chat_column_width() -> int:
+	return UiTokens.COL_RIGHT if _layout == ScreenLayout.Id.WIDE else MEDIUM_CHAT_WIDTH
 
 
 func _play(cue: SoundCue.Id) -> void:
@@ -384,44 +410,50 @@ func _badges(slot: Slot) -> Array[PlayerBadge]:
 
 
 func _apply_layout() -> void:
-	_left_column.visible = not _phone
-	_right_column.visible = _has_chat and not _phone
-	_opponent_strip.visible = _phone
-	_you_strip.visible = _phone
+	var phone: bool = _layout == ScreenLayout.Id.PHONE
+	_left_column.visible = not _uses_strips()
+	_right_column.visible = _has_chat_column()
+	_right_column.custom_minimum_size.x = _chat_column_width()
+	_opponent_strip.visible = _uses_strips()
+	_you_strip.visible = _uses_strips()
 	_fight_strip.visible = false
-	_chat_bar_margin.visible = _phone and _has_chat
-	_top_bar.set_phone(_phone)
-	var margin: int = UiTokens.SPACE_M if _phone else UiTokens.SPACE_2XL
+	_chat_bar_margin.visible = phone and _has_chat
+	_top_bar.set_phone(phone)
+	_top_bar.set_chat_in_drawer(_chat_in_drawer())
+	var margin: int = UiTokens.SPACE_M if phone else UiTokens.SPACE_2XL
 	_body.add_theme_constant_override("margin_left", margin)
 	_body.add_theme_constant_override("margin_right", margin)
-	_body.add_theme_constant_override("margin_top", UiTokens.SPACE_M if _phone else 22)
-	_body.add_theme_constant_override("margin_bottom", UiTokens.SPACE_L if _phone else 26)
-	_columns.add_theme_constant_override("separation", 10 if _phone else UiTokens.GAP_COLUMNS)
-	_turn_banner.rest_y = (UiTokens.TOPBAR_PHONE if _phone else UiTokens.TOPBAR_DESKTOP) + UiTokens.SPACE_L
+	_body.add_theme_constant_override("margin_top", UiTokens.SPACE_M if phone else 22)
+	_body.add_theme_constant_override("margin_bottom", UiTokens.SPACE_L if phone else 26)
+	_columns.add_theme_constant_override("separation", 10 if phone else UiTokens.GAP_COLUMNS)
+	var top_bar_height: int = UiTokens.TOPBAR_PHONE if phone else UiTokens.TOPBAR_DESKTOP
+	_turn_banner.rest_y = top_bar_height + UiTokens.SPACE_L
 	# The end of game modal covers the Board side and leaves the chat usable.
-	_result_modal.offset_top = UiTokens.TOPBAR_PHONE if _phone else UiTokens.TOPBAR_DESKTOP
-	var chat_width: int = UiTokens.COL_RIGHT + UiTokens.SPACE_2XL + UiTokens.GAP_COLUMNS
-	_result_modal.offset_right = -chat_width if _has_chat and not _phone else 0
-	_result_modal.set_phone(_phone)
+	_result_modal.offset_top = top_bar_height
+	var chat_width: int = _chat_column_width() + UiTokens.SPACE_2XL + UiTokens.GAP_COLUMNS
+	_result_modal.offset_right = -chat_width if _has_chat_column() else 0
+	_result_modal.set_phone(phone)
+	_chat_sheet.set_side_drawer(_layout == ScreenLayout.Id.NARROW)
 	_move_chat()
 	_apply_board_size()
 
 
-## The chat lives in the right column on large screens and in the sheet on
-## phones.
+## The chat lives in the right column on wide screens, in the drawer or the
+## sheet elsewhere.
 func _move_chat() -> void:
-	var target: Container = _chat_sheet.body() if _phone else _right_column
+	var in_drawer: bool = _chat_in_drawer()
+	var target: Container = _chat_sheet.body() if in_drawer else _right_column
 	if _chat_panel.get_parent() == target:
 		return
 	_chat_panel.reparent(target, false)
-	# Inside the sheet the chat needs no panel of its own.
-	_chat_panel.theme_type_variation = &"Bare" if _phone else &"SidePanel"
-	if not _phone:
+	# Inside the drawer the chat needs no panel of its own.
+	_chat_panel.theme_type_variation = &"Bare" if in_drawer else &"SidePanel"
+	if not in_drawer:
 		_chat_sheet.close()
 
 
 func _apply_board_size() -> void:
-	if _phone:
+	if _layout == ScreenLayout.Id.PHONE:
 		_board_view.max_cell = PHONE_MAX_CELL
 		_board_view.min_cell = PHONE_MIN_CELL
 	else:
@@ -441,7 +473,7 @@ func _apply_motion() -> void:
 
 
 func _open_chat_sheet() -> void:
-	if not _phone:
+	if not _chat_in_drawer():
 		return
 	_unread = 0
 	_top_bar.show_unread(0)
@@ -509,7 +541,7 @@ func _on_quick_chat_chosen(message: String) -> void:
 
 
 func _on_message_added(is_from_opponent: bool) -> void:
-	if _phone and is_from_opponent and not _chat_sheet.is_open():
+	if _chat_in_drawer() and is_from_opponent and not _chat_sheet.is_open():
 		_unread += 1
 		_top_bar.show_unread(_unread)
 

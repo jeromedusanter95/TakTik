@@ -158,6 +158,13 @@ static func _add_panels(theme: Theme) -> void:
 	sheet.corner_radius_top_left = UiTokens.RADIUS_2XL
 	sheet.corner_radius_top_right = UiTokens.RADIUS_2XL
 	theme.set_stylebox(&"panel", &"Sheet", sheet)
+	theme.set_type_variation(&"Drawer", &"PanelContainer")
+	var drawer: StyleBoxFlat = UiStyles.box(
+		UiTokens.SURFACE_1, 0, UiStyles.even(UiTokens.SPACE_L), UiTokens.BORDER_1, 1
+	)
+	drawer.corner_radius_top_left = UiTokens.RADIUS_2XL
+	drawer.corner_radius_bottom_left = UiTokens.RADIUS_2XL
+	theme.set_stylebox(&"panel", &"Drawer", drawer)
 
 
 static func _panel(

@@ -79,6 +79,10 @@ func use_sound(sound: SoundOutput) -> void:
 	_screen.use_sound(sound)
 
 
+func set_layout(layout: ScreenLayout.Id) -> void:
+	_screen.set_layout(layout)
+
+
 func set_phone(phone: bool) -> void:
 	_screen.set_phone(phone)
 

@@ -54,7 +54,7 @@ func show_offline(message: String, can_retry: bool = false) -> void:
 	_entering = false
 	_clear_rows()
 	_shown_ids.clear()
-	_count_label.text = Translated.text(&"LOBBY_COUNT", {"count": 0})
+	_count_label.text = OnlinePanel.player_count(0)
 	_message_label.text = message
 	_message_label.visible = not message.is_empty()
 	_retry_button.visible = can_retry
@@ -80,7 +80,7 @@ func show_guests(
 	if _entering:
 		_entering = false
 		show_message("")
-	_count_label.text = Translated.text(&"LOBBY_COUNT", {"count": guests.size() + 1})
+	_count_label.text = OnlinePanel.player_count(guests.size() + 1)
 	# The empty state invites a Quick Match, which needs someone free.
 	var anyone_free: bool = guests.any(func(guest: ListedGuest) -> bool: return not guest.in_game)
 	var ordered: Array[ListedGuest] = guests.duplicate()
@@ -149,6 +149,11 @@ func hide_challenge() -> void:
 	_card_tween = create_tween()
 	_card_tween.tween_property(_challenge_card, "modulate:a", 0.0, CARD_OUT_TIME)
 	_card_tween.tween_callback(_challenge_card.hide)
+
+
+## "1 player" or "5 players".
+static func player_count(count: int) -> String:
+	return Translated.text(&"LOBBY_COUNT_ONE" if count == 1 else &"LOBBY_COUNT", {"count": count})
 
 
 func row_count() -> int:

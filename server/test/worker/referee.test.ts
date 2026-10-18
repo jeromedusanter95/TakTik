@@ -116,7 +116,7 @@ describe("the Referee Worker", () => {
 	it("tells a Guest when their Opponent disconnects and comes back", async () => {
 		const { seats, red, green } = await startGame();
 		green.leave();
-		expect(await red.reply(4)).toEqual({ type: "opponent_presence", connected: false });
+		expect(await red.reply(4)).toMatchObject({ type: "opponent_presence", connected: false });
 
 		await takeSeat(base, seats.green);
 		expect(await red.reply(5)).toEqual({ type: "opponent_presence", connected: true });

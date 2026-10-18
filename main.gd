@@ -1,9 +1,8 @@
 class_name Main
 extends Node
 ## Composition root: builds what the game needs, hands it out, and switches
-## between the home screen and the games. Portrait screens get the phone
-## layouts at a 390 by 844 reference size; the rest get the desktop layouts at
-## 1440 by 900.
+## between the home screen and the games, in the layout the screen's width
+## calls for (see ScreenLayout).
 
 const SETTINGS_PATH: String = "user://settings.cfg"
 
@@ -18,7 +17,7 @@ var preference_store: PreferenceStore = null
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _preferences: PlayerPreferences = null
-var _phone: bool = false
+var _layout: ScreenLayout.Id = ScreenLayout.Id.WIDE
 var _fitted: bool = false
 
 @onready var _home: HomeScreen = %HomeScreen
@@ -105,16 +104,17 @@ func _show_only(screen: Control) -> void:
 		candidate.visible = candidate == screen
 
 
-## Portrait windows use the phone layouts, landscape ones the desktop
-## layouts, each at its own reference size.
+## Picks the layout from the screen's width in CSS pixels, and draws the
+## window at that layout's reference size.
 func _fit_window() -> void:
 	var window: Window = get_window()
-	var portrait: bool = window.size.y > window.size.x
-	window.content_scale_size = UiTokens.PHONE_SIZE if portrait else UiTokens.DESKTOP_SIZE
-	if _fitted and portrait == _phone:
+	var css: Vector2 = ScreenSize.css_size(window)
+	var layout: ScreenLayout.Id = ScreenLayout.for_width(css.x)
+	window.content_scale_size = ScreenLayout.content_size(layout, css)
+	if _fitted and layout == _layout:
 		return
 	_fitted = true
-	_phone = portrait
-	_home.set_phone(portrait)
-	_local_match.set_phone(portrait)
-	_online_match.set_phone(portrait)
+	_layout = layout
+	_home.set_layout(layout)
+	_local_match.set_layout(layout)
+	_online_match.set_layout(layout)

@@ -46,7 +46,7 @@ describe("the Lobby Worker", () => {
 		const adaSees = await ada.guest.replyWhere(
 			(reply) => reply.type === "guests" && reply.guests.some((listed) => listed.nickname === "Bob"),
 		);
-		expect(adaSees).toEqual({ type: "guests", guests: [{ guestId: bob.guestId, nickname: "Bob", waiting: false }] });
+		expect(adaSees).toEqual({ type: "guests", guests: [{ guestId: bob.guestId, nickname: "Bob", waiting: false, inGame: false }] });
 	});
 
 	it("pairs two Guests through Quick Match into one game on opposite sides", async () => {

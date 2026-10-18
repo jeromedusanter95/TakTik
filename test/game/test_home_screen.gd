@@ -199,6 +199,21 @@ func test_phones_switch_between_play_and_online() -> void:
 	assert_false((_home.get_node("%LeftScroll") as Control).visible)
 
 
+func test_narrow_screens_put_the_online_panel_under_the_menu() -> void:
+	_home.set_layout(ScreenLayout.Id.NARROW)
+	assert_true(_home.get_node("%Hero").is_ancestor_of(_panel()))
+	assert_false((_home.get_node("%Illustration") as Control).visible)
+	_home.set_layout(ScreenLayout.Id.WIDE)
+	assert_false(_home.get_node("%Hero").is_ancestor_of(_panel()))
+	assert_eq(_panel().custom_minimum_size.x, 420.0)
+
+
+func test_medium_screens_hide_the_illustration_and_narrow_the_panel() -> void:
+	_home.set_layout(ScreenLayout.Id.MEDIUM)
+	assert_false((_home.get_node("%Illustration") as Control).visible)
+	assert_eq(_panel().custom_minimum_size.x, 360.0)
+
+
 func _open_socket() -> WireSocket:
 	var socket: FakeWireSocket = FakeWireSocket.new()
 	_sockets.append(socket)
@@ -264,3 +279,8 @@ func _button(path: String, owner_node: Node = null) -> Button:
 	var node: Node = (owner_node if owner_node != null else _home).get_node(path)
 	assert_true(node is Button, path)
 	return node
+
+
+func test_one_player_online_is_counted_in_the_singular() -> void:
+	_enter_with_guests([])
+	assert_eq(_label("%CountLabel", _panel()).text, "1 player")

@@ -29,6 +29,7 @@ signal timer_beat
 var _phone: bool = false
 var _resign_allowed: bool = false
 var _has_chat: bool = false
+var _chat_in_drawer: bool = false
 
 
 func _ready() -> void:
@@ -87,6 +88,12 @@ func show_unread(count: int) -> void:
 	_unread_label.text = str(mini(count, 9)) + ("+" if count > 9 else "")
 
 
+## The chat button shows while the chat lives in a drawer or a sheet.
+func set_chat_in_drawer(in_drawer: bool) -> void:
+	_chat_in_drawer = in_drawer
+	_refresh()
+
+
 func set_phone(phone: bool) -> void:
 	_phone = phone
 	custom_minimum_size.y = UiTokens.TOPBAR_PHONE if phone else UiTokens.TOPBAR_DESKTOP
@@ -118,7 +125,7 @@ func _refresh() -> void:
 	_menu_button.visible = not _phone
 	_sound_toggle.visible = not _phone
 	_resign_button.visible = _resign_allowed and not _phone
-	_chat_button.visible = _phone and _has_chat
+	_chat_button.visible = _chat_in_drawer and _has_chat
 
 
 func _on_menu_pressed() -> void:

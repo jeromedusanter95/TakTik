@@ -11,6 +11,8 @@ signal paired(seat: PairedSeat, nickname: String)
 
 ## How long a received Challenge waits for an answer before it is declined.
 const CHALLENGE_SECONDS: float = 30.0
+## The online panel's height when it sits under the menu.
+const NARROW_PANEL_HEIGHT: float = 420.0
 
 var _server_url: String = ""
 ## Returns a new WireSocket for each connection.
@@ -23,13 +25,14 @@ var _lobby: LobbyClient = null
 var _quick_match_pending: bool = false
 ## Seconds left on each received Challenge, by challenger id.
 var _challenge_seconds: Dictionary[String, float] = {}
-var _phone: bool = false
+var _layout: ScreenLayout.Id = ScreenLayout.Id.WIDE
 var _showing_online_tab: bool = false
 var _active: bool = false
 
 @onready var _margin: MarginContainer = %Margin
 @onready var _phone_tabs: SegmentedControl = %PhoneTabs
 @onready var _columns: HBoxContainer = %Columns
+@onready var _hero: VBoxContainer = %Hero
 @onready var _left_scroll: ScrollContainer = %LeftScroll
 @onready var _logo: Label = %Logo
 @onready var _name_edit: LineEdit = %NameEdit
@@ -123,11 +126,15 @@ func close() -> void:
 	_leave_lobby()
 
 
-func set_phone(phone: bool) -> void:
-	if phone == _phone:
+func set_layout(layout: ScreenLayout.Id) -> void:
+	if layout == _layout:
 		return
-	_phone = phone
+	_layout = layout
 	_apply_layout()
+
+
+func set_phone(phone: bool) -> void:
+	set_layout(ScreenLayout.Id.PHONE if phone else ScreenLayout.Id.WIDE)
 
 
 func _enter_lobby() -> void:
@@ -184,7 +191,7 @@ func _show_preferences() -> void:
 	_difficulty.select(_preferences.difficulty)
 	var reduced: bool = _preferences.reduced_motion
 	_online_panel.reduced_motion = reduced
-	_illustration.set_floating(not reduced and not _phone)
+	_illustration.set_floating(not reduced and _layout == ScreenLayout.Id.WIDE)
 
 
 func _show_quick_match() -> void:
@@ -239,31 +246,59 @@ func _count_down_challenges(delta: float) -> void:
 	_show_challenge()
 
 
+## Wide: the menu with the illustration, the online panel on the right.
+## Medium: no illustration, a narrower panel. Narrow: one column, the panel
+## under the menu. Phone: one column, the menu and the panel on two tabs.
 func _apply_layout() -> void:
-	_phone_tabs.visible = _phone
-	_illustration.visible = not _phone
-	_logo.theme_type_variation = &"LogoPhone" if _phone else &"DisplayXL"
-	var side: int = UiTokens.SPACE_L if _phone else 80
-	_margin.add_theme_constant_override("margin_left", side)
-	_margin.add_theme_constant_override("margin_right", UiTokens.SPACE_L if _phone else 40)
-	_margin.add_theme_constant_override("margin_top", 72 if _phone else 56)
-	_margin.add_theme_constant_override("margin_bottom", UiTokens.SPACE_L if _phone else 44)
-	# Beside the left column on large screens; in the corner on phones.
-	_top_right.offset_left = -190.0 - (UiTokens.SPACE_L if _phone else 508.0)
-	_top_right.offset_right = -(UiTokens.SPACE_L if _phone else 508.0)
-	_top_right.offset_top = UiTokens.SPACE_L if _phone else 28.0
-	_mode_cards.vertical = _phone
-	_modes.custom_minimum_size.x = 0.0 if _phone else 560.0
-	_modes.size_flags_horizontal = Control.SIZE_FILL if _phone else Control.SIZE_SHRINK_BEGIN
+	var phone: bool = _layout == ScreenLayout.Id.PHONE
+	var single_column: bool = phone or _layout == ScreenLayout.Id.NARROW
+	_phone_tabs.visible = phone
+	_illustration.visible = _layout == ScreenLayout.Id.WIDE
+	_logo.theme_type_variation = &"LogoPhone" if phone else (&"DisplayXL" if _layout == ScreenLayout.Id.WIDE else &"LogoTablet")
+	_margin.add_theme_constant_override("margin_left", UiTokens.SPACE_L if phone else (40 if single_column else 80))
+	_margin.add_theme_constant_override("margin_right", UiTokens.SPACE_L if phone else 40)
+	_margin.add_theme_constant_override("margin_top", 72 if single_column else 56)
+	_margin.add_theme_constant_override("margin_bottom", UiTokens.SPACE_L if phone else 44)
+	_online_panel.custom_minimum_size = _panel_size()
+	# Beside the left column on two column layouts; in the corner otherwise.
+	var right: float = UiTokens.SPACE_L if single_column else _online_panel.custom_minimum_size.x + 88.0
+	_top_right.offset_left = -190.0 - right
+	_top_right.offset_right = -right
+	_top_right.offset_top = UiTokens.SPACE_L if single_column else 28.0
+	_mode_cards.vertical = phone
+	_modes.custom_minimum_size.x = 0.0 if single_column else 560.0
+	_modes.size_flags_horizontal = Control.SIZE_FILL if single_column else Control.SIZE_SHRINK_BEGIN
+	_place_online_panel(_layout == ScreenLayout.Id.NARROW)
 	_show_tab()
 	if _preferences != null:
 		_show_preferences()
 
 
+func _panel_size() -> Vector2:
+	match _layout:
+		ScreenLayout.Id.WIDE:
+			return Vector2(UiTokens.LOBBY_PANEL, 0.0)
+		ScreenLayout.Id.MEDIUM:
+			return Vector2(UiTokens.COL_RIGHT, 0.0)
+		ScreenLayout.Id.NARROW:
+			return Vector2(0.0, NARROW_PANEL_HEIGHT)
+		_:
+			return Vector2.ZERO
+
+
+## The online panel sits under the menu, inside its scroll, on narrow
+## screens, and in its own column otherwise.
+func _place_online_panel(under_menu: bool) -> void:
+	var target: Container = _hero if under_menu else _columns
+	if _online_panel.get_parent() != target:
+		_online_panel.reparent(target, false)
+
+
 func _show_tab() -> void:
-	_left_scroll.visible = not _phone or not _showing_online_tab
-	_online_panel.visible = not _phone or _showing_online_tab
-	_online_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL if _phone else Control.SIZE_FILL
+	var phone: bool = _layout == ScreenLayout.Id.PHONE
+	_left_scroll.visible = not phone or not _showing_online_tab
+	_online_panel.visible = not phone or _showing_online_tab
+	_online_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL if phone else Control.SIZE_FILL
 
 
 func _on_name_submitted(_text: String) -> void:
