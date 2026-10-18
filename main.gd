@@ -35,7 +35,11 @@ func _ready() -> void:
 	)
 	_preferences.changed.connect(_on_preferences_changed)
 	TranslationServer.set_locale(_preferences.language)
-	get_window().theme = TaktikTheme.build()
+	# Main is a plain Node, which breaks theme inheritance from the window,
+	# so each screen gets the Theme itself.
+	var theme: Theme = TaktikTheme.build()
+	for screen: Control in [_home, _local_match, _online_match]:
+		screen.theme = theme
 	_home.configure(online_server_url, _open_socket)
 	_home.use_preferences(_preferences)
 	_home.show_difficulties(bot_profiles)

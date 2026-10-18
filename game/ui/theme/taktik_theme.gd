@@ -116,6 +116,8 @@ static func _add_panels(theme: Theme) -> void:
 	var ribbon: StyleBoxFlat = UiStyles.gold_button(UiTokens.RADIUS_M, Vector4i(56, 10, 56, 10))
 	theme.set_type_variation(&"GoldRibbon", &"PanelContainer")
 	theme.set_stylebox(&"panel", &"GoldRibbon", ribbon)
+	theme.set_type_variation(&"Bare", &"PanelContainer")
+	theme.set_stylebox(&"panel", &"Bare", UiStyles.empty())
 	_pill(theme, &"Pill", UiTokens.SURFACE_SUNKEN, UiTokens.BORDER_2)
 	_pill(theme, &"PillGreen", UiTokens.GREEN_700, UiTokens.GREEN_500)
 	_pill(theme, &"PillSelf", UiTokens.RED_700, UiTokens.RED_400)

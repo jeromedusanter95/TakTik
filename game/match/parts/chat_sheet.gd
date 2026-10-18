@@ -82,7 +82,11 @@ func _stop() -> void:
 		_tween = null
 
 
+## A tap on the backdrop closes the sheet, once it has finished sliding in,
+## so the tap that opened it never closes it again.
 func _on_backdrop_input(event: InputEvent) -> void:
+	if _tween != null and _tween.is_running():
+		return
 	if event is InputEventMouseButton:
 		var click: InputEventMouseButton = event
 		if click.pressed and click.button_index == MOUSE_BUTTON_LEFT:

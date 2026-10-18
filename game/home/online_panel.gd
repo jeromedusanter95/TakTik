@@ -18,6 +18,8 @@ var reduced_motion: bool = false
 var _shown_ids: Array[String] = []
 var _challenger_id: String = ""
 var _card_tween: Tween = null
+## True while the "entering" line shows, which the first listing replaces.
+var _entering: bool = false
 
 @onready var _count_label: Label = %CountLabel
 @onready var _count_dot: StatusDot = %CountDot
@@ -47,6 +49,7 @@ func _ready() -> void:
 ## Not in the Lobby: [param message] says why, and offers to try again when
 ## [param can_retry].
 func show_offline(message: String, can_retry: bool = false) -> void:
+	_entering = false
 	_clear_rows()
 	_shown_ids.clear()
 	_count_label.text = Translated.text(&"LOBBY_COUNT", {"count": 0})
@@ -59,6 +62,7 @@ func show_offline(message: String, can_retry: bool = false) -> void:
 
 func show_connecting() -> void:
 	show_offline(Translated.text(&"LOBBY_ENTERING"))
+	_entering = true
 
 
 ## The Guests, this Guest first, then those who challenged them, those
@@ -71,6 +75,9 @@ func show_guests(
 		challenged_id: String,
 ) -> void:
 	_retry_button.visible = false
+	if _entering:
+		_entering = false
+		show_message("")
 	_count_label.text = Translated.text(&"LOBBY_COUNT", {"count": guests.size() + 1})
 	var ordered: Array[ListedGuest] = guests.duplicate()
 	ordered.sort_custom(func(a: ListedGuest, b: ListedGuest) -> bool:

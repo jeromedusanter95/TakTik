@@ -66,6 +66,7 @@ func test_the_lobby_lists_you_first_then_the_others() -> void:
 		{"guestId": "g2", "nickname": "Bob", "waiting": false},
 	])
 	assert_eq(_row_names(), ["Ada", "Bob", "Zoe"] as Array[String])
+	assert_false(_label("%MessageLabel", _panel()).visible, "the entering line is gone")
 	assert_eq(_label("%CountLabel", _panel()).text, "3 players")
 
 

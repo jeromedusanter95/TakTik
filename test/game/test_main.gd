@@ -26,9 +26,10 @@ func test_the_game_opens_on_the_home_screen_with_three_difficulties() -> void:
 	assert_eq(difficulty.option(2).text, "DIFFICULTY_HARD")
 
 
-func test_the_window_gets_the_theme() -> void:
-	assert_not_null(_main.get_window().theme)
-	assert_true(_main.get_window().theme.has_stylebox(&"normal", &"GoldButton"))
+func test_every_screen_gets_the_theme() -> void:
+	for screen: Control in [_home(), _match()]:
+		assert_not_null(screen.theme)
+		assert_true(screen.theme.has_stylebox(&"normal", &"GoldButton"))
 
 
 func test_two_players_opens_the_hot_seat_handoff() -> void:

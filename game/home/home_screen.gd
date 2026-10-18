@@ -44,6 +44,7 @@ var _active: bool = false
 @onready var _illustration: HomeIllustration = %Illustration
 @onready var _online_panel: OnlinePanel = %OnlinePanel
 @onready var _language_switch: SegmentedControl = %LanguageSwitch
+@onready var _top_right: HBoxContainer = %TopRight
 
 
 func _ready() -> void:
@@ -238,6 +239,10 @@ func _apply_layout() -> void:
 	_margin.add_theme_constant_override("margin_right", UiTokens.SPACE_L if _phone else 40)
 	_margin.add_theme_constant_override("margin_top", 72 if _phone else 56)
 	_margin.add_theme_constant_override("margin_bottom", UiTokens.SPACE_L if _phone else 44)
+	# Beside the left column on large screens; in the corner on phones.
+	_top_right.offset_left = -136.0 - (UiTokens.SPACE_L if _phone else 508.0)
+	_top_right.offset_right = -(UiTokens.SPACE_L if _phone else 508.0)
+	_top_right.offset_top = UiTokens.SPACE_L if _phone else 28.0
 	_mode_cards.vertical = _phone
 	_modes.custom_minimum_size.x = 0.0 if _phone else 560.0
 	_modes.size_flags_horizontal = Control.SIZE_FILL if _phone else Control.SIZE_SHRINK_BEGIN

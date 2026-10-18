@@ -340,6 +340,11 @@ func _apply_layout() -> void:
 	_body.add_theme_constant_override("margin_bottom", UiTokens.SPACE_L if _phone else 26)
 	_columns.add_theme_constant_override("separation", 10 if _phone else UiTokens.GAP_COLUMNS)
 	_turn_banner.rest_y = (UiTokens.TOPBAR_PHONE if _phone else UiTokens.TOPBAR_DESKTOP) + UiTokens.SPACE_L
+	# The end of game modal covers the Board side and leaves the chat usable.
+	_result_modal.offset_top = UiTokens.TOPBAR_PHONE if _phone else UiTokens.TOPBAR_DESKTOP
+	var chat_width: int = UiTokens.COL_RIGHT + UiTokens.SPACE_2XL + UiTokens.GAP_COLUMNS
+	_result_modal.offset_right = -chat_width if _has_chat and not _phone else 0
+	_result_modal.set_phone(_phone)
 	_move_chat()
 	_apply_board_size()
 
@@ -351,6 +356,8 @@ func _move_chat() -> void:
 	if _chat_panel.get_parent() == target:
 		return
 	_chat_panel.reparent(target, false)
+	# Inside the sheet the chat needs no panel of its own.
+	_chat_panel.theme_type_variation = &"Bare" if _phone else &"SidePanel"
 	if not _phone:
 		_chat_sheet.close()
 

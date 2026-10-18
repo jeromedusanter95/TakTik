@@ -75,6 +75,9 @@ func show_guest(
 	_clear_actions()
 	if is_you:
 		_actions.add_child(_pill(Translated.text(&"PLAYER_YOU")))
+	elif status == Status.CHALLENGED_YOU:
+		# Their Challenge card above the list holds the answer.
+		pass
 	elif challenge_sent:
 		_actions.add_child(_button(Translated.text(&"LOBBY_WITHDRAW"), &"GhostButton", _on_withdraw_pressed))
 	else:

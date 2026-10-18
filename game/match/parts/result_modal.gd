@@ -47,7 +47,8 @@ func _ready() -> void:
 func present(view: MatchResultView, adapted: bool = false) -> void:
 	var victory: bool = view.mood == MatchResultView.Mood.VICTORY
 	_title_label.text = view.title
-	_title_label.theme_type_variation = &"DisplayL" if victory else &"DisplayLPrimary"
+	if _stack.custom_minimum_size.x >= 560.0:
+		_title_label.theme_type_variation = &"DisplayL" if victory else &"DisplayLPrimary"
 	_reason_label.text = view.reason
 	_hero.show_piece(view.hero_type, view.hero_side, view.mood == MatchResultView.Mood.DEFEAT, adapted)
 	_final_fight.visible = view.final_fight != null
@@ -83,6 +84,12 @@ func show_primary(text: String, enabled: bool) -> void:
 func show_notice(text: String) -> void:
 	_notice_label.text = text
 	_notice.visible = not text.is_empty()
+
+
+## Narrower, on phones.
+func set_phone(phone: bool) -> void:
+	_stack.custom_minimum_size.x = 350.0 if phone else 560.0
+	_title_label.theme_type_variation = &"DisplayM" if phone else &"DisplayL"
 
 
 func close() -> void:
