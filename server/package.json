@@ -2,19 +2,23 @@
 	"name": "taktik-referee",
 	"version": "0.0.0",
 	"private": true,
-	"description": "Taktik's rules in TypeScript, for the online referee.",
+	"description": "Taktik's online server: the rules in TypeScript, Quick Match and the referee, on Cloudflare Workers.",
 	"type": "module",
 	"engines": {
 		"node": ">=22.12.0"
 	},
 	"scripts": {
-		"typecheck": "tsc",
-		"test": "tsc && vitest run"
+		"dev": "wrangler dev",
+		"types": "wrangler types src/worker/worker-configuration.d.ts",
+		"typecheck": "tsc && wrangler types --check src/worker/worker-configuration.d.ts && tsc -p src/worker",
+		"test": "npm run typecheck && vitest run --project unit",
+		"test:worker": "vitest run --project worker"
 	},
 	"devDependencies": {
 		"@types/node": "22.20.5",
 		"typescript": "6.0.3",
 		"vite": "8.3.1",
-		"vitest": "5.0.3"
+		"vitest": "5.0.3",
+		"wrangler": "4.151.1"
 	}
 }

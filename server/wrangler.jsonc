@@ -1,0 +1,13 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "taktik-referee",
+	"main": "src/worker/index.ts",
+	"compatibility_date": "2026-10-01",
+	"durable_objects": {
+		"bindings": [
+			{ "name": "QUICK_MATCH", "class_name": "QuickMatchHost" },
+			{ "name": "REFEREE", "class_name": "Referee" }
+		]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuickMatchHost", "Referee"] }]
+}
