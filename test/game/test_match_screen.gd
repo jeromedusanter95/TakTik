@@ -77,3 +77,12 @@ func _press() -> InputEventMouseButton:
 	event.button_index = MOUSE_BUTTON_LEFT
 	event.pressed = true
 	return event
+
+
+func test_the_menu_button_opens_the_game_menu() -> void:
+	var bar: Node = _screen.get_node("%TopBar")
+	var button: Button = bar.get_node("%MenuButton")
+	assert_true(button.is_visible_in_tree())
+	button.pressed.emit()
+	var menu: Control = _screen.get_node("%GameMenu")
+	assert_true(menu.visible)
