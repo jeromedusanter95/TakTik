@@ -53,7 +53,7 @@ custom_minimum_size = Vector2(220, 64)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 24
-text = "I'm ready"
+text = "HANDOFF_CONTINUE"
 
 [node name="PressScaleFeedback" type="Node" parent="Content/ContinueButton"]
 script = ExtResource("2")

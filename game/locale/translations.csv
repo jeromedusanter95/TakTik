@@ -1,0 +1,48 @@
+keys,en,fr
+MENU_TWO_PLAYERS,"Two players, one device","Deux joueurs, un appareil"
+MENU_PLAY_BOT,Play against a Bot,Jouer contre un Bot
+MENU_BOT_BUTTON,{difficulty} Bot,Bot {difficulty}
+DIFFICULTY_EASY,Easy,Facile
+DIFFICULTY_MEDIUM,Medium,Moyen
+DIFFICULTY_HARD,Hard,Difficile
+HANDOFF_CONTINUE,I'm ready,C'est parti
+HANDOFF_PASS_TO,Pass the device to {side},Passez l'appareil au joueur {side}
+SETUP_RED_TITLE,"Red, set up your Army","Rouge, placez votre Armée"
+SETUP_RED_SUMMARY,"Green must not look. Tap two of your Pieces to swap them, or Shuffle.","Vert ne doit pas regarder. Touchez deux de vos Pièces pour les échanger, ou mélangez."
+SETUP_GREEN_SUMMARY,"Green, set up your Army. Red must not look.","Vert, placez votre Armée. Rouge ne doit pas regarder."
+SETUP_DONE_SUMMARY,Both Armies are ready. Red moves first.,Les deux Armées sont prêtes. Rouge joue en premier.
+MATCH_MENU,Menu,Menu
+MATCH_SHUFFLE,Shuffle,Mélanger
+MATCH_READY,Ready,Valider
+MATCH_PASS_DEVICE,Pass the device,Passer l'appareil
+MATCH_NEW_GAME,New game,Nouvelle partie
+STATUS_SETUP,{side}: arrange your Army,{side} : disposez votre Armée
+STATUS_THINKING,{side} is thinking...,{side} réfléchit...
+STATUS_TURN_OVER,Your turn is over,Votre tour est terminé
+STATUS_TO_MOVE,{side} to move,Au tour de {side}
+INFO_TAP_PIECE,Tap one of your Pieces.,Touchez une de vos Pièces.
+SIDE_RED,Red,Rouge
+SIDE_GREEN,Green,Vert
+PIECE_KING,King,Roi
+PIECE_EXECUTIONER,Executioner,Bourreau
+PIECE_KNIGHT,Knight,Chevalier
+PIECE_SOLDIER,Soldier,Soldat
+PIECE_MAGICIAN,Magician,Magicien
+PIECE_BUFFOON,Buffoon,Bouffon
+PIECE_MONSTER,Monster,Monstre
+PIECE_THIEF,Thief,Voleur
+PIECE_PRINCESS,Princess,Princesse
+NARRATE_MOVE,{side} moved a Piece from {from} to {to}.,{side} a déplacé une Pièce de {from} à {to}.
+NARRATE_ATTACK,{side} attacked from {from} to {to}. {fight},{side} a attaqué de {from} à {to}. {fight}
+NARRATE_CLASH,"{attacker_side} {attacker} (attack {attack}) against {defender_side} {defender} (defense {defense}): ","{attacker} ({attacker_side}, attaque {attack}) contre {defender} ({defender_side}, défense {defense}) : "
+FIGHT_WINS,the {piece} wins.,{piece} l'emporte.
+FIGHT_BOTH_ELIMINATED,both are eliminated.,les deux sont éliminés.
+RESULT_WINS,{side} wins: {reason}.,{side} gagne : {reason}.
+RESULT_DRAW,Draw: {reason}.,Match nul : {reason}.
+REASON_PRINCESS_CAPTURED,the enemy Princess was captured,la Princesse adverse a été capturée
+REASON_PRINCESS_REACHED_HOME_ROW,the Princess reached the enemy Home Row,la Princesse a atteint la Rangée de départ adverse
+REASON_BLOCKED,the opponent has no legal Move left,l'adversaire n'a plus aucun Coup possible
+REASON_NO_FIGHT_LIMIT,50 Rounds passed without a Fight,50 Tours se sont écoulés sans Combat
+PIECE_DESCRIPTION,"{piece}, attack {attack}, defense {defense}","{piece}, attaque {attack}, défense {defense}"
+GRAVEYARD,{side} lost: {pieces},{side} a perdu : {pieces}
+GRAVEYARD_NOTHING,nothing,rien

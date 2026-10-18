@@ -94,8 +94,8 @@ func _start_new_game() -> void:
 	_bot_thinking = null
 	if _shares_device():
 		_handoff_screen.present(
-			"Red, set up your Army",
-			"Green must not look. Tap two of your Pieces to swap them, or Shuffle.",
+			Translated.text(&"SETUP_RED_TITLE"),
+			Translated.text(&"SETUP_RED_SUMMARY"),
 		)
 		return
 	_handoff_screen.hide()
@@ -198,20 +198,26 @@ func _confirm_setup() -> void:
 		_start_bot_turn_if_due()
 	elif _session.phase() == MatchSession.Phase.SETUP:
 		_handoff_screen.present(
-			"Pass the device to Green",
-			"Green, set up your Army. Red must not look.",
+			_pass_device_text(Side.Id.GREEN),
+			Translated.text(&"SETUP_GREEN_SUMMARY"),
 		)
 	else:
-		_handoff_screen.present("Pass the device to Red", "Both Armies are ready. Red moves first.")
+		_handoff_screen.present(
+			_pass_device_text(Side.Id.RED),
+			Translated.text(&"SETUP_DONE_SUMMARY"),
+		)
 
 
 func _hand_over_turn() -> void:
 	_turn_finished = false
-	var next_player: String = PieceNames.side_name(_session.active_side())
 	_handoff_screen.present(
-		"Pass the device to %s" % next_player,
+		_pass_device_text(_session.active_side()),
 		MatchNarrator.describe_move(_session.last_record()),
 	)
+
+
+func _pass_device_text(next_player: Side.Id) -> String:
+	return Translated.text(&"HANDOFF_PASS_TO", {"side": PieceNames.side_name(next_player)})
 
 
 func _refresh() -> void:
@@ -239,16 +245,16 @@ func _board_state() -> BoardViewState:
 
 
 func _status_text() -> String:
-	var viewer: String = PieceNames.side_name(_viewer)
 	match _session.phase():
 		MatchSession.Phase.SETUP:
-			return "%s: arrange your Army" % viewer
+			return Translated.text(&"STATUS_SETUP", {"side": PieceNames.side_name(_viewer)})
 		MatchSession.Phase.PLAYING:
+			var mover: String = PieceNames.side_name(_session.active_side())
 			if _session.is_bot_turn():
-				return "%s is thinking..." % PieceNames.side_name(_session.active_side())
+				return Translated.text(&"STATUS_THINKING", {"side": mover})
 			if _turn_finished:
-				return "Your turn is over"
-			return "%s to move" % PieceNames.side_name(_session.active_side())
+				return Translated.text(&"STATUS_TURN_OVER")
+			return Translated.text(&"STATUS_TO_MOVE", {"side": mover})
 		_:
 			return MatchNarrator.describe_result(_session.game().result())
 
@@ -263,12 +269,12 @@ func _info_text() -> String:
 	if record != null and record.fight != null:
 		if _turn_finished or phase == MatchSession.Phase.OVER:
 			return MatchNarrator.describe_fight(record.fight)
-	return "Tap one of your Pieces." if phase != MatchSession.Phase.OVER else ""
+	return Translated.text(&"INFO_TAP_PIECE") if phase != MatchSession.Phase.OVER else ""
 
 
 func _selected_piece_text() -> String:
 	if _selected == BoardViewState.NO_SQUARE:
-		return "Tap one of your Pieces."
+		return Translated.text(&"INFO_TAP_PIECE")
 	var piece: Piece = _session.display_board().piece_at(_selected)
 	return MatchNarrator.describe_piece(piece.type) if piece != null else ""
 
@@ -287,7 +293,7 @@ func _round_text() -> String:
 		_session.phase() == MatchSession.Phase.PLAYING and not _session.is_bot_turn()
 	)
 	if lines.is_empty() and persons_turn:
-		lines.append("Tap one of your Pieces.")
+		lines.append(Translated.text(&"INFO_TAP_PIECE"))
 	return "\n".join(lines)
 
 
@@ -303,8 +309,8 @@ func _graveyard_text() -> String:
 func _action_text() -> String:
 	match _session.phase():
 		MatchSession.Phase.SETUP:
-			return "Ready"
+			return Translated.text(&"MATCH_READY")
 		MatchSession.Phase.PLAYING:
-			return "Pass the device"
+			return Translated.text(&"MATCH_PASS_DEVICE")
 		_:
-			return "New game"
+			return Translated.text(&"MATCH_NEW_GAME")

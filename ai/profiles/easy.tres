@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-display_name = "Easy"
+display_name = "DIFFICULTY_EASY"
 search_depth = 1
 sample_count = 3
 mistake_chance = 0.4

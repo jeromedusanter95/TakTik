@@ -54,7 +54,7 @@ custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 20
-text = "Menu"
+text = "MATCH_MENU"
 
 [node name="PressScaleFeedback" type="Node" parent="Layout/TopBar/MenuButton"]
 script = ExtResource("4")
@@ -90,7 +90,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 56)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "Shuffle"
+text = "MATCH_SHUFFLE"
 
 [node name="PressScaleFeedback" type="Node" parent="Layout/Buttons/ShuffleButton"]
 script = ExtResource("4")
@@ -100,7 +100,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 56)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "Ready"
+text = "MATCH_READY"
 
 [node name="PressScaleFeedback" type="Node" parent="Layout/Buttons/ActionButton"]
 script = ExtResource("4")

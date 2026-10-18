@@ -9,6 +9,7 @@ var _session: MatchSession = null
 
 
 func before_each() -> void:
+	TranslationServer.set_locale(Languages.ENGLISH)
 	var instance: Node = LocalMatchScene.instantiate()
 	if instance is not LocalMatch:
 		fail_test("local_match.tscn root should be a LocalMatch")

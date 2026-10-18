@@ -1,22 +1,23 @@
 class_name PieceNames
 extends RefCounted
-## The words players read for each Piece Type.
+## The words players read for each Piece Type and side, in the current
+## language.
 
-const _NAMES: Dictionary[PieceType.Id, String] = {
-	PieceType.Id.KING: "King",
-	PieceType.Id.EXECUTIONER: "Executioner",
-	PieceType.Id.KNIGHT: "Knight",
-	PieceType.Id.SOLDIER: "Soldier",
-	PieceType.Id.MAGICIAN: "Magician",
-	PieceType.Id.BUFFOON: "Buffoon",
-	PieceType.Id.MONSTER: "Monster",
-	PieceType.Id.THIEF: "Thief",
-	PieceType.Id.PRINCESS: "Princess",
+const _NAME_KEYS: Dictionary[PieceType.Id, StringName] = {
+	PieceType.Id.KING: &"PIECE_KING",
+	PieceType.Id.EXECUTIONER: &"PIECE_EXECUTIONER",
+	PieceType.Id.KNIGHT: &"PIECE_KNIGHT",
+	PieceType.Id.SOLDIER: &"PIECE_SOLDIER",
+	PieceType.Id.MAGICIAN: &"PIECE_MAGICIAN",
+	PieceType.Id.BUFFOON: &"PIECE_BUFFOON",
+	PieceType.Id.MONSTER: &"PIECE_MONSTER",
+	PieceType.Id.THIEF: &"PIECE_THIEF",
+	PieceType.Id.PRINCESS: &"PIECE_PRINCESS",
 }
 
 
 static func display_name(type: PieceType.Id) -> String:
-	return _NAMES[type]
+	return Translated.text(_NAME_KEYS[type])
 
 
 ## "attack/defense", for example "4/4".
@@ -25,4 +26,4 @@ static func strengths(type: PieceType.Id) -> String:
 
 
 static func side_name(side: Side.Id) -> String:
-	return "Red" if side == Side.Id.RED else "Green"
+	return Translated.text(&"SIDE_RED" if side == Side.Id.RED else &"SIDE_GREEN")
