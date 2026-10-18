@@ -8,6 +8,7 @@ const SERVER_URL: String = "ws://referee.test"
 
 var _match: OnlineMatch = null
 var _sockets: Array[FakeWireSocket] = []
+var _now_msec: int = 5_000
 
 
 func before_each() -> void:
@@ -21,7 +22,7 @@ func before_each() -> void:
 	add_child_autofree(_match)
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 3
-	_match.start(SERVER_URL, _open_socket, rng)
+	_match.start(SERVER_URL, _open_socket, rng, _ticks_msec)
 
 
 func test_it_opens_on_the_nickname_entry_with_enter_disabled() -> void:
@@ -284,6 +285,45 @@ func test_the_menu_button_leaves_the_game() -> void:
 	_button("%MenuButton").pressed.emit()
 	assert_signal_emitted(_match, "menu_requested")
 	assert_eq(_sockets[1].state(), WireSocket.State.CLOSED)
+
+
+func test_the_setup_timer_counts_down_in_the_status() -> void:
+	_pair_and_arrange()
+	_sockets[1].receive({
+		"type": "setup_status", "ownSetupDone": false, "opponentSetupDone": false,
+		"setupTimeLeftMs": 180_000,
+	})
+	_frame()
+	assert_eq(_label("%StatusLabel").text, "Arrange your Army\nTime left: 3:00")
+	_now_msec += 61_000
+	_frame()
+	assert_eq(_label("%StatusLabel").text, "Arrange your Army\nTime left: 1:59")
+
+
+func test_the_setup_timer_shows_while_waiting_for_the_opponent_in_french() -> void:
+	TranslationServer.set_locale("fr")
+	_pair_and_arrange()
+	_button("%ActionButton").pressed.emit()
+	_sockets[1].receive({
+		"type": "setup_status", "ownSetupDone": true, "opponentSetupDone": false,
+		"setupTimeLeftMs": 9_000,
+	})
+	_frame()
+	assert_eq(_label("%StatusLabel").text, "En attente de l'Armée de Bob...\nTemps restant : 0:09")
+	TranslationServer.set_locale(Languages.ENGLISH)
+
+
+func test_an_army_arranged_at_random_when_time_ran_out_is_explained() -> void:
+	_pair_and_arrange()
+	var view: Dictionary = _view("red", [_own(2, 3, "knight")], [_square(2, 5)])
+	_sockets[1].receive({"type": "game_state", "view": view, "history": []})
+	_frame()
+	assert_eq(_label("%InfoLabel").text, "Time ran out, so your Army was arranged at random.")
+	assert_eq(_label("%StatusLabel").text, "Your turn")
+
+
+func _ticks_msec() -> int:
+	return _now_msec
 
 
 func _open_socket() -> WireSocket:

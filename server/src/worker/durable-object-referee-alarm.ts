@@ -1,7 +1,7 @@
-import type { ForfeitAlarm } from "../referee/forfeit-watch";
+import type { RefereeAlarm } from "../referee/referee-alarm";
 
-/** The forfeit alarm as its Referee's Durable Object alarm, which rings even after hibernation. */
-export class DurableObjectForfeitAlarm implements ForfeitAlarm {
+/** The referee's alarm as its Durable Object alarm, which rings even after hibernation. */
+export class DurableObjectRefereeAlarm implements RefereeAlarm {
 	constructor(private readonly storage: DurableObjectStorage) {}
 
 	async setFor(time: number | undefined): Promise<void> {

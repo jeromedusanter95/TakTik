@@ -6,6 +6,7 @@ const SERVER_URL: String = "ws://referee.test"
 
 var _socket: FakeWireSocket = null
 var _session: OnlineSession = null
+var _now_msec: int = 5_000
 
 
 func before_each() -> void:
@@ -17,7 +18,7 @@ func before_each() -> void:
 	seat.opponent = "Bob"
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 7
-	_session = OnlineSession.new(_socket, seat, rng)
+	_session = OnlineSession.new(_socket, seat, rng, _ticks_msec)
 	watch_signals(_session)
 	_session.connect_to(SERVER_URL)
 
@@ -274,6 +275,74 @@ func _game_over() -> void:
 	var view: Dictionary = _view("green", [], [])
 	view["result"] = {"status": "red_wins", "reason": "resigned"}
 	_socket.receive({"type": "game_state", "view": view, "history": []})
+	_session.poll()
+
+
+func test_it_counts_down_the_setup_timer_the_referee_announced() -> void:
+	_arranging_with_time_left(180_000)
+	assert_eq(_session.setup_seconds_left(), 180)
+	_now_msec += 30_500
+	assert_eq(_session.setup_seconds_left(), 150, "rounded up")
+	_now_msec += 200_000
+	assert_eq(_session.setup_seconds_left(), 0, "never below zero")
+
+
+func test_the_setup_timer_keeps_counting_while_waiting_for_the_opponent() -> void:
+	_arranging_with_time_left(60_000)
+	_session.confirm_setup()
+	_now_msec += 10_000
+	_socket.receive({
+		"type": "setup_status", "ownSetupDone": true, "opponentSetupDone": false,
+		"setupTimeLeftMs": 50_000,
+	})
+	_session.poll()
+	assert_eq(_session.setup_seconds_left(), 50)
+
+
+func test_there_is_no_setup_timer_when_the_referee_does_not_say() -> void:
+	_arranging()
+	assert_eq(_session.setup_seconds_left(), OnlineSession.NO_SETUP_TIMER)
+
+
+func test_the_setup_timer_is_gone_once_play_starts() -> void:
+	_arranging_with_time_left(60_000)
+	_playing("red")
+	assert_eq(_session.setup_seconds_left(), OnlineSession.NO_SETUP_TIMER)
+
+
+func test_play_starting_during_arrangement_means_the_army_was_arranged_at_random() -> void:
+	_playing("red")
+	assert_true(_session.was_setup_arranged_at_random())
+
+
+func test_a_handed_in_setup_was_not_arranged_at_random() -> void:
+	_arranging()
+	_session.confirm_setup()
+	_socket.receive({"type": "setup_status", "ownSetupDone": true, "opponentSetupDone": false})
+	_session.poll()
+	_socket.receive({"type": "game_state", "view": _view("red", [], []), "history": []})
+	_session.poll()
+	assert_false(_session.was_setup_arranged_at_random())
+
+
+func test_a_setup_that_starts_play_was_not_arranged_at_random() -> void:
+	_arranging()
+	_session.confirm_setup()
+	_socket.receive({"type": "game_state", "view": _view("red", [], []), "history": []})
+	_session.poll()
+	assert_false(_session.was_setup_arranged_at_random())
+
+
+func _ticks_msec() -> int:
+	return _now_msec
+
+
+func _arranging_with_time_left(time_left_msec: int) -> void:
+	_socket.receive({"type": "seated", "side": "red", "opponent": "Bob"})
+	_socket.receive({
+		"type": "setup_status", "ownSetupDone": false, "opponentSetupDone": false,
+		"setupTimeLeftMs": time_left_msec,
+	})
 	_session.poll()
 
 

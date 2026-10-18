@@ -1,6 +1,6 @@
 import type { Move } from "../rules/move";
+import type { SetupDraws } from "../rules/setup";
 import { opponentOf, SIDES, type Side } from "../rules/side";
-import type { ForfeitWatch } from "./forfeit-watch";
 import type { GameRecord, OnlineGame } from "./online-game";
 import {
 	parseRefereeRequest,
@@ -9,6 +9,7 @@ import {
 	type RefereeRefusal,
 	type RefereeReply,
 } from "./protocol";
+import type { RefereeDeadlines } from "./referee-deadlines";
 import type { OpenedRematch, RematchMaker } from "./rematch-maker";
 
 /** The open sockets of one game and the side each one has taken. */
@@ -45,7 +46,8 @@ export class RefereeSession<Connection> {
 		private readonly game: OnlineGame,
 		private readonly connections: SeatConnections<Connection>,
 		private readonly store: GameStore,
-		private readonly forfeitWatch: ForfeitWatch,
+		private readonly deadlines: RefereeDeadlines,
+		private readonly draws: SetupDraws,
 		private readonly rematchMaker: RematchMaker,
 	) {}
 
@@ -93,19 +95,36 @@ export class RefereeSession<Connection> {
 		if (side === undefined || this.connections.connectionsOf(side).some((other) => other !== connection)) {
 			return;
 		}
-		await this.forfeitWatch.left(side);
+		await this.deadlines.forfeitWatch.left(side);
 		this.tellOpponentOf(side, { type: "opponent_presence", connected: false });
-		await this.forfeitWatch.arm(this.isPlaying());
+		await this.scheduleAlarm();
 	}
 
-	/** Forfeits the player who has stayed away too long, if anyone has. Called when the forfeit alarm rings. */
-	async forfeitOverdue(): Promise<void> {
-		const absent = this.forfeitWatch.overdue();
+	/**
+	 * Ends Setup if the Setup Timer has run out, then Forfeits the player who
+	 * has stayed away too long, if anyone has, and sets the alarm again.
+	 */
+	async alarmRang(): Promise<void> {
+		if (this.game.phase() === "setup" && this.deadlines.setupTimer.isUp()) {
+			this.game.arrangeMissingSetupsAtRandom(this.draws);
+			await this.store.save(this.game.toRecord());
+			this.tellBothSides((viewer) => this.stateFor(viewer));
+		}
+		const absent = this.deadlines.forfeitWatch.overdue();
 		if (absent !== undefined && this.game.concede(absent, "forfeited").accepted) {
 			await this.endByConcession();
 			return;
 		}
-		await this.forfeitWatch.arm(this.isPlaying());
+		await this.scheduleAlarm();
+	}
+
+	/**
+	 * Sets the alarm for the next deadline: the Setup Timer during Setup, the
+	 * first Forfeit during play, none once the game is over. Called when a game
+	 * opens; the session keeps it set after that.
+	 */
+	async scheduleAlarm(): Promise<void> {
+		await this.deadlines.alarm.setFor(this.nextDeadline());
 	}
 
 	private async takeSeat(connection: Connection, seatToken: string, currentSide: Side | undefined): Promise<void> {
@@ -129,12 +148,12 @@ export class RefereeSession<Connection> {
 
 	/** Tells the Opponent that [side] is back, and [connection] whether the Opponent is away. */
 	private async comeBack(connection: Connection, side: Side): Promise<void> {
-		if (this.forfeitWatch.isAway(side)) {
-			await this.forfeitWatch.returned(side);
+		if (this.deadlines.forfeitWatch.isAway(side)) {
+			await this.deadlines.forfeitWatch.returned(side);
 			this.tellOpponentOf(side, { type: "opponent_presence", connected: true });
-			await this.forfeitWatch.arm(this.isPlaying());
+			await this.scheduleAlarm();
 		}
-		if (this.forfeitWatch.isAway(opponentOf(side))) {
+		if (this.deadlines.forfeitWatch.isAway(opponentOf(side))) {
 			this.connections.send(connection, { type: "opponent_presence", connected: false });
 		}
 	}
@@ -147,7 +166,7 @@ export class RefereeSession<Connection> {
 		}
 		await this.store.save(this.game.toRecord());
 		this.tellBothSides((viewer) => this.stateFor(viewer));
-		await this.forfeitWatch.arm(this.isPlaying());
+		await this.scheduleAlarm();
 	}
 
 	private async play(connection: Connection, side: Side, move: Move): Promise<void> {
@@ -164,8 +183,8 @@ export class RefereeSession<Connection> {
 			view: this.game.viewOf(viewer),
 			...(finalBoard === undefined ? {} : { finalBoard }),
 		}));
-		if (!this.isPlaying()) {
-			await this.forfeitWatch.arm(false);
+		if (finalBoard !== undefined) {
+			await this.scheduleAlarm();
 		}
 	}
 
@@ -224,11 +243,18 @@ export class RefereeSession<Connection> {
 	private async endByConcession(): Promise<void> {
 		await this.store.save(this.game.toRecord());
 		this.tellBothSides((viewer) => this.stateFor(viewer));
-		await this.forfeitWatch.arm(false);
+		await this.scheduleAlarm();
 	}
 
-	private isPlaying(): boolean {
-		return this.game.phase() === "playing";
+	private nextDeadline(): number | undefined {
+		switch (this.game.phase()) {
+			case "setup":
+				return this.deadlines.setupTimer.deadline;
+			case "playing":
+				return this.deadlines.forfeitWatch.firstDeadline();
+			case "over":
+				return undefined;
+		}
 	}
 
 	/** Where the game stands for [side]: the Setup progress, or the game so far. */
@@ -238,6 +264,7 @@ export class RefereeSession<Connection> {
 				type: "setup_status",
 				ownSetupDone: this.game.hasSetup(side),
 				opponentSetupDone: this.game.hasSetup(opponentOf(side)),
+				setupTimeLeftMs: this.deadlines.setupTimer.timeLeftMs(),
 			};
 		}
 		const finalBoard = this.game.finalBoard();

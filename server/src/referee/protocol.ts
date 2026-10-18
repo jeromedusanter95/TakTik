@@ -42,9 +42,20 @@ export interface ShownPiece {
 
 export type RefereeReply =
 	| { readonly type: "seated"; readonly side: Side; readonly opponent: string }
-	/** Sent during Setup: on taking a seat, and whenever either player finishes. */
-	| { readonly type: "setup_status"; readonly ownSetupDone: boolean; readonly opponentSetupDone: boolean }
-	/** Sent when play starts, and on taking a seat after that. [history] is every Move so far. */
+	/**
+	 * Sent during Setup: on taking a seat, and whenever either player finishes.
+	 * [setupTimeLeftMs] is how long the Setup Timer still runs, counted when sent.
+	 */
+	| {
+			readonly type: "setup_status";
+			readonly ownSetupDone: boolean;
+			readonly opponentSetupDone: boolean;
+			readonly setupTimeLeftMs: number;
+	  }
+	/**
+	 * Sent when play starts, whether both Setups are in or the Setup Timer ran
+	 * out, and on taking a seat after that. [history] is every Move so far.
+	 */
 	| {
 			readonly type: "game_state";
 			readonly view: PlayerView;

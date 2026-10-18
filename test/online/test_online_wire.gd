@@ -103,6 +103,15 @@ func test_the_referee_tells_who_finished_setup() -> void:
 	assert_eq(reply.kind, RefereeReply.Kind.SETUP_STATUS)
 	assert_false(reply.own_setup_done)
 	assert_true(reply.opponent_setup_done)
+	assert_eq(reply.setup_time_left_msec, RefereeReply.NO_SETUP_TIMER, "the referee did not say")
+
+
+func test_the_referee_tells_how_long_the_setup_timer_still_runs() -> void:
+	var reply: RefereeReply = RefereeReplies.read(
+		'{"type":"setup_status","ownSetupDone":false,"opponentSetupDone":false,"setupTimeLeftMs":179500}'
+	)
+	assert_eq(reply.kind, RefereeReply.Kind.SETUP_STATUS)
+	assert_eq(reply.setup_time_left_msec, 179_500)
 
 
 func test_a_game_state_shows_own_pieces_and_hides_enemy_types() -> void:
@@ -220,6 +229,8 @@ func test_anything_unexpected_from_the_referee_is_malformed() -> void:
 		"",
 		'{"type":"seated","side":"blue"}',
 		'{"type":"setup_status","ownSetupDone":"yes","opponentSetupDone":false}',
+		'{"type":"setup_status","ownSetupDone":false,"opponentSetupDone":false,"setupTimeLeftMs":-1}',
+		'{"type":"setup_status","ownSetupDone":false,"opponentSetupDone":false,"setupTimeLeftMs":"soon"}',
 		'{"type":"opponent_presence"}',
 		'{"type":"opponent_presence","connected":"no"}',
 		JSON.stringify({"type": "game_state", "view": off_board, "history": []}),

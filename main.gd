@@ -48,7 +48,7 @@ func _on_bot_chosen(profile: BotProfile) -> void:
 
 func _on_online_chosen() -> void:
 	_show_only(_online_match)
-	_online_match.start(online_server_url, _open_socket, _rng)
+	_online_match.start(online_server_url, _open_socket, _rng, Time.get_ticks_msec)
 
 
 func _on_menu_requested() -> void:

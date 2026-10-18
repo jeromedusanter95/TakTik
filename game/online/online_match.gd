@@ -1,9 +1,9 @@
 class_name OnlineMatch
 extends Control
 ## A game against another Guest through the online server: enter the Lobby,
-## find an Opponent there by Quick Match or Challenge, arrange the Army, then
-## play, always seeing the Board from this Guest's side, with the choice to
-## Resign.
+## find an Opponent there by Quick Match or Challenge, arrange the Army before
+## the Setup Timer runs out, then play, always seeing the Board from this
+## Guest's side, with the choice to Resign.
 
 signal menu_requested
 
@@ -11,11 +11,15 @@ var _server_url: String = ""
 ## Returns a new WireSocket for each connection.
 var _open_socket: Callable = Callable()
 var _rng: RandomNumberGenerator = null
+## Returns the milliseconds of a clock that never goes back.
+var _ticks_msec: Callable = Callable()
 var _nickname: String = ""
 var _lobby: LobbyClient = null
 var _session: OnlineSession = null
 var _selected: Vector2i = BoardViewState.NO_SQUARE
 var _notice: String = ""
+## The Setup Timer's seconds on screen, to redraw only when they change.
+var _shown_setup_seconds: int = OnlineSession.NO_SETUP_TIMER
 
 @onready var _lobby_panel: LobbyPanel = %LobbyPanel
 @onready var _status_label: Label = %StatusLabel
@@ -57,14 +61,21 @@ func _process(_delta: float) -> void:
 		_lobby.poll()
 	if _session != null:
 		_session.poll()
+	if _session != null and _session.setup_seconds_left() != _shown_setup_seconds:
+		_refresh()
 
 
 ## Opens on the nickname entry. [param server_url] is the server's WebSocket
-## origin; [param open_socket] returns a new WireSocket each time it is called.
-func start(server_url: String, open_socket: Callable, rng: RandomNumberGenerator) -> void:
+## origin; [param open_socket] returns a new WireSocket each time it is called;
+## [param ticks_msec] returns the milliseconds of a clock that never goes back,
+## such as Time.get_ticks_msec.
+func start(
+	server_url: String, open_socket: Callable, rng: RandomNumberGenerator, ticks_msec: Callable
+) -> void:
 	_server_url = server_url
 	_open_socket = open_socket
 	_rng = rng
+	_ticks_msec = ticks_msec
 	_leave()
 	_lobby_panel.show_entry("")
 
@@ -128,7 +139,7 @@ func _join_game(seat: PairedSeat) -> void:
 	_selected = BoardViewState.NO_SQUARE
 	_notice = ""
 	_chat_label.text = ""
-	_session = OnlineSession.new(_new_socket(), seat, _rng)
+	_session = OnlineSession.new(_new_socket(), seat, _rng, _ticks_msec)
 	_session.changed.connect(_refresh)
 	_session.refused.connect(_on_refused)
 	_session.quick_chat_received.connect(_on_quick_chat_received)
@@ -243,6 +254,7 @@ func _refresh() -> void:
 	if _session == null:
 		return
 	_board_view.show_state(_board_state())
+	_shown_setup_seconds = _session.setup_seconds_left()
 	_status_label.text = OnlineMatchTexts.status(_session)
 	_info_label.text = _notice if not _notice.is_empty() else OnlineMatchTexts.info(_session, _selected)
 	_graveyard_label.text = OnlineMatchTexts.graveyards(_session)

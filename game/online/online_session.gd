@@ -3,7 +3,8 @@ extends RefCounted
 ## This Guest's side of one online game. The referee holds the real game; the
 ## session only keeps what this Guest may know, arranges their Setup before
 ## sending it, checks a Move is legal before asking the referee to play it,
-## and knows whether the Opponent is connected. Poll it once per frame.
+## knows whether the Opponent is connected and how long the Setup Timer still
+## runs. Poll it once per frame.
 
 signal changed
 ## The referee refused a request, for example "illegal_move".
@@ -22,9 +23,15 @@ enum Phase {
 	DISCONNECTED,
 }
 
+## What setup_seconds_left returns outside Setup, or when the referee did not
+## say how long the Setup Timer runs.
+const NO_SETUP_TIMER: int = -1
+
 var _socket: WireSocket
 var _seat: PairedSeat
 var _rng: RandomNumberGenerator
+## Returns the milliseconds of a clock that never goes back, as an int.
+var _ticks_msec: Callable
 var _server_url: String = ""
 var _phase: Phase = Phase.CONNECTING
 var _setup: Setup = null
@@ -36,12 +43,20 @@ var _opponent_connected: bool = true
 var _disconnection_reason: String = ""
 var _rematch_asked: bool = false
 var _opponent_wants_rematch: bool = false
+## When the Setup Timer runs out, on the _ticks_msec clock, or NO_SETUP_TIMER.
+var _setup_deadline_msec: int = NO_SETUP_TIMER
+var _setup_arranged_at_random: bool = false
 
 
-func _init(socket: WireSocket, seat: PairedSeat, rng: RandomNumberGenerator) -> void:
+## [param ticks_msec] returns the milliseconds of a clock that never goes back,
+## such as Time.get_ticks_msec.
+func _init(
+	socket: WireSocket, seat: PairedSeat, rng: RandomNumberGenerator, ticks_msec: Callable
+) -> void:
 	_socket = socket
 	_seat = seat
 	_rng = rng
+	_ticks_msec = ticks_msec
 
 
 ## Connects to the game's referee and takes the seat. Called again after a
@@ -106,6 +121,24 @@ func setup() -> Setup:
 ## The game as this Guest knows it, once play has started; null before.
 func position() -> KnownPosition:
 	return _position
+
+
+## Whole seconds, rounded up, until the Setup Timer runs out, as long as this
+## Guest is in Setup; NO_SETUP_TIMER otherwise.
+func setup_seconds_left() -> int:
+	var in_setup: bool = (
+		_phase == Phase.ARRANGING or _phase == Phase.WAITING_FOR_OPPONENT_SETUP
+	)
+	if not in_setup or _setup_deadline_msec == NO_SETUP_TIMER:
+		return NO_SETUP_TIMER
+	var left_msec: int = maxi(0, _setup_deadline_msec - _now_msec())
+	return ceili(left_msec / 1000.0)
+
+
+## True once play has started because the Setup Timer ran out before this
+## Guest handed in their Setup, so the referee arranged their Army at random.
+func was_setup_arranged_at_random() -> bool:
+	return _setup_arranged_at_random
 
 
 ## True while a Move or a Setup waits for the referee's answer.
@@ -269,6 +302,9 @@ func _handle(reply: RefereeReply) -> void:
 
 func _show_setup_status(reply: RefereeReply) -> void:
 	_awaiting_answer = false
+	_setup_deadline_msec = NO_SETUP_TIMER
+	if reply.setup_time_left_msec != RefereeReply.NO_SETUP_TIMER:
+		_setup_deadline_msec = _now_msec() + reply.setup_time_left_msec
 	if reply.own_setup_done:
 		_phase = Phase.WAITING_FOR_OPPONENT_SETUP
 		return
@@ -278,7 +314,17 @@ func _show_setup_status(reply: RefereeReply) -> void:
 
 
 func _show_position(reply: RefereeReply) -> void:
+	if _phase == Phase.ARRANGING and not _awaiting_answer:
+		_setup_arranged_at_random = true
 	_awaiting_answer = false
 	_position = reply.position
 	_final_board = reply.final_board
 	_phase = Phase.OVER if _position.result.is_over() else Phase.PLAYING
+
+
+func _now_msec() -> int:
+	var now: Variant = _ticks_msec.call()
+	if now is not int:
+		push_error("ticks_msec must return an int")
+		return 0
+	return now
