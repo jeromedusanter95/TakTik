@@ -1,4 +1,4 @@
-import type { GameOpener } from "../quick-match/quick-match-pairer";
+import type { GameOpener } from "../lobby/game-opener";
 import type { Seating } from "../referee/seating";
 import type { Referee } from "./referee";
 

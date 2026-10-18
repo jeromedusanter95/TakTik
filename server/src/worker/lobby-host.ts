@@ -1,19 +1,20 @@
 import { DurableObject } from "cloudflare:workers";
-import { QuickMatchPairer } from "../quick-match/quick-match-pairer";
-import { RandomPairingDraws } from "./random-pairing-draws";
+import { Lobby } from "../lobby/lobby";
+import { RandomLobbyDraws } from "./random-lobby-draws";
 import { RefereeGameOpener } from "./referee-game-opener";
-import { WebSocketGuestConnections } from "./websocket-guest-connections";
+import { WebSocketLobbyConnections } from "./websocket-lobby-connections";
 
-/** The one Durable Object every Quick Match socket connects to. */
-export class QuickMatchHost extends DurableObject<Env> {
-	private readonly pairer: QuickMatchPairer<WebSocket>;
+/** The one Durable Object every Lobby socket connects to. */
+export class LobbyHost extends DurableObject<Env> {
+	private readonly lobby: Lobby<WebSocket>;
 
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
-		this.pairer = new QuickMatchPairer(
-			new WebSocketGuestConnections(ctx),
+		this.lobby = new Lobby(
+			new WebSocketLobbyConnections(ctx),
 			new RefereeGameOpener(env.REFEREE),
-			new RandomPairingDraws(),
+			new RandomLobbyDraws(),
+			{ now: () => Date.now() },
 		);
 	}
 
@@ -25,6 +26,10 @@ export class QuickMatchHost extends DurableObject<Env> {
 
 	override async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
 		const text = typeof message === "string" ? message : new TextDecoder().decode(message);
-		await this.pairer.receive(socket, text);
+		await this.lobby.receive(socket, text);
+	}
+
+	override async webSocketClose(socket: WebSocket): Promise<void> {
+		this.lobby.leave(socket);
 	}
 }

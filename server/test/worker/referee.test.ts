@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestHarness, type TestHarness } from "wrangler";
-import type { QuickMatchReply } from "../../src/quick-match/protocol";
+import type { LobbyReply } from "../../src/lobby/protocol";
 import type { RefereeReply } from "../../src/referee/protocol";
 import { parseMove } from "../../src/rules/board-notation";
 import type { Side } from "../../src/rules/side";
@@ -38,18 +38,19 @@ describe("the Referee Worker", () => {
 		await harness.close();
 	});
 
-	/** Pairs two Guests through Quick Match and returns each side's seat. */
+	/** Pairs two Guests through Quick Match in the Lobby and returns each side's seat. */
 	async function pairTwoGuests(): Promise<Record<Side, PairedSeat>> {
-		const guests = await Promise.all(
-			["Ada", "Bob"].map(async (nickname) => {
-				const guest = await JsonSocket.open<QuickMatchReply>(socketUrl(base, "/quick-match"));
-				guest.send({ type: "join", nickname });
-				return guest;
-			}),
-		);
+		const guests: JsonSocket<LobbyReply>[] = [];
+		for (const nickname of ["Ada", "Bob"]) {
+			const guest = await JsonSocket.open<LobbyReply>(socketUrl(base, "/lobby"));
+			guest.send({ type: "enter", nickname });
+			guest.send({ type: "quick_match" });
+			await guest.replyWhere((reply) => reply.type === "entered");
+			guests.push(guest);
+		}
 		const seats: Partial<Record<Side, PairedSeat>> = {};
 		for (const guest of guests) {
-			const paired = await guest.replyWhere((reply) => reply.type !== "waiting");
+			const paired = await guest.replyWhere((reply) => reply.type === "paired" || reply.type === "refused");
 			guest.leave();
 			if (paired?.type !== "paired") {
 				throw new Error(`a Guest was not paired: ${JSON.stringify(guest.replies)}`);
