@@ -4,9 +4,10 @@ A Cloudflare Worker, as decided in [ADR 0001](../docs/adr/0001-cloudflare-refere
 
 - `src/rules`: the rules in TypeScript, checked by the shared rule cases in [spec/rules](../spec/rules/README.md).
 - `src/quick-match`: the Quick Match protocol and pairing logic, plain TypeScript with no Cloudflare types.
+- `src/referee`: the game protocol, the online game (Setups, Moves, what each side may see) and the session that referees it over sockets, also free of Cloudflare types.
 - `src/worker`: the Worker entry and the Durable Objects, thin adapters around the code above.
   - `QuickMatchHost`: one named instance every Quick Match socket connects to.
-  - `Referee`: one instance per online game. For now it only records the seats.
+  - `Referee`: one instance per online game. It stores the record (seats, both Setups, every Move) and rebuilds the game from it when it wakes from hibernation.
 
 ## Quick Match
 
@@ -14,6 +15,21 @@ A Guest opens a WebSocket on `/quick-match` and sends `{"type":"join","nickname"
 The server answers `{"type":"waiting"}`, then, once paired, `{"type":"paired","gameId":…,"side":"red"|"green","seatToken":…,"opponent":…}` and closes the socket.
 A refused join gets `{"type":"refused","reason":…}` and a closed socket.
 The messages are defined in [src/quick-match/protocol.ts](src/quick-match/protocol.ts).
+
+## Playing a game
+
+Each paired Guest opens a WebSocket on `/games/<gameId>` and first sends `{"type":"take_seat","seatToken":…}`.
+A Seat Token travels only inside a message, never in a URL.
+The referee answers `seated` with the side and the Opponent's nickname, then where the game stands:
+
+- During Setup, `setup_status` tells whether each side has handed in its Setup. A Guest sends `{"type":"setup","placements":[{"square":{"column":0,"row":0},"type":"king"},…]}`, one placement per Square of their three rows.
+- Once both Setups are in, each Guest gets `game_state` with their own `PlayerView` and the public `history` of every Move so far.
+- A Guest sends `{"type":"move","move":{"from":…,"to":…}}`. Both Guests then get `moved` with the public Move event and their own `PlayerView`.
+- When a Move ends the game, `moved` also carries `finalBoard`: every Piece left, with its Piece Type.
+- A wrong message gets `refused` with a reason. A socket that never took a seat is then closed; a seated one stays open.
+
+Taking a seat again, from a new tab or after a dropped connection, moves the seat to the new socket, closes the old one and resends the game so far.
+The messages are defined in [src/referee/protocol.ts](src/referee/protocol.ts).
 
 ## Commands
 
