@@ -50,15 +50,26 @@ static func graveyards(session: OnlineSession) -> String:
 	]
 
 
-## The Quick Match failure a Guest reads, for the server's [param reason].
-static func search_failure(reason: String) -> String:
+## Why the Lobby was left, for the server's [param reason].
+static func lobby_failure(reason: String) -> String:
 	match reason:
-		QuickMatchSearch.CONNECTION_LOST:
+		LobbyClient.CONNECTION_LOST:
 			return Translated.text(&"ONLINE_FAILED_CONNECTION")
 		"invalid_nickname":
 			return Translated.text(&"ONLINE_FAILED_NICKNAME", {"max": Nickname.MAX_LENGTH})
 		_:
 			return Translated.text(&"ONLINE_FAILED_OTHER")
+
+
+## What a Guest reads when a Challenge with [param nickname] ends.
+static func challenge_end(nickname: String, reason: String) -> String:
+	match reason:
+		"declined":
+			return Translated.text(&"LOBBY_DECLINED", {"nickname": nickname})
+		"withdrawn":
+			return Translated.text(&"LOBBY_WITHDRAWN", {"nickname": nickname})
+		_:
+			return Translated.text(&"LOBBY_GONE", {"nickname": nickname})
 
 
 ## [param text], followed while the Opponent is disconnected by the

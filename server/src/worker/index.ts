@@ -1,8 +1,8 @@
-export { QuickMatchHost } from "./quick-match-host";
+export { LobbyHost } from "./lobby-host";
 export { Referee } from "./referee";
 
-/** All Guests share one Quick Match, so it is a single, named Durable Object. */
-const QUICK_MATCH_NAME = "quick-match";
+/** All Guests share one Lobby, so it is a single, named Durable Object. */
+const LOBBY_NAME = "lobby";
 
 const GAME_PATH = /^\/games\/([0-9a-f]{64})$/;
 
@@ -20,10 +20,10 @@ export default {
 	},
 } satisfies ExportedHandler<Env>;
 
-/** The Durable Object a path leads to: Quick Match, or the Referee of one game. */
+/** The Durable Object a path leads to: the Lobby, or the Referee of one game. */
 function durableObjectFor(path: string, env: Env): { fetch(request: Request): Promise<Response> } | undefined {
-	if (path === "/quick-match") {
-		return env.QUICK_MATCH.getByName(QUICK_MATCH_NAME);
+	if (path === "/lobby") {
+		return env.LOBBY.getByName(LOBBY_NAME);
 	}
 	const gameId = GAME_PATH.exec(path)?.[1];
 	if (gameId === undefined) {

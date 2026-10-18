@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://game/online/online_match.gd" id="1"]
 [ext_resource type="PackedScene" path="res://game/board/board_view.tscn" id="2"]
-[ext_resource type="PackedScene" path="res://game/online/find_opponent_panel.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://game/online/lobby_panel.tscn" id="3"]
 [ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="4"]
 
 [node name="OnlineMatch" type="Control"]
@@ -119,6 +119,6 @@ script = ExtResource("4")
 [node name="ResignDialog" type="ConfirmationDialog" parent="."]
 unique_name_in_owner = true
 
-[node name="FindOpponentPanel" parent="." instance=ExtResource("3")]
+[node name="LobbyPanel" parent="." instance=ExtResource("3")]
 unique_name_in_owner = true
 layout_mode = 1

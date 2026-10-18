@@ -3,29 +3,36 @@ extends GutTest
 ## server/src speaks.
 
 
-func test_a_join_carries_the_nickname() -> void:
-	assert_eq(_parsed(OnlineRequests.join("Ada")), {"type": "join", "nickname": "Ada"})
+func test_entering_the_lobby_carries_the_nickname() -> void:
+	assert_eq(_parsed(LobbyRequests.enter("Ada")), {"type": "enter", "nickname": "Ada"})
+
+
+func test_lobby_requests_name_the_guest_concerned() -> void:
+	assert_eq(_parsed(LobbyRequests.challenge("g2")), {"type": "challenge", "guestId": "g2"})
+	assert_eq(_parsed(LobbyRequests.answer_challenge("g2", true)), {
+		"type": "answer_challenge", "guestId": "g2", "accept": true,
+	})
 
 
 func test_taking_a_seat_carries_the_seat_token() -> void:
-	assert_eq(_parsed(OnlineRequests.take_seat("abc")), {"type": "take_seat", "seatToken": "abc"})
+	assert_eq(_parsed(RefereeRequests.take_seat("abc")), {"type": "take_seat", "seatToken": "abc"})
 
 
 func test_a_move_names_its_squares_by_column_and_row() -> void:
 	var move: Move = BoardNotation.parse_move("c3-c4")
-	assert_eq(_parsed(OnlineRequests.move(move)), {
+	assert_eq(_parsed(RefereeRequests.move(move)), {
 		"type": "move",
 		"move": {"from": {"column": 2.0, "row": 2.0}, "to": {"column": 2.0, "row": 3.0}},
 	})
 
 
 func test_a_resignation_is_only_its_type() -> void:
-	assert_eq(_parsed(OnlineRequests.resign()), {"type": "resign"})
+	assert_eq(_parsed(RefereeRequests.resign()), {"type": "resign"})
 
 
 func test_a_setup_places_every_piece_of_the_army() -> void:
 	var setup: Setup = BoardNotation.parse_setup(Side.Id.RED, ["BSNMBE", "MOSPBO", "NSOTBK"])
-	var message: Dictionary = _parsed(OnlineRequests.setup(setup))
+	var message: Dictionary = _parsed(RefereeRequests.setup(setup))
 	var placements: Array = message["placements"]
 	var type: String = message["type"]
 	assert_eq(type, "setup")
@@ -34,42 +41,63 @@ func test_a_setup_places_every_piece_of_the_army() -> void:
 	assert_has(placements, {"square": {"column": 5.0, "row": 2.0}, "type": "executioner"})
 
 
-func test_quick_match_says_waiting() -> void:
-	var reply: QuickMatchReply = OnlineReplies.quick_match('{"type":"waiting"}')
-	assert_eq(reply.kind, QuickMatchReply.Kind.WAITING)
+func test_the_lobby_lists_the_other_guests() -> void:
+	var reply: LobbyReply = LobbyReplies.read(JSON.stringify({
+		"type": "guests", "guests": [{"guestId": "g2", "nickname": "Bob", "waiting": true}],
+	}))
+	assert_eq(reply.kind, LobbyReply.Kind.GUESTS)
+	assert_eq(reply.guests[0].guest_id, "g2")
+	assert_eq(reply.guests[0].nickname, "Bob")
+	assert_true(reply.guests[0].waiting)
 
 
-func test_quick_match_gives_the_seat_when_paired() -> void:
-	var reply: QuickMatchReply = OnlineReplies.quick_match(JSON.stringify({
+func test_the_lobby_names_the_challenger() -> void:
+	var reply: LobbyReply = LobbyReplies.read('{"type":"challenged","guestId":"g2","nickname":"Bob"}')
+	assert_eq(reply.kind, LobbyReply.Kind.CHALLENGED)
+	assert_eq(reply.guest_id, "g2")
+	assert_eq(reply.nickname, "Bob")
+
+
+func test_the_lobby_tells_why_a_challenge_ended() -> void:
+	var reply: LobbyReply = LobbyReplies.read('{"type":"challenge_ended","guestId":"g2","reason":"declined"}')
+	assert_eq(reply.kind, LobbyReply.Kind.CHALLENGE_ENDED)
+	assert_eq(reply.reason, "declined")
+
+
+func test_the_lobby_gives_the_seat_when_paired() -> void:
+	var reply: LobbyReply = LobbyReplies.read(JSON.stringify({
 		"type": "paired", "gameId": "g1", "side": "green", "seatToken": "t1", "opponent": "Ada",
 	}))
-	assert_eq(reply.kind, QuickMatchReply.Kind.PAIRED)
+	assert_eq(reply.kind, LobbyReply.Kind.PAIRED)
 	assert_eq(reply.seat.game_id, "g1")
 	assert_eq(reply.seat.side, Side.Id.GREEN)
 	assert_eq(reply.seat.seat_token, "t1")
 	assert_eq(reply.seat.opponent, "Ada")
 
 
-func test_quick_match_tells_why_it_refused() -> void:
-	var reply: QuickMatchReply = OnlineReplies.quick_match('{"type":"refused","reason":"invalid_nickname"}')
-	assert_eq(reply.kind, QuickMatchReply.Kind.REFUSED)
-	assert_eq(reply.refusal, "invalid_nickname")
-
-
-func test_anything_unexpected_from_quick_match_is_malformed() -> void:
-	for text: String in ["", "nonsense", "[]", '{"type":"paired","side":"blue"}', '{"type":"dance"}']:
-		assert_eq(OnlineReplies.quick_match(text).kind, QuickMatchReply.Kind.MALFORMED, text)
+func test_anything_unexpected_from_the_lobby_is_malformed() -> void:
+	var texts: Array[String] = [
+		"",
+		"nonsense",
+		'{"type":"paired","side":"blue"}',
+		'{"type":"guests","guests":[{"nickname":"Bob","waiting":false}]}',
+		'{"type":"quick_match","waiting":"yes"}',
+		'{"type":"entered"}',
+		'{"type":"dance"}',
+	]
+	for text: String in texts:
+		assert_eq(LobbyReplies.read(text).kind, LobbyReply.Kind.MALFORMED, text)
 
 
 func test_the_referee_seats_us_with_our_opponent() -> void:
-	var reply: RefereeReply = OnlineReplies.referee('{"type":"seated","side":"red","opponent":"Bob"}')
+	var reply: RefereeReply = RefereeReplies.read('{"type":"seated","side":"red","opponent":"Bob"}')
 	assert_eq(reply.kind, RefereeReply.Kind.SEATED)
 	assert_eq(reply.side, Side.Id.RED)
 	assert_eq(reply.opponent, "Bob")
 
 
 func test_the_referee_tells_who_finished_setup() -> void:
-	var reply: RefereeReply = OnlineReplies.referee(
+	var reply: RefereeReply = RefereeReplies.read(
 		'{"type":"setup_status","ownSetupDone":false,"opponentSetupDone":true}'
 	)
 	assert_eq(reply.kind, RefereeReply.Kind.SETUP_STATUS)
@@ -78,7 +106,7 @@ func test_the_referee_tells_who_finished_setup() -> void:
 
 
 func test_a_game_state_shows_own_pieces_and_hides_enemy_types() -> void:
-	var reply: RefereeReply = OnlineReplies.referee(JSON.stringify({
+	var reply: RefereeReply = RefereeReplies.read(JSON.stringify({
 		"type": "game_state",
 		"view": _view("red", "red", [_own("c3", "knight")], ["c6"]),
 		"history": [],
@@ -94,7 +122,7 @@ func test_a_game_state_shows_own_pieces_and_hides_enemy_types() -> void:
 
 
 func test_a_known_position_finds_the_legal_moves_of_own_pieces() -> void:
-	var reply: RefereeReply = OnlineReplies.referee(JSON.stringify({
+	var reply: RefereeReply = RefereeReplies.read(JSON.stringify({
 		"type": "game_state",
 		"view": _view("red", "red", [_own("c4", "knight")], ["c5"]),
 		"history": [],
@@ -106,7 +134,7 @@ func test_a_known_position_finds_the_legal_moves_of_own_pieces() -> void:
 
 
 func test_a_known_position_offers_no_move_on_the_opponents_turn() -> void:
-	var reply: RefereeReply = OnlineReplies.referee(JSON.stringify({
+	var reply: RefereeReply = RefereeReplies.read(JSON.stringify({
 		"type": "game_state",
 		"view": _view("red", "green", [_own("c4", "knight")], ["c5"]),
 		"history": [],
@@ -118,7 +146,7 @@ func test_a_known_position_offers_no_move_on_the_opponents_turn() -> void:
 func test_a_known_position_keeps_the_move_back_rule() -> void:
 	var view: Dictionary = _view("red", "red", [_own("c4", "knight")], ["f6"])
 	view["lastMoves"] = {"red": _move("c3", "c4")}
-	var reply: RefereeReply = OnlineReplies.referee(JSON.stringify({
+	var reply: RefereeReply = RefereeReplies.read(JSON.stringify({
 		"type": "game_state", "view": view, "history": [],
 	}))
 	assert_does_not_have(reply.position.legal_destinations(_square("c4")), _square("c3"))
@@ -127,7 +155,7 @@ func test_a_known_position_keeps_the_move_back_rule() -> void:
 func test_a_game_state_carries_the_history_and_the_final_board() -> void:
 	var view: Dictionary = _view("green", "green", [_own("a8", "king")], ["a6"])
 	view["result"] = {"status": "red_wins", "reason": "princess_captured"}
-	var reply: RefereeReply = OnlineReplies.referee(JSON.stringify({
+	var reply: RefereeReply = RefereeReplies.read(JSON.stringify({
 		"type": "game_state",
 		"view": view,
 		"history": [_fight_event("red", "a3", "a6", "buffoon", "princess", "attacker_wins")],
@@ -145,7 +173,7 @@ func test_a_game_state_carries_the_history_and_the_final_board() -> void:
 
 
 func test_a_moved_message_carries_the_event_and_the_new_view() -> void:
-	var reply: RefereeReply = OnlineReplies.referee(JSON.stringify({
+	var reply: RefereeReply = RefereeReplies.read(JSON.stringify({
 		"type": "moved",
 		"event": _fight_event("red", "c3", "c4", "knight", "thief", "attacker_wins"),
 		"view": _view("green", "green", [_own("a8", "king")], ["c4"]),
@@ -158,16 +186,16 @@ func test_a_moved_message_carries_the_event_and_the_new_view() -> void:
 
 
 func test_the_referee_tells_why_it_refused() -> void:
-	var reply: RefereeReply = OnlineReplies.referee('{"type":"refused","reason":"illegal_move"}')
+	var reply: RefereeReply = RefereeReplies.read('{"type":"refused","reason":"illegal_move"}')
 	assert_eq(reply.kind, RefereeReply.Kind.REFUSED)
 	assert_eq(reply.refusal, "illegal_move")
 
 
 func test_the_referee_tells_whether_the_opponent_is_connected() -> void:
-	var away: RefereeReply = OnlineReplies.referee('{"type":"opponent_presence","connected":false}')
+	var away: RefereeReply = RefereeReplies.read('{"type":"opponent_presence","connected":false}')
 	assert_eq(away.kind, RefereeReply.Kind.OPPONENT_PRESENCE)
 	assert_false(away.opponent_connected)
-	var back: RefereeReply = OnlineReplies.referee('{"type":"opponent_presence","connected":true}')
+	var back: RefereeReply = RefereeReplies.read('{"type":"opponent_presence","connected":true}')
 	assert_true(back.opponent_connected)
 
 
@@ -176,7 +204,7 @@ func test_a_result_can_end_by_resign_or_forfeit() -> void:
 		var view: Dictionary = _view("red", "green", [], [])
 		view["result"] = {"status": "green_wins", "reason": reason}
 		var text: String = JSON.stringify({"type": "game_state", "view": view, "history": []})
-		var reply: RefereeReply = OnlineReplies.referee(text)
+		var reply: RefereeReply = RefereeReplies.read(text)
 		assert_eq(reply.kind, RefereeReply.Kind.GAME_STATE, reason)
 		assert_eq(WireNames.reason(reason), reply.position.result.reason)
 	assert_eq(WireNames.reason("resigned"), GameResult.Reason.RESIGNED)
@@ -200,7 +228,7 @@ func test_anything_unexpected_from_the_referee_is_malformed() -> void:
 		JSON.stringify({"type": "moved", "view": _view("red", "red", [], [])}),
 	]
 	for text: String in texts:
-		assert_eq(OnlineReplies.referee(text).kind, RefereeReply.Kind.MALFORMED, text)
+		assert_eq(RefereeReplies.read(text).kind, RefereeReply.Kind.MALFORMED, text)
 
 
 func test_a_fight_eliminates_the_loser_of_each_side() -> void:

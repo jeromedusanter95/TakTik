@@ -24,33 +24,75 @@ func before_each() -> void:
 	_match.start(SERVER_URL, _open_socket, rng)
 
 
-func test_it_opens_on_the_nickname_entry_with_find_disabled() -> void:
+func test_it_opens_on_the_nickname_entry_with_enter_disabled() -> void:
 	assert_true(_panel().visible)
-	assert_true(_button("%FindButton").disabled)
+	assert_true(_button("%EnterButton").disabled)
 	_nickname_edit().text = "Ada"
 	_nickname_edit().text_changed.emit("Ada")
-	assert_false(_button("%FindButton").disabled)
+	assert_false(_button("%EnterButton").disabled)
 
 
-func test_finding_an_opponent_joins_quick_match() -> void:
-	_find("Ada")
-	assert_eq(_sockets.size(), 1)
-	assert_eq(_sockets[0].opened_url, "ws://referee.test/quick-match")
-	assert_eq(_sockets[0].last_sent(), {"type": "join", "nickname": "Ada"})
-	assert_eq(_label("%MessageLabel").text, "Looking for an Opponent...")
-	assert_true(_button("%CancelButton").visible)
+func test_entering_joins_the_lobby_and_lists_the_other_guests() -> void:
+	_enter("Ada")
+	assert_eq(_sockets[0].opened_url, "ws://referee.test/lobby")
+	assert_eq(_sockets[0].last_sent(), {"type": "enter", "nickname": "Ada"})
+	assert_eq(_label("%MessageLabel").text, "Entering the Lobby...")
+	_in_lobby_with_bob()
+	assert_true(_control("%LobbySection").visible)
+	assert_eq(_guest_rows().size(), 1)
+	assert_eq(_row_label(_guest_rows()[0]).text, "Bob")
+
+
+func test_quick_match_toggles_waiting() -> void:
+	_enter("Ada")
+	_in_lobby_with_bob()
+	_button("%QuickMatchButton").pressed.emit()
+	assert_eq(_sockets[0].last_sent(), {"type": "quick_match"})
+	_sockets[0].receive({"type": "quick_match", "waiting": true})
+	_frame()
+	assert_eq(_button("%QuickMatchButton").text, "Stop waiting")
+	assert_eq(_label("%MessageLabel").text, "Waiting for an Opponent...")
+	_button("%QuickMatchButton").pressed.emit()
+	assert_eq(_sockets[0].last_sent(), {"type": "stop_waiting"})
+
+
+func test_challenging_a_guest_shows_the_challenge_until_declined() -> void:
+	_enter("Ada")
+	_in_lobby_with_bob()
+	_row_button(_guest_rows()[0]).pressed.emit()
+	assert_eq(_sockets[0].last_sent(), {"type": "challenge", "guestId": "g2"})
+	_sockets[0].receive({"type": "challenge_sent", "guestId": "g2"})
+	_frame()
+	assert_true(_control("%ChallengeRow").visible)
+	assert_eq(_label("%ChallengeLabel").text, "Challenge sent to Bob...")
+	_sockets[0].receive({"type": "challenge_ended", "guestId": "g2", "reason": "declined"})
+	_frame()
+	assert_false(_control("%ChallengeRow").visible)
+	assert_eq(_label("%MessageLabel").text, "Bob declined your Challenge.")
+
+
+func test_a_challenge_received_can_be_accepted() -> void:
+	_enter("Ada")
+	_in_lobby_with_bob()
+	_sockets[0].receive({"type": "challenged", "guestId": "g2", "nickname": "Bob"})
+	_frame()
+	var rows: Array[Node] = _node("%ChallengersList").get_children()
+	assert_eq(rows.size(), 1)
+	assert_eq(_row_label(rows[0]).text, "Bob challenges you")
+	_row_button(rows[0]).pressed.emit()
+	assert_eq(_sockets[0].last_sent(), {"type": "answer_challenge", "guestId": "g2", "accept": true})
 
 
 func test_a_refused_nickname_is_explained() -> void:
-	_find("Ada")
-	_sockets[0].receive({"type": "refused", "reason": "invalid_nickname"})
+	_enter("Ada")
+	_sockets[0].close_from_server("invalid_nickname")
 	_frame()
-	assert_true(_panel().visible)
+	assert_true(_control("%EntrySection").visible)
 	assert_string_contains(_label("%MessageLabel").text, "not allowed")
 
 
 func test_an_unreachable_server_is_explained() -> void:
-	_find("Ada")
+	_enter("Ada")
 	_sockets[0].close()
 	_frame()
 	assert_eq(_label("%MessageLabel").text, "Could not reach the server. Try again in a moment.")
@@ -118,9 +160,11 @@ func test_the_end_shows_the_result_and_offers_a_new_opponent() -> void:
 	})
 	_frame()
 	assert_string_starts_with(_label("%StatusLabel").text, "Red wins")
-	assert_eq(_button("%ActionButton").text, "Find a new Opponent")
+	assert_eq(_button("%ActionButton").text, "Back to the Lobby")
 	_button("%ActionButton").pressed.emit()
 	assert_true(_panel().visible)
+	assert_eq(_last_socket().opened_url, "ws://referee.test/lobby")
+	assert_eq(_last_socket().last_sent(), {"type": "enter", "nickname": "Ada"})
 
 
 func test_resign_asks_for_confirmation_before_sending() -> void:
@@ -215,14 +259,38 @@ func _open_socket() -> WireSocket:
 	return socket
 
 
-func _find(nickname: String) -> void:
+func _enter(nickname: String) -> void:
 	_nickname_edit().text = nickname
 	_nickname_edit().text_changed.emit(nickname)
-	_button("%FindButton").pressed.emit()
+	_button("%EnterButton").pressed.emit()
+
+
+func _in_lobby_with_bob() -> void:
+	_sockets[0].receive({"type": "entered", "guestId": "g1"})
+	_sockets[0].receive({"type": "guests", "guests": [{"guestId": "g2", "nickname": "Bob", "waiting": false}]})
+	_frame()
+
+
+func _guest_rows() -> Array[Node]:
+	return _node("%GuestList").get_children()
+
+
+func _row_label(row: Node) -> Label:
+	var node: Node = row.get_child(0)
+	assert_true(node is Label)
+	return node
+
+
+## The first button of a Lobby row.
+func _row_button(row: Node) -> Button:
+	var node: Node = row.get_child(1)
+	assert_true(node is Button)
+	return node
 
 
 func _pair_and_arrange() -> void:
-	_find("Ada")
+	_enter("Ada")
+	_in_lobby_with_bob()
 	_sockets[0].receive({"type": "paired", "gameId": "g1", "side": "red", "seatToken": "t1", "opponent": "Bob"})
 	_frame()
 	_sockets[1].receive({"type": "seated", "side": "red", "opponent": "Bob"})
@@ -274,10 +342,24 @@ func _resign_dialog() -> ConfirmationDialog:
 	return node
 
 
-func _panel() -> FindOpponentPanel:
-	var node: Node = _match.get_node("%FindOpponentPanel")
-	assert_true(node is FindOpponentPanel)
+func _panel() -> LobbyPanel:
+	var node: Node = _match.get_node("%LobbyPanel")
+	assert_true(node is LobbyPanel)
 	return node
+
+
+func _node(unique_name: String) -> Node:
+	return _panel().get_node(unique_name)
+
+
+func _control(unique_name: String) -> Control:
+	var node: Node = _node(unique_name)
+	assert_true(node is Control, unique_name)
+	return node
+
+
+func _last_socket() -> FakeWireSocket:
+	return _sockets[_sockets.size() - 1]
 
 
 func _nickname_edit() -> LineEdit:

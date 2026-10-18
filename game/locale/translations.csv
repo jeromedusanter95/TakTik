@@ -49,11 +49,7 @@ PIECE_DESCRIPTION,"{piece}, attack {attack}, defense {defense}","{piece}, attaqu
 GRAVEYARD,{side} lost: {pieces},{side} a perdu : {pieces}
 GRAVEYARD_NOTHING,nothing,rien
 MENU_PLAY_ONLINE,Play online,Jouer en ligne
-ONLINE_TITLE,Play online,Jouer en ligne
 ONLINE_NICKNAME_HINT,Your nickname,Votre pseudo
-ONLINE_FIND,Find an Opponent,Trouver un Adversaire
-ONLINE_SEARCHING,Looking for an Opponent...,Recherche d'un Adversaire...
-ONLINE_CANCEL,Cancel,Annuler
 ONLINE_FAILED_CONNECTION,Could not reach the server. Try again in a moment.,Impossible de joindre le serveur. Réessayez dans un instant.
 ONLINE_FAILED_NICKNAME,"That nickname is not allowed. Choose another one, up to {max} characters.","Ce pseudo n'est pas autorisé. Choisissez-en un autre, de {max} caractères au plus."
 ONLINE_FAILED_OTHER,Something went wrong. Try again.,Un problème est survenu. Réessayez.
@@ -67,7 +63,7 @@ ONLINE_SENDING,Sending...,Envoi...
 ONLINE_DISCONNECTED,Connection lost,Connexion perdue
 ONLINE_RECONNECT,Reconnect,Se reconnecter
 ONLINE_REFUSED,The referee refused that. Try again.,L'arbitre a refusé. Réessayez.
-ONLINE_NEW_OPPONENT,Find a new Opponent,Trouver un nouvel Adversaire
+ONLINE_NEW_OPPONENT,Back to the Lobby,Retour au Salon
 ONLINE_SEAT_TAKEN,This game is now open in another window.,Cette partie est maintenant ouverte dans une autre fenêtre.
 ONLINE_RESIGN,Resign,Abandonner
 ONLINE_RESIGN_TITLE,Resign this game?,Abandonner cette partie ?
@@ -75,3 +71,21 @@ ONLINE_RESIGN_CONFIRM,{opponent} will win the game.,{opponent} remportera la par
 ONLINE_KEEP_PLAYING,Keep playing,Continuer à jouer
 ONLINE_OPPONENT_AWAY,"{opponent} lost their connection. If they do not come back soon, they lose by Forfeit.","Connexion de {opponent} perdue. Sans retour rapide de sa part, la partie se termine par forfait."
 ONLINE_OPPONENT_AWAY_SETUP,{opponent} lost their connection. Waiting for them to come back...,Connexion de {opponent} perdue. En attente de son retour...
+LOBBY_TITLE,Lobby,Salon
+LOBBY_ENTER,Enter the Lobby,Entrer dans le Salon
+LOBBY_ENTERING,Entering the Lobby...,Entrée dans le Salon...
+LOBBY_QUICK_MATCH,Quick Match,Partie rapide
+LOBBY_STOP_WAITING,Stop waiting,Arrêter d'attendre
+LOBBY_WAITING,Waiting for an Opponent...,En attente d'un Adversaire...
+LOBBY_GUESTS,Also here,Également présents
+LOBBY_EMPTY,No one else is here yet.,Personne d'autre pour l'instant.
+LOBBY_GUEST_WAITING,{nickname} (waiting),{nickname} (en attente)
+LOBBY_CHALLENGE,Challenge,Défier
+LOBBY_CHALLENGE_SENT,Challenge sent to {nickname}...,Défi envoyé à {nickname}...
+LOBBY_WITHDRAW,Withdraw,Retirer
+LOBBY_CHALLENGED_BY,{nickname} challenges you,{nickname} vous défie
+LOBBY_ACCEPT,Accept,Accepter
+LOBBY_DECLINE,Decline,Refuser
+LOBBY_DECLINED,{nickname} declined your Challenge.,{nickname} a refusé votre Défi.
+LOBBY_WITHDRAWN,{nickname} withdrew their Challenge.,{nickname} a retiré son Défi.
+LOBBY_GONE,{nickname} left the Lobby.,{nickname} a quitté le Salon.

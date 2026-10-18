@@ -3,18 +3,24 @@
 A Cloudflare Worker, as decided in [ADR 0001](../docs/adr/0001-cloudflare-referee-with-rules-written-twice.md).
 
 - `src/rules`: the rules in TypeScript, checked by the shared rule cases in [spec/rules](../spec/rules/README.md).
-- `src/quick-match`: the Quick Match protocol and pairing logic, plain TypeScript with no Cloudflare types.
+- `src/lobby`: the Lobby protocol and rules (Quick Match and Challenges), plain TypeScript with no Cloudflare types.
 - `src/referee`: the game protocol, the online game (Setups, Moves, what each side may see) and the session that referees it over sockets, also free of Cloudflare types.
 - `src/worker`: the Worker entry and the Durable Objects, thin adapters around the code above.
-  - `QuickMatchHost`: one named instance every Quick Match socket connects to.
+  - `LobbyHost`: one named instance every Lobby socket connects to.
   - `Referee`: one instance per online game. It stores the record (seats, both Setups, every Move, a Resign or Forfeit) and who is away, and rebuilds the game from them when it wakes from hibernation. Its alarm rings when an away player would Forfeit.
 
-## Quick Match
+## The Lobby
 
-A Guest opens a WebSocket on `/quick-match` and sends `{"type":"join","nickname":"Ada"}`.
-The server answers `{"type":"waiting"}`, then, once paired, `{"type":"paired","gameId":…,"side":"red"|"green","seatToken":…,"opponent":…}` and closes the socket.
-A refused join gets `{"type":"refused","reason":…}` and a closed socket.
-The messages are defined in [src/quick-match/protocol.ts](src/quick-match/protocol.ts).
+A Guest opens a WebSocket on `/lobby` and sends `{"type":"enter","nickname":"Ada"}`.
+The server answers `entered` with the Guest's id, then `guests` with the other Guests whenever that list changes.
+From there a Guest either:
+
+- sends `quick_match` and is paired with the next Guest who does the same (`stop_waiting` leaves the queue), or
+- sends `challenge` with another Guest's id. That Guest gets `challenged` and answers with `answer_challenge`; a declined, withdrawn or abandoned Challenge ends with `challenge_ended`.
+
+Once paired, both Guests get `paired` with the game id, their side and their Seat Token, and close their own socket.
+A refused request gets `refused`; a socket the server shows out also carries the refusal as its close reason.
+The messages are defined in [src/lobby/protocol.ts](src/lobby/protocol.ts).
 
 ## Playing a game
 

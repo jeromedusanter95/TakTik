@@ -69,13 +69,13 @@ func test_the_language_button_switches_to_french_and_remembers_it() -> void:
 	assert_eq(_label("%StatusLabel").text, "Rouge : disposez votre Armée")
 
 
-func test_play_online_opens_the_nickname_entry_and_back_returns_to_the_menu() -> void:
+func test_play_online_opens_the_lobby_entry_and_back_returns_to_the_menu() -> void:
 	_button("%OnlineButton", _menu()).pressed.emit()
 	assert_true(_online().visible)
 	assert_false(_menu().visible)
 	assert_false(_match().visible)
-	var panel: Node = _online().get_node("%FindOpponentPanel")
-	assert_true(panel is FindOpponentPanel and (panel as FindOpponentPanel).visible)
+	var panel: Node = _online().get_node("%LobbyPanel")
+	assert_true(panel is LobbyPanel and (panel as LobbyPanel).visible)
 	_button("%BackButton", panel).pressed.emit()
 	assert_true(_menu().visible)
 	assert_false(_online().visible)
