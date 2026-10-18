@@ -8,7 +8,10 @@
 		"FORFEIT_AFTER_SECONDS": 120,
 		// The Setup Timer: how long both players have to finish Setup before the
 		// Pieces of whoever is not done get a Random Setup.
-		"SETUP_TIMER_SECONDS": 180
+		"SETUP_TIMER_SECONDS": 180,
+		// The Turn Timer: how long the player to move has to make a Move before
+		// they Forfeit.
+		"TURN_TIMER_SECONDS": 60
 	},
 	"durable_objects": {
 		"bindings": [

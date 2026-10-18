@@ -1,7 +1,7 @@
 import type { Move } from "../rules/move";
 import type { SetupDraws } from "../rules/setup";
 import { opponentOf, SIDES, type Side } from "../rules/side";
-import type { GameRecord, OnlineGame } from "./online-game";
+import type { Concession, GameRecord, OnlineGame } from "./online-game";
 import {
 	parseRefereeRequest,
 	type Placement,
@@ -101,17 +101,19 @@ export class RefereeSession<Connection> {
 	}
 
 	/**
-	 * Ends Setup if the Setup Timer has run out, then Forfeits the player who
-	 * has stayed away too long, if anyone has, and sets the alarm again.
+	 * Ends Setup if the Setup Timer has run out, then Forfeits the player whose
+	 * deadline passed first, whether they stayed away too long or ran out the
+	 * Turn Timer, and sets the alarm again.
 	 */
 	async alarmRang(): Promise<void> {
 		if (this.game.phase() === "setup" && this.deadlines.setupTimer.isUp()) {
 			this.game.arrangeMissingSetupsAtRandom(this.draws);
+			await this.deadlines.turnTimer.restart();
 			await this.store.save(this.game.toRecord());
 			this.tellBothSides((viewer) => this.stateFor(viewer));
 		}
-		const absent = this.deadlines.forfeitWatch.overdue();
-		if (absent !== undefined && this.game.concede(absent, "forfeited").accepted) {
+		const forfeit = this.overdueForfeit();
+		if (forfeit !== undefined && this.game.concede(forfeit.loser, forfeit.reason).accepted) {
 			await this.endByConcession();
 			return;
 		}
@@ -164,6 +166,9 @@ export class RefereeSession<Connection> {
 			this.refuse(connection, attempt.reason);
 			return;
 		}
+		if (this.game.phase() === "playing") {
+			await this.deadlines.turnTimer.restart();
+		}
 		await this.store.save(this.game.toRecord());
 		this.tellBothSides((viewer) => this.stateFor(viewer));
 		await this.scheduleAlarm();
@@ -175,17 +180,19 @@ export class RefereeSession<Connection> {
 			this.refuse(connection, attempt.reason);
 			return;
 		}
-		await this.store.save(this.game.toRecord());
 		const finalBoard = this.game.finalBoard();
+		if (finalBoard === undefined) {
+			await this.deadlines.turnTimer.restart();
+		}
+		await this.store.save(this.game.toRecord());
 		this.tellBothSides((viewer) => ({
 			type: "moved",
 			event: attempt.event,
 			view: this.game.viewOf(viewer),
+			...this.turnTimeLeft(),
 			...(finalBoard === undefined ? {} : { finalBoard }),
 		}));
-		if (finalBoard !== undefined) {
-			await this.scheduleAlarm();
-		}
+		await this.scheduleAlarm();
 	}
 
 	private async resign(connection: Connection, side: Side): Promise<void> {
@@ -251,7 +258,7 @@ export class RefereeSession<Connection> {
 			case "setup":
 				return this.deadlines.setupTimer.deadline;
 			case "playing":
-				return this.deadlines.forfeitWatch.firstDeadline();
+				return earliest([this.deadlines.turnTimer.deadline(), this.deadlines.forfeitWatch.firstDeadline()]);
 			case "over":
 				return undefined;
 		}
@@ -272,8 +279,33 @@ export class RefereeSession<Connection> {
 			type: "game_state",
 			view: this.game.viewOf(side),
 			history: this.game.history(),
+			...this.turnTimeLeft(),
 			...(finalBoard === undefined ? {} : { finalBoard }),
 		};
+	}
+
+	/** How long the player to move still has, while play goes on. */
+	private turnTimeLeft(): { turnTimeLeftMs?: number } {
+		return this.game.phase() === "playing" ? { turnTimeLeftMs: this.deadlines.turnTimer.timeLeftMs() } : {};
+	}
+
+	/**
+	 * Who Forfeits now, and why, when a deadline of play has passed: the player
+	 * to move when the Turn Timer ran out, or the one who stayed away too long,
+	 * whichever came first.
+	 */
+	private overdueForfeit(): Concession | undefined {
+		if (this.game.phase() !== "playing") {
+			return undefined;
+		}
+		const { turnTimer, forfeitWatch } = this.deadlines;
+		const absent = forfeitWatch.overdue();
+		const ranOutAt = turnTimer.isUp() ? turnTimer.deadline() : undefined;
+		const awayTooLongAt = absent === undefined ? undefined : forfeitWatch.firstDeadline();
+		if (ranOutAt !== undefined && (awayTooLongAt === undefined || ranOutAt <= awayTooLongAt)) {
+			return { loser: this.game.sideToMove(), reason: "out_of_time" };
+		}
+		return absent === undefined ? undefined : { loser: absent, reason: "forfeited" };
 	}
 
 	private tellBothSides(replyFor: (viewer: Side) => RefereeReply): void {
@@ -307,4 +339,10 @@ export class RefereeSession<Connection> {
 		this.refuse(connection, reason);
 		this.connections.refuseAndClose(connection, reason);
 	}
+}
+
+/** The earliest of [times], or undefined when none is set. */
+function earliest(times: readonly (number | undefined)[]): number | undefined {
+	const set = times.filter((time) => time !== undefined);
+	return set.length === 0 ? undefined : Math.min(...set);
 }
