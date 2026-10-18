@@ -34,6 +34,14 @@ var _defender_type: PieceType.Id = PieceType.Id.KING
 var _outcome: FightOutcome.Id = FightOutcome.Id.ATTACKER_WINS
 
 
+## A Move onto an empty Square, as the online server reports it.
+static func of_move(side: Side.Id, played: Move) -> PublicMoveEvent:
+	var event: PublicMoveEvent = PublicMoveEvent.new()
+	event._mover_side = side
+	event._move = played
+	return event
+
+
 static func of(record: MoveRecord) -> PublicMoveEvent:
 	var event: PublicMoveEvent = PublicMoveEvent.new()
 	event._mover_side = record.mover.side
@@ -44,3 +52,31 @@ static func of(record: MoveRecord) -> PublicMoveEvent:
 		event._defender_type = record.fight.defender.type
 		event._outcome = record.fight.outcome
 	return event
+
+
+## A copy of this event with the Reveal of the Fight it caused.
+func with_fight(
+		attacker: PieceType.Id,
+		defender: PieceType.Id,
+		fight_outcome: FightOutcome.Id,
+) -> PublicMoveEvent:
+	var event: PublicMoveEvent = PublicMoveEvent.of_move(_mover_side, _move)
+	event._has_fight = true
+	event._attacker_type = attacker
+	event._defender_type = defender
+	event._outcome = fight_outcome
+	return event
+
+
+## The Piece Types this event's Fight eliminated, by side. Empty without a
+## Fight.
+func eliminated_types() -> Dictionary[Side.Id, PieceType.Id]:
+	var eliminated: Dictionary[Side.Id, PieceType.Id] = {}
+	if not _has_fight:
+		return eliminated
+	var defender_side: Side.Id = Side.opponent(_mover_side)
+	if _outcome != FightOutcome.Id.ATTACKER_WINS:
+		eliminated[_mover_side] = _attacker_type
+	if _outcome != FightOutcome.Id.DEFENDER_WINS:
+		eliminated[defender_side] = _defender_type
+	return eliminated
