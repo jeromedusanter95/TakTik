@@ -1,4 +1,5 @@
 import { opponentOf, type Side } from "../rules/side";
+import type { Seating } from "../referee/seating";
 import { parseQuickMatchRequest, type QuickMatchReply, type RefusalReason } from "./protocol";
 
 /** A Guest who joined Quick Match and has no Opponent yet. */
@@ -18,14 +19,6 @@ export interface GuestConnections<Connection> {
 	send(connection: Connection, reply: QuickMatchReply): void;
 	close(connection: Connection): void;
 }
-
-/** A place in a new game, with the secret its Guest needs to take it. */
-export interface Seat {
-	readonly nickname: string;
-	readonly seatToken: string;
-}
-
-export type Seating = Readonly<Record<Side, Seat>>;
 
 /** Creates the referee of a new game. */
 export interface GameOpener {
