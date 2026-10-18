@@ -4,15 +4,34 @@ export { Referee } from "./referee";
 /** All Guests share one Quick Match, so it is a single, named Durable Object. */
 const QUICK_MATCH_NAME = "quick-match";
 
+const GAME_PATH = /^\/games\/([0-9a-f]{64})$/;
+
 export default {
 	async fetch(request, env): Promise<Response> {
 		const url = new URL(request.url);
-		if (url.pathname !== "/quick-match") {
+		const stub = durableObjectFor(url.pathname, env);
+		if (stub === undefined) {
 			return new Response("Not found", { status: 404 });
 		}
 		if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
 			return new Response("Expected a WebSocket upgrade", { status: 426 });
 		}
-		return env.QUICK_MATCH.getByName(QUICK_MATCH_NAME).fetch(request);
+		return stub.fetch(request);
 	},
 } satisfies ExportedHandler<Env>;
+
+/** The Durable Object a path leads to: Quick Match, or the Referee of one game. */
+function durableObjectFor(path: string, env: Env): { fetch(request: Request): Promise<Response> } | undefined {
+	if (path === "/quick-match") {
+		return env.QUICK_MATCH.getByName(QUICK_MATCH_NAME);
+	}
+	const gameId = GAME_PATH.exec(path)?.[1];
+	if (gameId === undefined) {
+		return undefined;
+	}
+	try {
+		return env.REFEREE.get(env.REFEREE.idFromString(gameId));
+	} catch {
+		return undefined;
+	}
+}
