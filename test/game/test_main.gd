@@ -69,6 +69,18 @@ func test_the_language_button_switches_to_french_and_remembers_it() -> void:
 	assert_eq(_label("%StatusLabel").text, "Rouge : disposez votre Armée")
 
 
+func test_play_online_opens_the_nickname_entry_and_back_returns_to_the_menu() -> void:
+	_button("%OnlineButton", _menu()).pressed.emit()
+	assert_true(_online().visible)
+	assert_false(_menu().visible)
+	assert_false(_match().visible)
+	var panel: Node = _online().get_node("%FindOpponentPanel")
+	assert_true(panel is FindOpponentPanel and (panel as FindOpponentPanel).visible)
+	_button("%BackButton", panel).pressed.emit()
+	assert_true(_menu().visible)
+	assert_false(_online().visible)
+
+
 func test_pressing_the_language_button_twice_returns_to_english() -> void:
 	_button("%LanguageButton", _menu()).pressed.emit()
 	_button("%LanguageButton", _menu()).pressed.emit()
@@ -95,6 +107,12 @@ func _menu() -> MainMenu:
 func _match() -> LocalMatch:
 	var node: Node = _main.get_node("%LocalMatch")
 	assert_true(node is LocalMatch)
+	return node
+
+
+func _online() -> OnlineMatch:
+	var node: Node = _main.get_node("%OnlineMatch")
+	assert_true(node is OnlineMatch)
 	return node
 
 

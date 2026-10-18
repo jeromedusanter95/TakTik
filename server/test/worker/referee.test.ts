@@ -44,8 +44,8 @@ describe("the Referee Worker", () => {
 		);
 		const seats: Partial<Record<Side, PairedSeat>> = {};
 		for (const guest of guests) {
-			await guest.closed;
-			const paired = guest.replies.find((reply) => reply.type === "paired");
+			const paired = await guest.replyWhere((reply) => reply.type !== "waiting");
+			guest.leave();
 			if (paired?.type !== "paired") {
 				throw new Error(`a Guest was not paired: ${JSON.stringify(guest.replies)}`);
 			}
@@ -152,7 +152,7 @@ describe("the Referee Worker", () => {
 		intruder.send({ type: "take_seat", seatToken: "0".repeat(64) });
 
 		expect(await intruder.reply(0)).toEqual({ type: "refused", reason: "unknown_seat" });
-		await intruder.closed;
+		expect(await intruder.closed).toBe("unknown_seat");
 	});
 
 	it("answers 404 for a game id no game was opened with", async () => {

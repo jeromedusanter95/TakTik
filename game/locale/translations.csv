@@ -46,3 +46,24 @@ REASON_NO_FIGHT_LIMIT,50 Rounds passed without a Fight,50 Tours se sont écoulé
 PIECE_DESCRIPTION,"{piece}, attack {attack}, defense {defense}","{piece}, attaque {attack}, défense {defense}"
 GRAVEYARD,{side} lost: {pieces},{side} a perdu : {pieces}
 GRAVEYARD_NOTHING,nothing,rien
+MENU_PLAY_ONLINE,Play online,Jouer en ligne
+ONLINE_TITLE,Play online,Jouer en ligne
+ONLINE_NICKNAME_HINT,Your nickname,Votre pseudo
+ONLINE_FIND,Find an Opponent,Trouver un Adversaire
+ONLINE_SEARCHING,Looking for an Opponent...,Recherche d'un Adversaire...
+ONLINE_CANCEL,Cancel,Annuler
+ONLINE_FAILED_CONNECTION,Could not reach the server. Try again in a moment.,Impossible de joindre le serveur. Réessayez dans un instant.
+ONLINE_FAILED_NICKNAME,"That nickname is not allowed. Choose another one, up to {max} characters.","Ce pseudo n'est pas autorisé. Choisissez-en un autre, de {max} caractères au plus."
+ONLINE_FAILED_OTHER,Something went wrong. Try again.,Un problème est survenu. Réessayez.
+ONLINE_CONNECTING,Joining the game...,Connexion à la partie...
+ONLINE_ARRANGE,Arrange your Army,Disposez votre Armée
+ONLINE_PLAYING_AGAINST,You play {side} against {opponent}.,Vous jouez {side} contre {opponent}.
+ONLINE_WAITING_SETUP,Waiting for {opponent} to arrange their Army...,En attente de l'Armée de {opponent}...
+ONLINE_YOUR_TURN,Your turn,À vous de jouer
+ONLINE_OPPONENT_TURN,{opponent} is playing...,{opponent} joue...
+ONLINE_SENDING,Sending...,Envoi...
+ONLINE_DISCONNECTED,Connection lost,Connexion perdue
+ONLINE_RECONNECT,Reconnect,Se reconnecter
+ONLINE_REFUSED,The referee refused that. Try again.,L'arbitre a refusé. Réessayez.
+ONLINE_NEW_OPPONENT,Find a new Opponent,Trouver un nouvel Adversaire
+ONLINE_SEAT_TAKEN,This game is now open in another window.,Cette partie est maintenant ouverte dans une autre fenêtre.

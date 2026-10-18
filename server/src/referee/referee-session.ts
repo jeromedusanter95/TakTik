@@ -12,7 +12,8 @@ export interface SeatConnections<Connection> {
 	connectionsOf(side: Side): readonly Connection[];
 	/** Does nothing when the socket has already closed. */
 	send(connection: Connection, reply: RefereeReply): void;
-	close(connection: Connection): void;
+	/** Closes the socket with [reason] in the close frame. */
+	refuseAndClose(connection: Connection, reason: RefereeRefusal): void;
 }
 
 /** Keeps a game's record safe across restarts. */
@@ -140,6 +141,6 @@ export class RefereeSession<Connection> {
 
 	private refuseAndClose(connection: Connection, reason: RefereeRefusal): void {
 		this.refuse(connection, reason);
-		this.connections.close(connection);
+		this.connections.refuseAndClose(connection, reason);
 	}
 }

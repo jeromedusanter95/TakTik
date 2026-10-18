@@ -1,6 +1,6 @@
-import type { QuickMatchReply } from "../quick-match/protocol";
-import { formatQuickMatchReply } from "../quick-match/protocol";
+import { formatQuickMatchReply, type QuickMatchReply, type RefusalReason } from "../quick-match/protocol";
 import type { GuestConnections, WaitingGuest } from "../quick-match/quick-match-pairer";
+import { REFUSAL_CLOSE_CODE } from "../wire/close-codes";
 
 /**
  * What a Quick Match socket remembers about its Guest. Kept as the socket's
@@ -44,9 +44,9 @@ export class WebSocketGuestConnections implements GuestConnections<WebSocket> {
 		}
 	}
 
-	close(connection: WebSocket): void {
+	refuseAndClose(connection: WebSocket, reason: RefusalReason): void {
 		if (connection.readyState === WebSocket.OPEN) {
-			connection.close(1000, "Quick Match done");
+			connection.close(REFUSAL_CLOSE_CODE, reason);
 		}
 	}
 }

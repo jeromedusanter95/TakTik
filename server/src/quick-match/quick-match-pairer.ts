@@ -17,7 +17,8 @@ export interface GuestConnections<Connection> {
 	markPaired(connection: Connection): void;
 	/** Does nothing when the socket has already closed. */
 	send(connection: Connection, reply: QuickMatchReply): void;
-	close(connection: Connection): void;
+	/** Closes the socket with [reason] in the close frame. */
+	refuseAndClose(connection: Connection, reason: RefusalReason): void;
 }
 
 /** Creates the referee of a new game. */
@@ -35,7 +36,8 @@ export interface PairingDraws {
 
 /**
  * Pairs each Guest who joins Quick Match with the Guest who has waited
- * longest, draws lots for the sides and opens their game.
+ * longest, draws lots for the sides and opens their game. A paired Guest
+ * closes their own socket once they have read where to play.
  */
 export class QuickMatchPairer<Connection> {
 	constructor(
@@ -92,13 +94,12 @@ export class QuickMatchPairer<Connection> {
 			seatToken: seating[side].seatToken,
 			opponent: seating[opponentOf(side)].nickname,
 		});
-		this.connections.close(connection);
 	}
 
 	private refuse(connections: readonly Connection[], reason: RefusalReason): void {
 		for (const connection of connections) {
 			this.connections.send(connection, { type: "refused", reason });
-			this.connections.close(connection);
+			this.connections.refuseAndClose(connection, reason);
 		}
 	}
 }

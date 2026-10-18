@@ -1,6 +1,7 @@
-import { formatRefereeReply, type RefereeReply } from "../referee/protocol";
+import { formatRefereeReply, type RefereeRefusal, type RefereeReply } from "../referee/protocol";
 import type { SeatConnections } from "../referee/referee-session";
 import type { Side } from "../rules/side";
+import { REFUSAL_CLOSE_CODE } from "../wire/close-codes";
 
 /** What a game socket remembers: the side it took. Kept as its attachment, so it survives hibernation. */
 interface SeatAttachment {
@@ -32,9 +33,9 @@ export class WebSocketSeatConnections implements SeatConnections<WebSocket> {
 		}
 	}
 
-	close(connection: WebSocket): void {
+	refuseAndClose(connection: WebSocket, reason: RefereeRefusal): void {
 		if (connection.readyState === WebSocket.OPEN) {
-			connection.close(1000, "Seat closed");
+			connection.close(REFUSAL_CLOSE_CODE, reason);
 		}
 	}
 }

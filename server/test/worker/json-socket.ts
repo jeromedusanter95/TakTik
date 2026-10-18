@@ -1,7 +1,8 @@
 /** A test client's WebSocket that records every JSON reply until the server closes it. */
 export class JsonSocket<Reply> {
 	readonly replies: Reply[] = [];
-	readonly closed: Promise<void>;
+	/** Resolves with the close frame's reason once the socket has closed. */
+	readonly closed: Promise<string>;
 	private waiters: (() => void)[] = [];
 
 	private constructor(private readonly socket: WebSocket) {
@@ -10,7 +11,7 @@ export class JsonSocket<Reply> {
 			this.waiters.forEach((wake) => wake());
 			this.waiters = [];
 		});
-		this.closed = new Promise((resolve) => socket.addEventListener("close", () => resolve()));
+		this.closed = new Promise((resolve) => socket.addEventListener("close", (event) => resolve(event.reason)));
 	}
 
 	static async open<Reply>(url: URL): Promise<JsonSocket<Reply>> {
@@ -36,6 +37,17 @@ export class JsonSocket<Reply> {
 			await new Promise<void>((wake) => this.waiters.push(wake));
 		}
 		return this.replies;
+	}
+
+	/** The first reply [matches] accepts, once it has arrived. */
+	async replyWhere(matches: (reply: Reply) => boolean): Promise<Reply> {
+		for (;;) {
+			const found = this.replies.find(matches);
+			if (found !== undefined) {
+				return found;
+			}
+			await new Promise<void>((wake) => this.waiters.push(wake));
+		}
 	}
 
 	/** The reply at [index], once it has arrived. */

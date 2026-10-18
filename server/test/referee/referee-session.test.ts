@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { parseMove } from "../../src/rules/board-notation";
 import type { Side } from "../../src/rules/side";
 import { OnlineGame, type GameRecord } from "../../src/referee/online-game";
-import type { RefereeReply } from "../../src/referee/protocol";
+import type { RefereeRefusal, RefereeReply } from "../../src/referee/protocol";
 import { RefereeSession, type GameStore, type SeatConnections } from "../../src/referee/referee-session";
 import { GREEN_SETUP, placementsOf, RED_SETUP, SEATING, WINNING_MOVE } from "./fixtures";
 
 /** Sockets held in memory, seated in the order they take their seats. */
 class FakeSeats implements SeatConnections<string> {
 	readonly closed = new Set<string>();
+	readonly closeReasons = new Map<string, RefereeRefusal>();
 	private readonly sides = new Map<string, Side>();
 	private readonly sent = new Map<string, RefereeReply[]>();
 
@@ -28,8 +29,9 @@ class FakeSeats implements SeatConnections<string> {
 		this.sent.set(connection, [...this.repliesTo(connection), reply]);
 	}
 
-	close(connection: string): void {
+	refuseAndClose(connection: string, reason: RefereeRefusal): void {
 		this.closed.add(connection);
+		this.closeReasons.set(connection, reason);
 	}
 
 	repliesTo(connection: string): RefereeReply[] {
@@ -92,7 +94,7 @@ describe("a Referee session", () => {
 			await session.receive("eve", text({ type: "take_seat", seatToken: "guess" }));
 
 			expect(seats.repliesTo("eve")).toEqual([{ type: "refused", reason: "unknown_seat" }]);
-			expect(seats.closed.has("eve")).toBe(true);
+			expect(seats.closeReasons.get("eve")).toBe("unknown_seat");
 			expect(seats.sideOf("eve")).toBeUndefined();
 		});
 
