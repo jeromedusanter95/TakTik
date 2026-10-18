@@ -60,6 +60,8 @@ export type RefereeReply =
 			readonly type: "game_state";
 			readonly view: PlayerView;
 			readonly history: readonly PublicMoveEvent[];
+			/** While play goes on: how long the player to move still has, counted when sent. */
+			readonly turnTimeLeftMs?: number;
 			readonly finalBoard?: readonly ShownPiece[];
 	  }
 	/** Sent to both players after every Move. */
@@ -67,6 +69,8 @@ export type RefereeReply =
 			readonly type: "moved";
 			readonly event: PublicMoveEvent;
 			readonly view: PlayerView;
+			/** While play goes on: how long the player to move still has, counted when sent. */
+			readonly turnTimeLeftMs?: number;
 			readonly finalBoard?: readonly ShownPiece[];
 	  }
 	/**

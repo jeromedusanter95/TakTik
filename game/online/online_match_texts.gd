@@ -8,15 +8,18 @@ static func status(session: OnlineSession) -> String:
 		OnlineSession.Phase.CONNECTING:
 			return Translated.text(&"ONLINE_CONNECTING")
 		OnlineSession.Phase.ARRANGING:
-			var arrange: String = _with_setup_timer(session, Translated.text(&"ONLINE_ARRANGE"))
+			var arrange: String = _with_time_left(
+				Translated.text(&"ONLINE_ARRANGE"), session.setup_seconds_left()
+			)
 			return _with_presence(session, arrange, &"ONLINE_OPPONENT_AWAY_SETUP")
 		OnlineSession.Phase.WAITING_FOR_OPPONENT_SETUP:
-			var waiting: String = _with_setup_timer(session, Translated.text(
+			var waiting: String = _with_time_left(Translated.text(
 				&"ONLINE_WAITING_SETUP", {"opponent": session.opponent()}
-			))
+			), session.setup_seconds_left())
 			return _with_presence(session, waiting, &"ONLINE_OPPONENT_AWAY_SETUP")
 		OnlineSession.Phase.PLAYING:
-			return _with_presence(session, _turn_text(session), &"ONLINE_OPPONENT_AWAY")
+			var turn: String = _with_time_left(_turn_text(session), session.turn_seconds_left())
+			return _with_presence(session, turn, &"ONLINE_OPPONENT_AWAY")
 		OnlineSession.Phase.OVER:
 			return MatchNarrator.describe_result(session.result())
 		_:
@@ -83,14 +86,14 @@ static func challenge_end(nickname: String, reason: String) -> String:
 			return Translated.text(&"LOBBY_GONE", {"nickname": nickname})
 
 
-## [param text], followed by the time the Setup Timer still runs, as m:ss,
-## when the referee said.
-static func _with_setup_timer(session: OnlineSession, text: String) -> String:
-	var seconds: int = session.setup_seconds_left()
-	if seconds == OnlineSession.NO_SETUP_TIMER:
+## [param text], followed by the [param seconds] a timer still runs, as m:ss,
+## unless they are OnlineSession.NO_TIMER.
+static func _with_time_left(text: String, seconds: int) -> String:
+	if seconds == OnlineSession.NO_TIMER:
 		return text
 	var time: String = "%d:%02d" % [floori(seconds / 60.0), seconds % 60]
-	return "%s\n%s" % [text, Translated.text(&"ONLINE_SETUP_TIME_LEFT", {"time": time})]
+	var time_left: String = Translated.text(&"ONLINE_TIME_LEFT", {"time": time})
+	return time_left if text.is_empty() else "%s\n%s" % [text, time_left]
 
 
 ## [param text], followed while the Opponent is disconnected by the

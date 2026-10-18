@@ -322,6 +322,45 @@ func test_an_army_arranged_at_random_when_time_ran_out_is_explained() -> void:
 	assert_eq(_label("%StatusLabel").text, "Your turn")
 
 
+func test_the_turn_timer_counts_down_in_the_status() -> void:
+	_pair_and_arrange()
+	_button("%ActionButton").pressed.emit()
+	var view: Dictionary = _view("red", [_own(2, 3, "knight")], [_square(2, 5)])
+	_sockets[1].receive({"type": "game_state", "view": view, "history": [], "turnTimeLeftMs": 60_000})
+	_frame()
+	assert_eq(_label("%StatusLabel").text, "Your turn\nTime left: 1:00")
+	_now_msec += 15_000
+	_frame()
+	assert_eq(_label("%StatusLabel").text, "Your turn\nTime left: 0:45")
+
+
+func test_the_turn_timer_still_shows_when_the_opponent_left_on_their_turn() -> void:
+	_start_play()
+	_sockets[1].receive({
+		"type": "moved",
+		"event": {"moverSide": "red", "move": _move(2, 3, 2, 4)},
+		"view": _view("green", [_own(2, 4, "knight")], [_square(2, 5)]),
+		"turnTimeLeftMs": 30_000,
+	})
+	_sockets[1].receive({"type": "opponent_presence", "connected": false})
+	_frame()
+	assert_eq(
+		_label("%StatusLabel").text,
+		"Time left: 0:30\nBob lost their connection. If they do not come back soon, they lose by Forfeit.",
+	)
+
+
+func test_running_out_of_time_is_narrated_in_french() -> void:
+	_start_play()
+	TranslationServer.set_locale("fr")
+	var view: Dictionary = _view("green", [_own(2, 3, "knight")], [_square(2, 5)])
+	view["result"] = {"status": "green_wins", "reason": "out_of_time"}
+	_sockets[1].receive({"type": "game_state", "view": view, "history": [], "finalBoard": []})
+	_frame()
+	assert_eq(_label("%StatusLabel").text, "Vert gagne : Rouge n'a pas joué à temps.")
+	TranslationServer.set_locale(Languages.ENGLISH)
+
+
 func _ticks_msec() -> int:
 	return _now_msec
 

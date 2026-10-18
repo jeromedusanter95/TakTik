@@ -7,7 +7,7 @@ A Cloudflare Worker, as decided in [ADR 0001](../docs/adr/0001-cloudflare-refere
 - `src/referee`: the game protocol, the online game (Setups, Moves, what each side may see) and the session that referees it over sockets, also free of Cloudflare types.
 - `src/worker`: the Worker entry and the Durable Objects, thin adapters around the code above.
   - `LobbyHost`: one named instance every Lobby socket connects to.
-  - `Referee`: one instance per online game. It stores the record (seats, both Setups, every Move, a Resign or Forfeit), when its Setup Timer runs out and who is away, and rebuilds the game from them when it wakes from hibernation. Its one alarm rings when the Setup Timer runs out during Setup, and when an away player would Forfeit during play.
+  - `Referee`: one instance per online game. It stores the record (seats, both Setups, every Move, a Resign or Forfeit), when its Setup Timer and the current turn run out and who is away, and rebuilds the game from them when it wakes from hibernation. Its one alarm rings when the Setup Timer runs out during Setup, and during play when the Turn Timer runs out or an away player would Forfeit, whichever comes first.
 
 ## The Lobby
 
@@ -30,12 +30,13 @@ The referee answers `seated` with the side and the Opponent's nickname, then whe
 
 - During Setup, `setup_status` tells whether each side has handed in its Setup, and `setupTimeLeftMs`, how long the Setup Timer still runs when the message is sent. A Guest sends `{"type":"setup","placements":[{"square":{"column":0,"row":0},"type":"king"},…]}`, one placement per Square of their three rows.
 - When the Setup Timer (`SETUP_TIMER_SECONDS` in `wrangler.jsonc`) runs out, each side still without a Setup gets a Random Setup and play starts.
-- Once both Setups are in, each Guest gets `game_state` with their own `PlayerView` and the public `history` of every Move so far.
-- A Guest sends `{"type":"move","move":{"from":…,"to":…}}`. Both Guests then get `moved` with the public Move event and their own `PlayerView`.
+- Once both Setups are in, each Guest gets `game_state` with their own `PlayerView`, the public `history` of every Move so far and `turnTimeLeftMs`, how long the player to move still has when the message is sent.
+- A Guest sends `{"type":"move","move":{"from":…,"to":…}}`. Both Guests then get `moved` with the public Move event, their own `PlayerView` and `turnTimeLeftMs` for the next turn.
 - When a Move ends the game, `moved` also carries `finalBoard`: every Piece left, with its Piece Type.
 - A Guest sends `{"type":"resign"}` to Resign during play. Both Guests then get `game_state` with the result (`"reason":"resigned"`) and `finalBoard`.
 - When a Guest's last socket closes, their Opponent gets `{"type":"opponent_presence","connected":false}`, and `"connected":true` once they take their seat again. A Guest taking their seat while the Opponent is away also gets `"connected":false`.
 - A Guest who stays away during play for `FORFEIT_AFTER_SECONDS` (in `wrangler.jsonc`) Forfeits: both get `game_state` with `"reason":"forfeited"`. The clock counts during Setup too, but a Forfeit only happens once play has started, at the latest when the Setup Timer runs out.
+- A Guest who does not move within `TURN_TIMER_SECONDS` (in `wrangler.jsonc`) on their turn Forfeits: both get `game_state` with `"reason":"out_of_time"` and `finalBoard`. The Turn Timer starts again with every Move.
 - A wrong message gets `refused` with a reason. A socket that never took a seat is then closed; a seated one stays open.
 
 - At any time, a Guest may send `{"type":"quick_chat","message":"good_luck"}`, one of a fixed set (`QUICK_CHAT_MESSAGES`); both Guests get it back as `quick_chat` with its sender's side.

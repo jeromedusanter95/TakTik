@@ -2,8 +2,11 @@ import type { Side } from "./side";
 
 export type GameStatus = "in_progress" | "red_wins" | "green_wins" | "draw";
 
-/** Why a player gave the game away: they Resigned, or they Forfeited by staying disconnected too long. */
-export type ConcessionReason = "resigned" | "forfeited";
+/**
+ * Why a player gave the game away: they Resigned, or they Forfeited by
+ * staying disconnected too long or by running out the Turn Timer.
+ */
+export type ConcessionReason = "resigned" | "forfeited" | "out_of_time";
 
 export type GameEndReason =
 	| "none"

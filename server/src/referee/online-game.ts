@@ -199,7 +199,8 @@ export class OnlineGame {
 		);
 	}
 
-	private sideToMove(): Side {
+	/** Only once play has started. */
+	sideToMove(): Side {
 		return this.startedGame().sideToMove;
 	}
 

@@ -18,8 +18,9 @@ var _lobby: LobbyClient = null
 var _session: OnlineSession = null
 var _selected: Vector2i = BoardViewState.NO_SQUARE
 var _notice: String = ""
-## The Setup Timer's seconds on screen, to redraw only when they change.
-var _shown_setup_seconds: int = OnlineSession.NO_SETUP_TIMER
+## The seconds left on screen, of the Setup Timer or the Turn Timer, to redraw
+## only when they change.
+var _shown_seconds_left: int = OnlineSession.NO_TIMER
 
 @onready var _lobby_panel: LobbyPanel = %LobbyPanel
 @onready var _status_label: Label = %StatusLabel
@@ -61,7 +62,7 @@ func _process(_delta: float) -> void:
 		_lobby.poll()
 	if _session != null:
 		_session.poll()
-	if _session != null and _session.setup_seconds_left() != _shown_setup_seconds:
+	if _session != null and _seconds_left() != _shown_seconds_left:
 		_refresh()
 
 
@@ -254,7 +255,7 @@ func _refresh() -> void:
 	if _session == null:
 		return
 	_board_view.show_state(_board_state())
-	_shown_setup_seconds = _session.setup_seconds_left()
+	_shown_seconds_left = _seconds_left()
 	_status_label.text = OnlineMatchTexts.status(_session)
 	_info_label.text = _notice if not _notice.is_empty() else OnlineMatchTexts.info(_session, _selected)
 	_graveyard_label.text = OnlineMatchTexts.graveyards(_session)
@@ -299,6 +300,12 @@ func _action_text(phase: OnlineSession.Phase) -> String:
 			return Translated.text(&"ONLINE_NEW_OPPONENT")
 		_:
 			return ""
+
+
+## The seconds left on whichever timer runs: at most one of them does, and the
+## other is OnlineSession.NO_TIMER, which is lower than any time left.
+func _seconds_left() -> int:
+	return maxi(_session.setup_seconds_left(), _session.turn_seconds_left())
 
 
 func _new_socket() -> WireSocket:

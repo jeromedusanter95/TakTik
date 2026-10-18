@@ -9,6 +9,7 @@ import type { RefereeAlarm } from "../../src/referee/referee-alarm";
 import { RefereeSession, type GameStore, type SeatConnections } from "../../src/referee/referee-session";
 import type { OpenedRematch, RematchMaker } from "../../src/referee/rematch-maker";
 import { SetupTimer } from "../../src/referee/setup-timer";
+import { TurnTimer, type TurnDeadlineStore } from "../../src/referee/turn-timer";
 import type { SetupDraws } from "../../src/rules/setup";
 import { GREEN_SETUP, placementsOf, RED_SETUP, SEATING, WINNING_MOVE } from "./fixtures";
 
@@ -95,6 +96,14 @@ class FakeAbsences implements AbsenceStore {
 	}
 }
 
+class FakeTurnDeadlines implements TurnDeadlineStore {
+	saved: number | undefined;
+
+	async saveTurnDeadline(deadline: number): Promise<void> {
+		this.saved = deadline;
+	}
+}
+
 class FakeAlarm implements RefereeAlarm {
 	time: number | undefined;
 
@@ -113,6 +122,8 @@ class FakeClock implements Clock {
 
 const FORFEIT_AFTER_MS = 60_000;
 const SETUP_TIMER_MS = 180_000;
+/** Longer than the Forfeit delay, so a Forfeit comes first unless a test moves time on. */
+const TURN_TIMER_MS = 90_000;
 const SETUP_DEADLINE = 1_000 + SETUP_TIMER_MS;
 
 /** Always draws the first Square left, so a Random Setup follows the order of the Army. */
@@ -128,14 +139,17 @@ describe("a Referee session", () => {
 	let store: FakeStore;
 	let absences: FakeAbsences;
 	let alarm: FakeAlarm;
+	let turnDeadlines: FakeTurnDeadlines;
 	let clock: FakeClock;
 	let session: RefereeSession<string>;
 	let rematches: FakeRematchMaker;
 
-	function sessionOf(onlineGame: OnlineGame, absent: AbsenceRecord): RefereeSession<string> {
+	function sessionOf(onlineGame: OnlineGame, absent: AbsenceRecord, turnDeadline?: number): RefereeSession<string> {
 		const forfeitWatch = new ForfeitWatch(absent, { forfeitAfterMs: FORFEIT_AFTER_MS, clock, store: absences });
 		const setupTimer = new SetupTimer(SETUP_DEADLINE, clock);
-		return new RefereeSession(onlineGame, seats, store, { setupTimer, forfeitWatch, alarm }, FIRST_SQUARE, rematches);
+		const turnTimer = new TurnTimer(turnDeadline, { turnMs: TURN_TIMER_MS, clock, store: turnDeadlines });
+		const deadlines = { setupTimer, turnTimer, forfeitWatch, alarm };
+		return new RefereeSession(onlineGame, seats, store, deadlines, FIRST_SQUARE, rematches);
 	}
 
 	beforeEach(() => {
@@ -144,6 +158,7 @@ describe("a Referee session", () => {
 		store = new FakeStore();
 		absences = new FakeAbsences();
 		alarm = new FakeAlarm();
+		turnDeadlines = new FakeTurnDeadlines();
 		clock = new FakeClock();
 		rematches = new FakeRematchMaker();
 		session = sessionOf(game, {});
@@ -238,8 +253,8 @@ describe("a Referee session", () => {
 		it("sends each player only their own view once both are in", async () => {
 			await startPlay();
 
-			expect(seats.lastReplyTo("ada")).toEqual({ type: "game_state", view: game.viewOf("red"), history: [] });
-			expect(seats.lastReplyTo("bob")).toEqual({ type: "game_state", view: game.viewOf("green"), history: [] });
+			expect(seats.lastReplyTo("ada")).toEqual({ type: "game_state", view: game.viewOf("red"), history: [], turnTimeLeftMs: TURN_TIMER_MS });
+			expect(seats.lastReplyTo("bob")).toEqual({ type: "game_state", view: game.viewOf("green"), history: [], turnTimeLeftMs: TURN_TIMER_MS });
 		});
 
 		it("refuses an invalid Setup without saving", async () => {
@@ -257,8 +272,8 @@ describe("a Referee session", () => {
 			await session.receive("ada", text({ type: "move", move: parseMove("c3-c4") }));
 
 			const event = { moverSide: "red", move: parseMove("c3-c4") };
-			expect(seats.lastReplyTo("ada")).toEqual({ type: "moved", event, view: game.viewOf("red") });
-			expect(seats.lastReplyTo("bob")).toEqual({ type: "moved", event, view: game.viewOf("green") });
+			expect(seats.lastReplyTo("ada")).toEqual({ type: "moved", event, view: game.viewOf("red"), turnTimeLeftMs: TURN_TIMER_MS });
+			expect(seats.lastReplyTo("bob")).toEqual({ type: "moved", event, view: game.viewOf("green"), turnTimeLeftMs: TURN_TIMER_MS });
 			expect(store.saved.at(-1)?.moves).toEqual([parseMove("c3-c4")]);
 		});
 
@@ -299,7 +314,7 @@ describe("a Referee session", () => {
 
 			expect(seats.repliesTo("bob-again")).toEqual([
 				{ type: "seated", side: "green", opponent: "Ada" },
-				{ type: "game_state", view: game.viewOf("green"), history: game.history() },
+				{ type: "game_state", view: game.viewOf("green"), history: game.history(), turnTimeLeftMs: TURN_TIMER_MS },
 			]);
 		});
 	});
@@ -397,11 +412,11 @@ describe("a Referee session", () => {
 			expect(alarm.time).toBe(1_000 + FORFEIT_AFTER_MS);
 		});
 
-		it("cancels the alarm when the player comes back", async () => {
+		it("sets the alarm back to the Turn Timer when the player comes back", async () => {
 			await startPlay();
 			await drop("bob");
 			await session.receive("bob-again", text({ type: "take_seat", seatToken: "green-token" }));
-			expect(alarm.time).toBeUndefined();
+			expect(alarm.time).toBe(1_000 + TURN_TIMER_MS);
 		});
 
 		it("gives Victory to the Opponent of a player who stayed away too long", async () => {
@@ -600,8 +615,8 @@ describe("a Referee session", () => {
 			expect(game.phase()).toBe("playing");
 			expect(record?.setups.red).toEqual(placementsOf("red", RED_SETUP));
 			expect(record?.setups.green).toHaveLength(18);
-			expect(seats.lastReplyTo("ada")).toEqual({ type: "game_state", view: game.viewOf("red"), history: [] });
-			expect(seats.lastReplyTo("bob")).toEqual({ type: "game_state", view: game.viewOf("green"), history: [] });
+			expect(seats.lastReplyTo("ada")).toEqual({ type: "game_state", view: game.viewOf("red"), history: [], turnTimeLeftMs: TURN_TIMER_MS });
+			expect(seats.lastReplyTo("bob")).toEqual({ type: "game_state", view: game.viewOf("green"), history: [], turnTimeLeftMs: TURN_TIMER_MS });
 		});
 
 		it("gives both sides a Random Setup when neither handed one in", async () => {
@@ -641,6 +656,91 @@ describe("a Referee session", () => {
 
 			expect(game.viewOf("red").result).toEqual({ status: "red_wins", reason: "forfeited" });
 			expect(seats.lastReplyTo("ada")).toMatchObject({ view: { result: { reason: "forfeited" } } });
+		});
+	});
+
+	describe("the Turn Timer", () => {
+		it("starts when play starts and is what the alarm rings for", async () => {
+			await startPlay();
+
+			expect(turnDeadlines.saved).toBe(1_000 + TURN_TIMER_MS);
+			expect(alarm.time).toBe(1_000 + TURN_TIMER_MS);
+		});
+
+		it("starts again with each Move and tells both players how long the next player has", async () => {
+			await startPlay();
+			clock.time += 20_000;
+			await session.receive("ada", text({ type: "move", move: parseMove("c3-c4") }));
+
+			expect(turnDeadlines.saved).toBe(21_000 + TURN_TIMER_MS);
+			expect(seats.lastReplyTo("bob")).toMatchObject({ type: "moved", turnTimeLeftMs: TURN_TIMER_MS });
+		});
+
+		it("tells a Guest who comes back how long the player to move still has", async () => {
+			await startPlay();
+			clock.time += 30_000;
+			await session.receive("bob-again", text({ type: "take_seat", seatToken: "green-token" }));
+
+			expect(seats.lastReplyTo("bob-again")).toMatchObject({ type: "game_state", turnTimeLeftMs: TURN_TIMER_MS - 30_000 });
+		});
+
+		it("Forfeits the player to move when it runs out", async () => {
+			await startPlay();
+			clock.time += TURN_TIMER_MS;
+			await session.alarmRang();
+
+			expect(game.viewOf("green").result).toEqual({ status: "green_wins", reason: "out_of_time" });
+			expect(store.saved.at(-1)?.concession).toEqual({ loser: "red", reason: "out_of_time" });
+			expect(seats.lastReplyTo("bob")).toMatchObject({ type: "game_state", view: { result: { reason: "out_of_time" } } });
+			expect(seats.lastReplyTo("bob")).not.toHaveProperty("turnTimeLeftMs");
+			expect(alarm.time).toBeUndefined();
+		});
+
+		it("Forfeits no one before it runs out", async () => {
+			await startPlay();
+			clock.time += TURN_TIMER_MS - 1;
+			await session.alarmRang();
+
+			expect(game.phase()).toBe("playing");
+			expect(alarm.time).toBe(1_000 + TURN_TIMER_MS);
+		});
+
+		it("gives way to an absence that passed its Forfeit delay first", async () => {
+			await startPlay();
+			await drop("bob");
+			clock.time += TURN_TIMER_MS;
+			await session.alarmRang();
+
+			expect(game.viewOf("red").result).toEqual({ status: "red_wins", reason: "forfeited" });
+		});
+
+		it("Forfeits the player to move when it ran out before the absent Opponent's delay", async () => {
+			await startPlay();
+			clock.time += TURN_TIMER_MS - 10_000;
+			await drop("bob");
+			clock.time += 10_000;
+			await session.alarmRang();
+
+			expect(game.viewOf("red").result).toEqual({ status: "green_wins", reason: "out_of_time" });
+		});
+
+		it("starts when the Setup Timer starts play", async () => {
+			await seatBoth();
+			clock.time = SETUP_DEADLINE;
+			await session.alarmRang();
+
+			expect(alarm.time).toBe(SETUP_DEADLINE + TURN_TIMER_MS);
+			expect(seats.lastReplyTo("ada")).toMatchObject({ type: "game_state", turnTimeLeftMs: TURN_TIMER_MS });
+		});
+
+		it("still Forfeits the player to move once the referee was rebuilt from storage", async () => {
+			await startPlay();
+			const rebuilt = OnlineGame.fromRecord(game.toRecord());
+			const restarted = sessionOf(rebuilt, {}, turnDeadlines.saved);
+			clock.time += TURN_TIMER_MS;
+			await restarted.alarmRang();
+
+			expect(rebuilt.viewOf("red").result).toEqual({ status: "green_wins", reason: "out_of_time" });
 		});
 	});
 });

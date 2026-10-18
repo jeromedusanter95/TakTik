@@ -103,7 +103,7 @@ func test_the_referee_tells_who_finished_setup() -> void:
 	assert_eq(reply.kind, RefereeReply.Kind.SETUP_STATUS)
 	assert_false(reply.own_setup_done)
 	assert_true(reply.opponent_setup_done)
-	assert_eq(reply.setup_time_left_msec, RefereeReply.NO_SETUP_TIMER, "the referee did not say")
+	assert_eq(reply.setup_time_left_msec, RefereeReply.NO_TIMER, "the referee did not say")
 
 
 func test_the_referee_tells_how_long_the_setup_timer_still_runs() -> void:
@@ -209,7 +209,7 @@ func test_the_referee_tells_whether_the_opponent_is_connected() -> void:
 
 
 func test_a_result_can_end_by_resign_or_forfeit() -> void:
-	for reason: String in ["resigned", "forfeited"]:
+	for reason: String in ["resigned", "forfeited", "out_of_time"]:
 		var view: Dictionary = _view("red", "green", [], [])
 		view["result"] = {"status": "green_wins", "reason": reason}
 		var text: String = JSON.stringify({"type": "game_state", "view": view, "history": []})
@@ -218,6 +218,26 @@ func test_a_result_can_end_by_resign_or_forfeit() -> void:
 		assert_eq(WireNames.reason(reason), reply.position.result.reason)
 	assert_eq(WireNames.reason("resigned"), GameResult.Reason.RESIGNED)
 	assert_eq(WireNames.reason("forfeited"), GameResult.Reason.FORFEITED)
+	assert_eq(WireNames.reason("out_of_time"), GameResult.Reason.OUT_OF_TIME)
+
+
+func test_the_referee_tells_how_long_the_player_to_move_still_has() -> void:
+	var view: Dictionary = _view("red", "red", [], [])
+	var state: RefereeReply = RefereeReplies.read(JSON.stringify({
+		"type": "game_state", "view": view, "history": [], "turnTimeLeftMs": 59_000,
+	}))
+	assert_eq(state.kind, RefereeReply.Kind.GAME_STATE)
+	assert_eq(state.turn_time_left_msec, 59_000)
+	var moved: RefereeReply = RefereeReplies.read(JSON.stringify({
+		"type": "moved", "event": {"moverSide": "green", "move": _move("c6", "c5")}, "view": view,
+		"turnTimeLeftMs": 60_000,
+	}))
+	assert_eq(moved.kind, RefereeReply.Kind.MOVED)
+	assert_eq(moved.turn_time_left_msec, 60_000)
+	var silent: RefereeReply = RefereeReplies.read(JSON.stringify({
+		"type": "game_state", "view": view, "history": [],
+	}))
+	assert_eq(silent.turn_time_left_msec, RefereeReply.NO_TIMER, "the referee did not say")
 
 
 func test_anything_unexpected_from_the_referee_is_malformed() -> void:
@@ -237,6 +257,10 @@ func test_anything_unexpected_from_the_referee_is_malformed() -> void:
 		JSON.stringify({"type": "game_state", "view": fractional, "history": []}),
 		JSON.stringify({"type": "game_state", "view": _view("red", "red", [], []), "history": [{}]}),
 		JSON.stringify({"type": "moved", "view": _view("red", "red", [], [])}),
+		JSON.stringify({
+			"type": "game_state", "view": _view("red", "red", [], []), "history": [],
+			"turnTimeLeftMs": -5,
+		}),
 	]
 	for text: String in texts:
 		assert_eq(RefereeReplies.read(text).kind, RefereeReply.Kind.MALFORMED, text)
