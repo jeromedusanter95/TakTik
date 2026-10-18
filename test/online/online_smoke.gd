@@ -62,7 +62,7 @@ func _challenge_through_the_lobby() -> void:
 
 func _on_paired(seat: PairedSeat) -> void:
 	print("Paired as %s against %s in game %s" % [WireNames.side_name(seat.side), seat.opponent, seat.game_id])
-	var session: OnlineSession = OnlineSession.new(WebSocketWireSocket.new(), seat, _rng)
+	var session: OnlineSession = OnlineSession.new(WebSocketWireSocket.new(), seat, _rng, Time.get_ticks_msec)
 	session.refused.connect(func(reason: String) -> void: print("Refused: ", reason))
 	session.connect_to(_server_url)
 	_sessions.append(session)

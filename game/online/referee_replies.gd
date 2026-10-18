@@ -47,10 +47,13 @@ static func _read_seated(message: Dictionary, reply: RefereeReply) -> void:
 static func _read_setup_status(message: Dictionary, reply: RefereeReply) -> void:
 	var own: Variant = message.get("ownSetupDone")
 	var opponent: Variant = message.get("opponentSetupDone")
-	if own is not bool or opponent is not bool:
+	var says_time_left: bool = message.has("setupTimeLeftMs")
+	var time_left: int = WireJson.count(message.get("setupTimeLeftMs"))
+	if own is not bool or opponent is not bool or (says_time_left and time_left < 0):
 		return
 	reply.own_setup_done = own
 	reply.opponent_setup_done = opponent
+	reply.setup_time_left_msec = time_left if says_time_left else RefereeReply.NO_SETUP_TIMER
 	reply.kind = RefereeReply.Kind.SETUP_STATUS
 
 

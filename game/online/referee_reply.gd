@@ -15,6 +15,8 @@ enum Kind {
 	MALFORMED,
 }
 
+const NO_SETUP_TIMER: int = -1
+
 var kind: Kind = Kind.MALFORMED
 ## SEATED: the side taken and the Opponent's nickname.
 var side: Side.Id = Side.Id.RED
@@ -22,6 +24,9 @@ var opponent: String = ""
 ## SETUP_STATUS.
 var own_setup_done: bool = false
 var opponent_setup_done: bool = false
+## SETUP_STATUS: how long the Setup Timer still ran when the referee sent it,
+## or NO_SETUP_TIMER when the referee did not say.
+var setup_time_left_msec: int = NO_SETUP_TIMER
 ## GAME_STATE and MOVED: the game as this player now knows it.
 var position: KnownPosition = null
 ## GAME_STATE: every Move so far.

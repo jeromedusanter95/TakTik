@@ -101,3 +101,5 @@ CHAT_WELL_PLAYED,Well played!,Bien joué !
 CHAT_THANKS,Thanks!,Merci !
 CHAT_OOPS,Oops!,Oups !
 CHAT_GOOD_GAME,Good game!,Bonne partie !
+ONLINE_SETUP_TIME_LEFT,Time left: {time},Temps restant : {time}
+ONLINE_SETUP_TIMER_RAN_OUT,"Time ran out, so your Army was arranged at random.","Temps écoulé : votre Armée a été disposée au hasard."
