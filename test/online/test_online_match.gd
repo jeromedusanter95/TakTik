@@ -81,6 +81,24 @@ func test_a_guest_plays_a_move_by_tapping_two_squares() -> void:
 	assert_eq(_status(), "Sending...")
 
 
+func test_a_move_waiting_long_for_the_referee_says_the_connection_is_slow() -> void:
+	_start_play()
+	_board_view().square_pressed.emit(Vector2i(2, 3))
+	_board_view().square_pressed.emit(Vector2i(2, 4))
+	assert_eq(_board_view().state().pending_move.to, Vector2i(2, 4), "the Piece shows faded on its target")
+	_now_msec += 3_100
+	_frame()
+	assert_eq(_status(), "Slow connection...")
+	_sockets[0].receive({
+		"type": "moved",
+		"event": {"moverSide": "red", "move": _move(2, 3, 2, 4)},
+		"view": _view("green", [_own(2, 4, "knight")], [_square(2, 5)]),
+	})
+	_frame()
+	assert_null(_board_view().state().pending_move)
+	assert_eq(_status(), "Bob is playing...")
+
+
 func test_the_opponents_turn_shows_in_the_status_and_on_their_card() -> void:
 	_start_play()
 	_sockets[0].receive({

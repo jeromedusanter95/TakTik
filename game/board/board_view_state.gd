@@ -18,5 +18,7 @@ var last_move: Move = null
 ## their Army stays hidden.
 var cover_enemy_zone: bool = false
 var enemy_zone_label: String = ""
+## A Move sent and not answered yet: its Piece shows faded on its target.
+var pending_move: Move = null
 ## Draws the green Army blue, for colour-blind players.
 var adapted_colours: bool = false

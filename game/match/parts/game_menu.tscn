@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://game/match/parts/game_menu.gd" id="1"]
 [ext_resource type="PackedScene" path="res://game/ui/components/preference_rows.tscn" id="2"]
 [ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="3"]
+[ext_resource type="Script" path="res://game/ui/components/segmented_control.gd" id="4"]
 
 [node name="GameMenu" type="Control"]
 layout_mode = 3
@@ -66,6 +67,26 @@ layout_mode = 2
 [node name="PreferenceRows" parent="Veil/Center/Card/Content" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 2
+
+[node name="ChatRow" type="HBoxContainer" parent="Veil/Center/Card/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ChatLabel" type="Label" parent="Veil/Center/Card/Content/ChatRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelStrong"
+text = "MENU_HIDE_CHAT"
+autowrap_mode = 3
+
+[node name="HideChat" type="PanelContainer" parent="Veil/Center/Card/Content/ChatRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+script = ExtResource("4")
+option_minimum_size = Vector2(56, 40)
 
 [node name="Separator2" type="HSeparator" parent="Veil/Center/Card/Content"]
 layout_mode = 2

@@ -52,6 +52,8 @@ var _has_chat: bool = true
 var _resign_allowed: bool = false
 var _phase: Phase = Phase.SETUP
 var _unread: int = 0
+## The Opponent's messages are hidden for this game.
+var _chat_hidden: bool = false
 
 @onready var _top_bar: TopBar = %TopBar
 @onready var _body: MarginContainer = %Body
@@ -93,6 +95,7 @@ func _ready() -> void:
 	_chat_bar.pressed.connect(_open_chat_sheet)
 	_game_menu.resign_pressed.connect(_ask_to_resign)
 	_game_menu.quit_pressed.connect(_on_quit_pressed)
+	_game_menu.chat_hidden_changed.connect(_on_chat_hidden_changed)
 	_resign_dialog.primary_pressed.connect(_on_resign_confirmed)
 	_connection_dialog.primary_pressed.connect(_on_connection_retry)
 	_connection_dialog.secondary_pressed.connect(_on_connection_leave)
@@ -266,12 +269,16 @@ func show_board_actions(shuffle: bool, action_text: String, enabled: bool) -> vo
 
 func clear_chat() -> void:
 	_chat_panel.clear()
+	_chat_hidden = false
 	_unread = 0
 	_top_bar.show_unread(0)
 	_chat_bar.text = Translated.text(&"CHAT_OPEN")
 
 
+## A Quick Chat bubble; the Opponent's are dropped while hidden.
 func add_chat(author: String, text: String, is_you: bool) -> void:
+	if _chat_hidden and not is_you:
+		return
 	_chat_panel.add_chat(author, text, is_you)
 	if not is_you:
 		_play(SoundCue.Id.CHAT)
@@ -465,7 +472,12 @@ func _on_action_pressed() -> void:
 
 
 func _on_menu_pressed() -> void:
-	_game_menu.open(_resign_allowed)
+	_game_menu.open(_resign_allowed, _has_chat, _chat_hidden)
+
+
+func _on_chat_hidden_changed(hidden: bool) -> void:
+	_chat_hidden = hidden
+	add_system(Translated.text(&"CHAT_HIDDEN" if hidden else &"CHAT_SHOWN"))
 
 
 func _on_quit_pressed() -> void:

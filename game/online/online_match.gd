@@ -9,6 +9,9 @@ extends Control
 ## The Guest leaves the game for the Lobby.
 signal lobby_requested
 
+## How long a Move may wait for the referee before the top bar says the
+## connection is slow.
+const SLOW_AFTER_MSEC: int = 3_000
 ## How long the referee gives, to draw the timer rings in proportion.
 const SETUP_SECONDS: int = 180
 const TURN_SECONDS: int = 60
@@ -35,6 +38,10 @@ var _setup_announced: bool = false
 var _random_setup_announced: bool = false
 var _result_shown: bool = false
 var _retry_index: int = 0
+## The Move sent and not answered yet, and when it left, or null.
+var _pending_move: Move = null
+var _pending_since_msec: int = 0
+var _shown_slow: bool = false
 ## Seconds until the next reconnection try, or a negative number for none.
 var _retry_in: float = -1.0
 
@@ -69,7 +76,7 @@ func _process(delta: float) -> void:
 		_retry_in -= delta
 		if _retry_in < 0.0:
 			_session.reconnect()
-	if _seconds_left() != _shown_seconds_left:
+	if _seconds_left() != _shown_seconds_left or _is_slow() != _shown_slow:
 		_refresh()
 
 
@@ -131,6 +138,7 @@ func _join_game(seat: PairedSeat) -> void:
 	_setup_announced = false
 	_random_setup_announced = false
 	_result_shown = false
+	_pending_move = null
 	_retry_index = 0
 	_screen.close_overlays()
 	_screen.clear_chat()
@@ -156,6 +164,8 @@ func _back_to_lobby() -> void:
 
 
 func _on_session_changed() -> void:
+	if not _session.is_awaiting_answer():
+		_pending_move = null
 	_show_new_moves()
 	_announce_setup()
 	_follow_connection()
@@ -204,6 +214,8 @@ func _press_during_play(square: Vector2i) -> void:
 	if is_own_piece and square != _selected:
 		_selected = square
 	elif _selected != BoardViewState.NO_SQUARE and _session.play(Move.new(_selected, square)):
+		_pending_move = Move.new(_selected, square)
+		_pending_since_msec = _now_msec()
 		_selected = BoardViewState.NO_SQUARE
 	else:
 		_selected = BoardViewState.NO_SQUARE
@@ -374,7 +386,10 @@ func _show_status() -> void:
 	var opponent_turn: bool = (
 		phase == OnlineSession.Phase.PLAYING and not _session.is_own_turn() and not _session.is_awaiting_answer()
 	)
-	_screen.show_status(text, UiTokens.GREEN_400 if opponent_turn else Color.TRANSPARENT, opponent_turn)
+	_shown_slow = _is_slow()
+	if _shown_slow:
+		text = Translated.text(&"ONLINE_SLOW")
+	_screen.show_status(text, UiTokens.AMBER_400 if _shown_slow else (UiTokens.GREEN_400 if opponent_turn else Color.TRANSPARENT), opponent_turn)
 	var setup_seconds: int = _session.setup_seconds_left()
 	var turn_seconds: int = _session.turn_seconds_left()
 	if setup_seconds != OnlineSession.NO_TIMER:
@@ -439,12 +454,23 @@ func _board_state() -> BoardViewState:
 	state.selected = _selected
 	var last: PublicMoveEvent = _session.last_event()
 	state.last_move = last.move if last != null else null
+	state.pending_move = _pending_move
 	if _session.position() == null:
 		state.cover_enemy_zone = true
 		state.enemy_zone_label = Translated.text(&"ZONE_HIDDEN", {"name": _session.opponent()})
 	elif _selected != BoardViewState.NO_SQUARE:
 		state.destinations = _session.legal_destinations(_selected)
 	return state
+
+
+## True once a Move has waited for the referee longer than SLOW_AFTER_MSEC.
+func _is_slow() -> bool:
+	return _pending_move != null and _now_msec() - _pending_since_msec >= SLOW_AFTER_MSEC
+
+
+func _now_msec() -> int:
+	var now: Variant = _ticks_msec.call()
+	return now if now is int else 0
 
 
 func _last_fight() -> PublicMoveEvent:

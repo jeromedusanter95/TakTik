@@ -98,3 +98,20 @@ func test_a_fight_flies_the_loser_to_its_losses_tray() -> void:
 	assert_eq(flight.get_child_count(), 1, "the beaten Soldier is in the air")
 	await wait_seconds(CaptureFlight.FLIGHT_TIME + 0.2)
 	assert_eq(flight.get_child_count(), 0, "and has landed")
+
+
+func test_hiding_the_chat_drops_the_opponents_messages_for_this_game() -> void:
+	_screen.set_chat_enabled(true)
+	var menu: GameMenu = _screen.get_node("%GameMenu")
+	menu.chat_hidden_changed.emit(true)
+	_screen.add_chat("Bob", "Oops!", false)
+	_screen.add_chat("You", "Thanks!", true)
+	var panel: ChatPanel = _screen.get_node("%ChatPanel")
+	var texts: Array[String] = []
+	for label: Node in panel.get_node("%Messages").find_children("*", "Label", true, false):
+		texts.append((label as Label).text)
+	assert_false("Oops!" in texts)
+	assert_true("Thanks!" in texts)
+	_screen.clear_chat()
+	_screen.add_chat("Bob", "Hello!", false)
+	assert_eq(panel.message_count(), 1, "a new game shows them again")

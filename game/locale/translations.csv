@@ -186,3 +186,7 @@ LOBBY_MORE_CHALLENGES,+ {count} more Challenges,+ {count} autres défis
 LOBBY_STATUS_IN_GAME,In a game,En partie
 LOBBY_BUSY,{nickname} is in a game.,{nickname} est en partie.
 SOUND_TOGGLE,Sound on or off,Son activé ou coupé
+MENU_HIDE_CHAT,Hide the opponent's messages,Masquer la discussion
+CHAT_HIDDEN,The opponent's messages are hidden for this game.,Les messages de l'adversaire sont masqués pour cette partie.
+CHAT_SHOWN,The opponent's messages are shown again.,Les messages de l'adversaire sont de nouveau affichés.
+ONLINE_SLOW,Slow connection...,Connexion lente...
