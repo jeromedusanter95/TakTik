@@ -70,6 +70,24 @@ func test_the_lobby_lists_you_first_then_the_others() -> void:
 	assert_eq(_label("%CountLabel", _panel()).text, "3 players")
 
 
+func test_guests_in_a_game_come_last_and_cannot_be_challenged() -> void:
+	_enter_with_guests([
+		{"guestId": "g2", "nickname": "Al", "waiting": false, "inGame": true},
+		{"guestId": "g3", "nickname": "Bob", "waiting": false},
+	])
+	assert_eq(_row_names(), ["Ada", "Bob", "Al"] as Array[String])
+	assert_true(_rows()[2].find_children("*", "Button", true, false).is_empty())
+	assert_has(_row_texts(2), "In a game")
+
+
+func test_a_challenge_to_a_guest_in_a_game_is_explained() -> void:
+	_enter_with_guests([{"guestId": "g2", "nickname": "Bob", "waiting": false}])
+	_row_button(1).pressed.emit()
+	_sockets[0].receive({"type": "challenge_ended", "guestId": "g2", "reason": "busy"})
+	_frame()
+	assert_eq(_label("%MessageLabel", _panel()).text, "Bob is in a game.")
+
+
 func test_nobody_else_online_explains_what_to_do() -> void:
 	_enter_with_guests([])
 	assert_true((_panel().get_node("%EmptyState") as Control).visible)
@@ -221,6 +239,13 @@ func _row_names() -> Array[String]:
 		var labels: Array[Node] = row.find_children("*", "Label", true, false)
 		names.append((labels[0] as Label).text)
 	return names
+
+
+func _row_texts(index: int) -> Array[String]:
+	var texts: Array[String] = []
+	for label: Node in _rows()[index].find_children("*", "Label", true, false):
+		texts.append((label as Label).text)
+	return texts
 
 
 func _row_button(index: int) -> Button:

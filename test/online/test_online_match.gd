@@ -233,6 +233,25 @@ func test_the_opponents_disconnection_shows_on_their_card() -> void:
 	assert_eq(_card_status("%OpponentCard"), "")
 
 
+func test_an_away_opponent_shows_the_time_until_they_forfeit() -> void:
+	_start_play()
+	_sockets[0].receive({"type": "opponent_presence", "connected": false, "forfeitInMs": 30_000})
+	_frame()
+	assert_eq(_card_status("%OpponentCard"), "Connection lost 0:30")
+	_now_msec += 12_000
+	_frame()
+	assert_eq(_card_status("%OpponentCard"), "Connection lost 0:18")
+
+
+func test_while_playing_the_guest_stays_listed_in_the_lobby_as_in_a_game() -> void:
+	_start_play()
+	var presence: FakeWireSocket = _sockets[1]
+	assert_eq(presence.opened_url, "ws://referee.test/lobby")
+	assert_eq(presence.last_sent(), {"type": "enter", "nickname": "Ada", "inGame": true})
+	_button("%QuitButton", _screen().get_node("%GameMenu")).pressed.emit()
+	assert_eq(presence.state(), WireSocket.State.CLOSED)
+
+
 func test_a_lost_connection_retries_by_itself_then_offers_to_reconnect() -> void:
 	_start_play()
 	_sockets[0].close()

@@ -42,6 +42,9 @@ var turn_time_left_msec: int = NO_TIMER
 var final_board: Board = null
 ## OPPONENT_PRESENCE: whether the Opponent has a connection to the game.
 var opponent_connected: bool = true
+## OPPONENT_PRESENCE while the Opponent is away during play: how long until
+## they lose by Forfeit, when sent, or NO_TIMER.
+var forfeit_in_msec: int = NO_TIMER
 ## QUICK_CHAT: who sent it and which of QuickChat.MESSAGES it is.
 var chat_side: Side.Id = Side.Id.RED
 var chat_message: String = ""

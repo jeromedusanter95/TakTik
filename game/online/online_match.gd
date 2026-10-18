@@ -23,6 +23,8 @@ var _rng: RandomNumberGenerator = null
 var _ticks_msec: Callable = Callable()
 var _nickname: String = ""
 var _session: OnlineSession = null
+## Keeps this Guest listed in the Lobby as in a game while they play.
+var _presence: LobbyClient = null
 var _selected: Vector2i = BoardViewState.NO_SQUARE
 ## The timer seconds on screen, redrawn only when they change.
 var _shown_seconds_left: int = OnlineSession.NO_TIMER
@@ -56,6 +58,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _presence != null:
+		_presence.poll()
 	if _session == null:
 		return
 	_session.poll()
@@ -94,10 +98,20 @@ func set_phone(phone: bool) -> void:
 func play(seat: PairedSeat, nickname: String) -> void:
 	_nickname = nickname
 	_join_game(seat)
+	_presence = LobbyClient.new(_new_socket())
+	_presence.failed.connect(_on_presence_failed)
+	_presence.enter(_server_url, nickname, true)
 
 
-## Leaves any game.
+## Leaves any game, and the Lobby listing.
 func leave() -> void:
+	_leave_game()
+	if _presence != null:
+		_presence.leave()
+		_presence = null
+
+
+func _leave_game() -> void:
 	_retry_in = -1.0
 	if _session != null:
 		_session.leave()
@@ -106,7 +120,7 @@ func leave() -> void:
 
 ## Leaves any game and takes [param seat] in a new one.
 func _join_game(seat: PairedSeat) -> void:
-	leave()
+	_leave_game()
 	_selected = BoardViewState.NO_SQUARE
 	_shown_moves = 0
 	_was_own_turn = false
@@ -124,6 +138,11 @@ func _join_game(seat: PairedSeat) -> void:
 	_session.quick_chat_received.connect(_on_quick_chat_received)
 	_session.rematch_ready.connect(_join_game)
 	_session.connect_to(_server_url)
+
+
+## Being listed is a courtesy to the others; the game goes on without it.
+func _on_presence_failed(_reason: String) -> void:
+	_presence = null
 
 
 func _back_to_lobby() -> void:
@@ -431,10 +450,12 @@ func _last_fight() -> PublicMoveEvent:
 	return null
 
 
-## The seconds left on whichever timer runs: at most one of them does, and the
-## other is OnlineSession.NO_TIMER, which is lower than any time left.
+## A number that changes whenever a countdown on screen does: the Setup or
+## Turn Timer (at most one runs, the other is OnlineSession.NO_TIMER) and an
+## away Opponent's Forfeit.
 func _seconds_left() -> int:
-	return maxi(_session.setup_seconds_left(), _session.turn_seconds_left())
+	var timer: int = maxi(_session.setup_seconds_left(), _session.turn_seconds_left())
+	return timer * 10_000 + _session.opponent_forfeit_seconds_left()
 
 
 func _new_socket() -> WireSocket:

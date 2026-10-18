@@ -9,13 +9,27 @@ describe("a Lobby request", () => {
 	it("reads entering with a trimmed nickname", () => {
 		expect(parseLobbyRequest(text({ type: "enter", nickname: "  Ada  " }))).toEqual({
 			valid: true,
-			request: { type: "enter", nickname: "Ada" },
+			request: { type: "enter", nickname: "Ada", inGame: false },
+		});
+	});
+
+	it("reads entering while playing a game", () => {
+		expect(parseLobbyRequest(text({ type: "enter", nickname: "Ada", inGame: true }))).toEqual({
+			valid: true,
+			request: { type: "enter", nickname: "Ada", inGame: true },
+		});
+	});
+
+	it("refuses an in-game flag that is not true or false", () => {
+		expect(parseLobbyRequest(text({ type: "enter", nickname: "Ada", inGame: "yes" }))).toEqual({
+			valid: false,
+			reason: "malformed_message",
 		});
 	});
 
 	it("accepts a nickname of the longest allowed length, counted in characters", () => {
 		const nickname = "é".repeat(MAX_NICKNAME_LENGTH);
-		expect(parseLobbyRequest(text({ type: "enter", nickname }))).toEqual({ valid: true, request: { type: "enter", nickname } });
+		expect(parseLobbyRequest(text({ type: "enter", nickname }))).toEqual({ valid: true, request: { type: "enter", nickname, inGame: false } });
 	});
 
 	it.each([

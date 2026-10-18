@@ -31,11 +31,12 @@ func _init(socket: WireSocket) -> void:
 
 
 ## [param server_url] is the server's WebSocket origin, such as
-## wss://example.workers.dev.
-func enter(server_url: String, nickname: String) -> void:
+## wss://example.workers.dev. With [param in_game], this Guest is listed as
+## playing a game and cannot be challenged.
+func enter(server_url: String, nickname: String, in_game: bool = false) -> void:
 	_active = true
 	_socket.open(server_url + "/lobby")
-	_socket.send_text(LobbyRequests.enter(nickname))
+	_socket.send_text(LobbyRequests.enter(nickname, in_game))
 
 
 func is_active() -> bool:
@@ -150,6 +151,8 @@ func _end_challenge(guest_id: String, reason: String) -> void:
 	for challenger: ListedGuest in _challengers:
 		if challenger.guest_id == guest_id:
 			nickname = challenger.nickname
+	if nickname.is_empty():
+		nickname = _guest_named(guest_id).nickname
 	_forget_challenger(guest_id)
 	if is_own_challenge and reason == "withdrawn":
 		return

@@ -55,6 +55,17 @@ export class ForfeitWatch {
 		return this.byDeadline().find(([, deadline]) => deadline <= now)?.[0];
 	}
 
+	/** The time on this watch's clock, in milliseconds since the epoch. */
+	now(): number {
+		return this.settings.clock.now();
+	}
+
+	/** When [side] will have been away long enough to Forfeit, or undefined when they are here. */
+	deadlineOf(side: Side): number | undefined {
+		const since = this.awaySince.get(side);
+		return since === undefined ? undefined : since + this.settings.forfeitAfterMs;
+	}
+
 	/** When the longest absent player will have been away long enough to Forfeit, or undefined when no one is away. */
 	firstDeadline(): number | undefined {
 		return this.byDeadline()[0]?.[1];

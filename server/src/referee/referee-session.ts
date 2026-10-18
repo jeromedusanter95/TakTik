@@ -96,7 +96,7 @@ export class RefereeSession<Connection> {
 			return;
 		}
 		await this.deadlines.forfeitWatch.left(side);
-		this.tellOpponentOf(side, { type: "opponent_presence", connected: false });
+		this.tellOpponentOf(side, this.awayNotice(side));
 		await this.scheduleAlarm();
 	}
 
@@ -156,8 +156,18 @@ export class RefereeSession<Connection> {
 			await this.scheduleAlarm();
 		}
 		if (this.deadlines.forfeitWatch.isAway(opponentOf(side))) {
-			this.connections.send(connection, { type: "opponent_presence", connected: false });
+			this.connections.send(connection, this.awayNotice(opponentOf(side)));
 		}
+	}
+
+	/** That [side] is away and, during play, how long until they Forfeit. */
+	private awayNotice(side: Side): RefereeReply {
+		const deadline = this.deadlines.forfeitWatch.deadlineOf(side);
+		if (this.game.phase() !== "playing" || deadline === undefined) {
+			return { type: "opponent_presence", connected: false };
+		}
+		const forfeitInMs = Math.max(0, deadline - this.deadlines.forfeitWatch.now());
+		return { type: "opponent_presence", connected: false, forfeitInMs };
 	}
 
 	private async submitSetup(connection: Connection, side: Side, placements: readonly Placement[]): Promise<void> {

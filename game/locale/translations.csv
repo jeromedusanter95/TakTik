@@ -183,3 +183,5 @@ LOBBY_STATUS_CHALLENGED_YOU,Challenged you,Vous a défié
 LOBBY_STATUS_CHALLENGE_SENT,Challenge sent...,Défi envoyé...
 LOBBY_CHALLENGE_EXPIRES,The Challenge expires in {time},Le défi expire dans {time}
 LOBBY_MORE_CHALLENGES,+ {count} more Challenges,+ {count} autres défis
+LOBBY_STATUS_IN_GAME,In a game,En partie
+LOBBY_BUSY,{nickname} is in a game.,{nickname} est en partie.

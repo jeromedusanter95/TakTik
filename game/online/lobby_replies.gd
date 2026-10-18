@@ -48,7 +48,10 @@ static func _read_guests(message: Dictionary, reply: LobbyReply) -> void:
 		if guest_id.is_empty() or waiting is not bool:
 			return
 		var is_waiting: bool = waiting
-		reply.guests.append(ListedGuest.new(guest_id, WireJson.text(guest.get("nickname")), is_waiting))
+		# Servers before the in-game flag leave it out.
+		var in_game: Variant = guest.get("inGame", false)
+		var is_in_game: bool = in_game is bool and in_game
+		reply.guests.append(ListedGuest.new(guest_id, WireJson.text(guest.get("nickname")), is_waiting, is_in_game))
 	reply.kind = LobbyReply.Kind.GUESTS
 
 

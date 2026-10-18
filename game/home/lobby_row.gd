@@ -10,6 +10,7 @@ enum Status {
 	CHALLENGED_YOU,
 	AVAILABLE,
 	SEARCHING,
+	IN_GAME,
 }
 
 const ROW_HEIGHT: float = 66.0
@@ -75,8 +76,9 @@ func show_guest(
 	_clear_actions()
 	if is_you:
 		_actions.add_child(_pill(Translated.text(&"PLAYER_YOU")))
-	elif status == Status.CHALLENGED_YOU:
-		# Their Challenge card above the list holds the answer.
+	elif status == Status.CHALLENGED_YOU or status == Status.IN_GAME:
+		# A Challenge card holds the answer; a Guest in a game cannot be
+		# challenged.
 		pass
 	elif challenge_sent:
 		_actions.add_child(_button(Translated.text(&"LOBBY_WITHDRAW"), &"GhostButton", _on_withdraw_pressed))
@@ -113,11 +115,15 @@ func _show_status(status: Status, challenge_sent: bool) -> void:
 		Status.SEARCHING:
 			colour = UiTokens.DEF_400
 			key = &"LOBBY_STATUS_SEARCHING"
+		Status.IN_GAME:
+			colour = UiTokens.AMBER_400
+			key = &"LOBBY_STATUS_IN_GAME"
 	if challenge_sent:
 		colour = UiTokens.GOLD_500
 		key = &"LOBBY_STATUS_CHALLENGE_SENT"
 	_dot.show_dot(colour, status == Status.AVAILABLE)
 	_status_label.text = Translated.text(key)
+	_status_label.theme_type_variation = &"CaptionFaint" if status == Status.IN_GAME else &"Caption"
 
 
 func _clear_actions() -> void:

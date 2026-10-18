@@ -79,6 +79,8 @@ func show_guests(
 		_entering = false
 		show_message("")
 	_count_label.text = Translated.text(&"LOBBY_COUNT", {"count": guests.size() + 1})
+	# The empty state invites a Quick Match, which needs someone free.
+	var anyone_free: bool = guests.any(func(guest: ListedGuest) -> bool: return not guest.in_game)
 	var ordered: Array[ListedGuest] = guests.duplicate()
 	ordered.sort_custom(func(a: ListedGuest, b: ListedGuest) -> bool:
 		var rank_a: int = _rank(a, challenger_ids)
@@ -97,6 +99,8 @@ func show_guests(
 		var status: LobbyRow.Status = LobbyRow.Status.AVAILABLE
 		if guest.guest_id in challenger_ids:
 			status = LobbyRow.Status.CHALLENGED_YOU
+		elif guest.in_game:
+			status = LobbyRow.Status.IN_GAME
 		elif guest.waiting:
 			status = LobbyRow.Status.SEARCHING
 		var is_new: bool = not guest.guest_id in _shown_ids
@@ -108,7 +112,7 @@ func show_guests(
 			arrivals += 1
 		shown.append(guest.guest_id)
 	_shown_ids = shown
-	_empty_state.visible = guests.is_empty()
+	_empty_state.visible = not anyone_free
 
 
 func show_message(message: String) -> void:
@@ -182,6 +186,8 @@ func _add_row(
 func _rank(guest: ListedGuest, challenger_ids: Array[String]) -> int:
 	if guest.guest_id in challenger_ids:
 		return 0
+	if guest.in_game:
+		return 3
 	return 2 if guest.waiting else 1
 
 
