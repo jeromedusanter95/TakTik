@@ -6,6 +6,8 @@ const SETTINGS_PATH: String = "user://settings.cfg"
 
 ## One entry per Difficulty, in the order the menu lists them.
 @export var bot_profiles: Array[BotProfile] = []
+## The online server's WebSocket origin, such as wss://example.workers.dev.
+@export var online_server_url: String = "ws://localhost:8787"
 
 ## Remembers the chosen language. Left null, the game keeps it in
 ## SETTINGS_PATH; tests set their own before the node enters the tree.
@@ -16,6 +18,7 @@ var _language: String = Languages.ENGLISH
 
 @onready var _main_menu: MainMenu = %MainMenu
 @onready var _local_match: LocalMatch = %LocalMatch
+@onready var _online_match: OnlineMatch = %OnlineMatch
 
 
 func _ready() -> void:
@@ -27,7 +30,9 @@ func _ready() -> void:
 	_main_menu.language_switch_requested.connect(_on_language_switch_requested)
 	_main_menu.two_players_chosen.connect(_on_two_players_chosen)
 	_main_menu.bot_chosen.connect(_on_bot_chosen)
+	_main_menu.online_chosen.connect(_on_online_chosen)
 	_local_match.menu_requested.connect(_on_menu_requested)
+	_online_match.menu_requested.connect(_on_menu_requested)
 	_show_menu()
 
 
@@ -39,6 +44,11 @@ func _on_two_players_chosen() -> void:
 func _on_bot_chosen(profile: BotProfile) -> void:
 	_show_match()
 	_local_match.start(func() -> MatchSession: return _session_against_bot(profile))
+
+
+func _on_online_chosen() -> void:
+	_show_only(_online_match)
+	_online_match.start(online_server_url, _open_socket, _rng)
 
 
 func _on_menu_requested() -> void:
@@ -64,11 +74,18 @@ func _session_against_bot(profile: BotProfile) -> MatchSession:
 	return MatchSession.new(_rng, bots)
 
 
+func _open_socket() -> WireSocket:
+	return WebSocketWireSocket.new()
+
+
 func _show_menu() -> void:
-	_local_match.hide()
-	_main_menu.show()
+	_show_only(_main_menu)
 
 
 func _show_match() -> void:
-	_main_menu.hide()
-	_local_match.show()
+	_show_only(_local_match)
+
+
+func _show_only(screen: Control) -> void:
+	for candidate: Control in [_main_menu, _local_match, _online_match]:
+		candidate.visible = candidate == screen

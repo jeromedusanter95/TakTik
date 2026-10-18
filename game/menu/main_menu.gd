@@ -1,9 +1,10 @@
 class_name MainMenu
 extends Control
-## The first screen: choose two people on one device, or a Bot Difficulty, and
-## the language.
+## The first screen: choose two people on one device, an online game, or a Bot
+## Difficulty, and the language.
 
 signal two_players_chosen
+signal online_chosen
 signal bot_chosen(profile: BotProfile)
 signal language_switch_requested
 
@@ -12,12 +13,14 @@ const ChoiceButtonScene: PackedScene = preload("res://game/menu/choice_button.ts
 var _difficulty_buttons: Dictionary[Button, BotProfile] = {}
 
 @onready var _two_players_button: Button = %TwoPlayersButton
+@onready var _online_button: Button = %OnlineButton
 @onready var _bot_choices: VBoxContainer = %BotChoices
 @onready var _language_button: Button = %LanguageButton
 
 
 func _ready() -> void:
 	_two_players_button.pressed.connect(_on_two_players_pressed)
+	_online_button.pressed.connect(_on_online_pressed)
 	_language_button.pressed.connect(_on_language_pressed)
 
 
@@ -58,6 +61,10 @@ func _difficulty_text(profile: BotProfile) -> String:
 
 func _on_two_players_pressed() -> void:
 	two_players_chosen.emit()
+
+
+func _on_online_pressed() -> void:
+	online_chosen.emit()
 
 
 func _on_difficulty_pressed(profile: BotProfile) -> void:
