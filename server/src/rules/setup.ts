@@ -1,15 +1,35 @@
 import { COLUMNS, ROWS } from "./board";
-import { armyCountOf, PIECE_TYPES, type PieceType } from "./piece-type";
+import { armyCountOf, armyTypes, PIECE_TYPES, type PieceType } from "./piece-type";
 import type { Side } from "./side";
 import { squareAt, type Square } from "./square";
 
 export const SETUP_ROW_COUNT = 3;
+
+/** A source of chance. */
+export interface SetupDraws {
+	/** A whole number from 0 up to, but not including, [count]. */
+	below(count: number): number;
+}
 
 /** One player's arrangement of their Army on their side of the Board, before play starts. */
 export class Setup {
 	private readonly placements = new Map<number, PieceType>();
 
 	constructor(readonly side: Side) {}
+
+	/** A Random Setup: the whole Army of [side], each Piece on a Square drawn among those still free. */
+	static random(side: Side, draws: SetupDraws): Setup {
+		const setup = new Setup(side);
+		const squaresLeft = Setup.squaresFor(side);
+		for (const type of armyTypes()) {
+			const [square] = squaresLeft.splice(draws.below(squaresLeft.length), 1);
+			if (square === undefined) {
+				throw new Error(`A draw fell outside the ${squaresLeft.length + 1} Squares left`);
+			}
+			setup.place(square, type);
+		}
+		return setup;
+	}
 
 	/** The rows a side places its Army on: its Home Row and the two in front. */
 	static rowsFor(side: Side): number[] {
