@@ -1,6 +1,6 @@
 import type { Game } from "../rules/game";
 import { gameFromSetups } from "../rules/game-factory";
-import { isOver } from "../rules/game-result";
+import { isOver, type ConcessionReason } from "../rules/game-result";
 import type { Move } from "../rules/move";
 import { Setup } from "../rules/setup";
 import { opponentOf, SIDES, type Side } from "../rules/side";
@@ -14,18 +14,28 @@ export type OnlinePhase = "setup" | "playing" | "over";
 
 export type SetupAttempt = { readonly accepted: true } | { readonly accepted: false; readonly reason: RefereeRefusal };
 
+export type ConcessionAttempt = { readonly accepted: true } | { readonly accepted: false; readonly reason: RefereeRefusal };
+
+/** A player who gave the game away, by Resigning or by Forfeiting. */
+export interface Concession {
+	readonly loser: Side;
+	readonly reason: ConcessionReason;
+}
+
 export type OnlineMoveAttempt =
 	| { readonly accepted: true; readonly event: PublicMoveEvent }
 	| { readonly accepted: false; readonly reason: RefereeRefusal };
 
 /**
  * Everything needed to rebuild an online game: who sits where, each Setup
- * handed in and every Move played, in order. Plain data, so it can be stored.
+ * handed in, every Move played, in order, and who Resigned or Forfeited, if
+ * anyone did. Plain data, so it can be stored.
  */
 export interface GameRecord {
 	readonly seating: Seating;
 	readonly setups: Readonly<Partial<Record<Side, readonly Placement[]>>>;
 	readonly moves: readonly Move[];
+	readonly concession?: Concession;
 }
 
 /** A valid Setup, kept with the placements it was handed in as, for the record. */
@@ -43,6 +53,7 @@ export class OnlineGame {
 	private readonly moves: Move[] = [];
 	private readonly events: PublicMoveEvent[] = [];
 	private game: Game | undefined;
+	private concession: Concession | undefined;
 
 	private constructor(private readonly seating: Seating) {}
 
@@ -64,13 +75,18 @@ export class OnlineGame {
 				throw new Error("A stored Move cannot be replayed");
 			}
 		}
+		const concession = record.concession;
+		if (concession !== undefined && !game.concede(concession.loser, concession.reason).accepted) {
+			throw new Error("The stored concession cannot be replayed");
+		}
 		return game;
 	}
 
 	toRecord(): GameRecord {
 		const setups: Partial<Record<Side, readonly Placement[]>> = {};
 		this.setups.forEach(({ placements }, side) => (setups[side] = placements));
-		return { seating: this.seating, setups, moves: [...this.moves] };
+		const record: GameRecord = { seating: this.seating, setups, moves: [...this.moves] };
+		return this.concession === undefined ? record : { ...record, concession: this.concession };
 	}
 
 	sideOfSeatToken(seatToken: string): Side | undefined {
@@ -124,6 +140,20 @@ export class OnlineGame {
 		this.moves.push(move);
 		this.events.push(event);
 		return { accepted: true, event };
+	}
+
+	/** Ends the game with Victory to the Opponent of [side], who Resigned or Forfeited. Only during play. */
+	concede(side: Side, reason: ConcessionReason): ConcessionAttempt {
+		const game = this.game;
+		if (game === undefined) {
+			return { accepted: false, reason: "game_not_started" };
+		}
+		if (isOver(game.result)) {
+			return { accepted: false, reason: "game_over" };
+		}
+		game.concede(side, reason);
+		this.concession = { loser: side, reason };
+		return { accepted: true };
 	}
 
 	/** Only once play has started. */

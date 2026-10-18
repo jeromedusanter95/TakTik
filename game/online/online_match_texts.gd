@@ -8,11 +8,15 @@ static func status(session: OnlineSession) -> String:
 		OnlineSession.Phase.CONNECTING:
 			return Translated.text(&"ONLINE_CONNECTING")
 		OnlineSession.Phase.ARRANGING:
-			return Translated.text(&"ONLINE_ARRANGE")
+			var arrange: String = Translated.text(&"ONLINE_ARRANGE")
+			return _with_presence(session, arrange, &"ONLINE_OPPONENT_AWAY_SETUP")
 		OnlineSession.Phase.WAITING_FOR_OPPONENT_SETUP:
-			return Translated.text(&"ONLINE_WAITING_SETUP", {"opponent": session.opponent()})
+			var waiting: String = Translated.text(
+				&"ONLINE_WAITING_SETUP", {"opponent": session.opponent()}
+			)
+			return _with_presence(session, waiting, &"ONLINE_OPPONENT_AWAY_SETUP")
 		OnlineSession.Phase.PLAYING:
-			return _turn_text(session)
+			return _with_presence(session, _turn_text(session), &"ONLINE_OPPONENT_AWAY")
 		OnlineSession.Phase.OVER:
 			return MatchNarrator.describe_result(session.result())
 		_:
@@ -57,9 +61,22 @@ static func search_failure(reason: String) -> String:
 			return Translated.text(&"ONLINE_FAILED_OTHER")
 
 
+## [param text], followed while the Opponent is disconnected by the
+## [param away_key] notice.
+static func _with_presence(session: OnlineSession, text: String, away_key: StringName) -> String:
+	if session.is_opponent_connected():
+		return text
+	var away: String = Translated.text(away_key, {"opponent": session.opponent()})
+	return away if text.is_empty() else "%s\n%s" % [text, away]
+
+
+## Whose turn it is; empty on the Opponent's turn while they are
+## disconnected, since they are not playing.
 static func _turn_text(session: OnlineSession) -> String:
 	if session.is_awaiting_answer():
 		return Translated.text(&"ONLINE_SENDING")
 	if session.is_own_turn():
 		return Translated.text(&"ONLINE_YOUR_TURN")
+	if not session.is_opponent_connected():
+		return ""
 	return Translated.text(&"ONLINE_OPPONENT_TURN", {"opponent": session.opponent()})

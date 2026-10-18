@@ -1,5 +1,6 @@
 import type { Move } from "../rules/move";
 import { opponentOf, SIDES, type Side } from "../rules/side";
+import type { ForfeitWatch } from "./forfeit-watch";
 import type { GameRecord, OnlineGame } from "./online-game";
 import { parseRefereeRequest, type Placement, type RefereeRefusal, type RefereeReply } from "./protocol";
 
@@ -23,14 +24,17 @@ export interface GameStore {
 
 /**
  * Referees one online game over its sockets: seats each Guest by their Seat
- * Token, takes Setups and Moves from them, saves every change, and sends each
- * player only what their side may know.
+ * Token, takes Setups, Moves and resignations from them, tells each player
+ * when their Opponent leaves or comes back, Forfeits one who stays away too
+ * long, saves every change, and sends each player only what their side may
+ * know.
  */
 export class RefereeSession<Connection> {
 	constructor(
 		private readonly game: OnlineGame,
 		private readonly connections: SeatConnections<Connection>,
 		private readonly store: GameStore,
+		private readonly forfeitWatch: ForfeitWatch,
 	) {}
 
 	async receive(connection: Connection, text: string): Promise<void> {
@@ -42,21 +46,48 @@ export class RefereeSession<Connection> {
 		}
 		const request = parse.request;
 		if (request.type === "take_seat") {
-			this.takeSeat(connection, request.seatToken, side);
+			await this.takeSeat(connection, request.seatToken, side);
 			return;
 		}
 		if (side === undefined) {
 			this.refuseAndClose(connection, "not_seated");
 			return;
 		}
-		if (request.type === "setup") {
-			await this.submitSetup(connection, side, request.placements);
-			return;
+		switch (request.type) {
+			case "setup":
+				await this.submitSetup(connection, side, request.placements);
+				return;
+			case "move":
+				await this.play(connection, side, request.move);
+				return;
+			case "resign":
+				await this.resign(connection, side);
+				return;
 		}
-		await this.play(connection, side, request.move);
 	}
 
-	private takeSeat(connection: Connection, seatToken: string, currentSide: Side | undefined): void {
+	/** [connection] has closed. When it was its side's last socket, that player is now away. */
+	async disconnect(connection: Connection): Promise<void> {
+		const side = this.connections.sideOf(connection);
+		if (side === undefined || this.connections.connectionsOf(side).some((other) => other !== connection)) {
+			return;
+		}
+		await this.forfeitWatch.left(side);
+		this.tellOpponentOf(side, { type: "opponent_presence", connected: false });
+		await this.forfeitWatch.arm(this.isPlaying());
+	}
+
+	/** Forfeits the player who has stayed away too long, if anyone has. Called when the forfeit alarm rings. */
+	async forfeitOverdue(): Promise<void> {
+		const absent = this.forfeitWatch.overdue();
+		if (absent !== undefined && this.game.concede(absent, "forfeited").accepted) {
+			await this.endByConcession();
+			return;
+		}
+		await this.forfeitWatch.arm(this.isPlaying());
+	}
+
+	private async takeSeat(connection: Connection, seatToken: string, currentSide: Side | undefined): Promise<void> {
 		if (currentSide !== undefined) {
 			this.refuse(connection, "already_seated");
 			return;
@@ -72,6 +103,19 @@ export class RefereeSession<Connection> {
 		this.connections.seat(connection, side);
 		this.connections.send(connection, { type: "seated", side, opponent: this.game.opponentNicknameOf(side) });
 		this.connections.send(connection, this.stateFor(side));
+		await this.comeBack(connection, side);
+	}
+
+	/** Tells the Opponent that [side] is back, and [connection] whether the Opponent is away. */
+	private async comeBack(connection: Connection, side: Side): Promise<void> {
+		if (this.forfeitWatch.isAway(side)) {
+			await this.forfeitWatch.returned(side);
+			this.tellOpponentOf(side, { type: "opponent_presence", connected: true });
+			await this.forfeitWatch.arm(this.isPlaying());
+		}
+		if (this.forfeitWatch.isAway(opponentOf(side))) {
+			this.connections.send(connection, { type: "opponent_presence", connected: false });
+		}
 	}
 
 	private async submitSetup(connection: Connection, side: Side, placements: readonly Placement[]): Promise<void> {
@@ -82,6 +126,7 @@ export class RefereeSession<Connection> {
 		}
 		await this.store.save(this.game.toRecord());
 		this.tellBothSides((viewer) => this.stateFor(viewer));
+		await this.forfeitWatch.arm(this.isPlaying());
 	}
 
 	private async play(connection: Connection, side: Side, move: Move): Promise<void> {
@@ -98,6 +143,28 @@ export class RefereeSession<Connection> {
 			view: this.game.viewOf(viewer),
 			...(finalBoard === undefined ? {} : { finalBoard }),
 		}));
+		if (!this.isPlaying()) {
+			await this.forfeitWatch.arm(false);
+		}
+	}
+
+	private async resign(connection: Connection, side: Side): Promise<void> {
+		const attempt = this.game.concede(side, "resigned");
+		if (!attempt.accepted) {
+			this.refuse(connection, attempt.reason);
+			return;
+		}
+		await this.endByConcession();
+	}
+
+	private async endByConcession(): Promise<void> {
+		await this.store.save(this.game.toRecord());
+		this.tellBothSides((viewer) => this.stateFor(viewer));
+		await this.forfeitWatch.arm(false);
+	}
+
+	private isPlaying(): boolean {
+		return this.game.phase() === "playing";
 	}
 
 	/** Where the game stands for [side]: the Setup progress, or the game so far. */
@@ -123,6 +190,12 @@ export class RefereeSession<Connection> {
 			for (const connection of this.connections.connectionsOf(viewer)) {
 				this.connections.send(connection, replyFor(viewer));
 			}
+		}
+	}
+
+	private tellOpponentOf(side: Side, reply: RefereeReply): void {
+		for (const connection of this.connections.connectionsOf(opponentOf(side))) {
+			this.connections.send(connection, reply);
 		}
 	}
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { parseMove } from "../../src/rules/board-notation";
 import type { Side } from "../../src/rules/side";
+import { ForfeitWatch, type AbsenceRecord, type AbsenceStore, type Clock, type ForfeitAlarm } from "../../src/referee/forfeit-watch";
 import { OnlineGame, type GameRecord } from "../../src/referee/online-game";
 import type { RefereeRefusal, RefereeReply } from "../../src/referee/protocol";
 import { RefereeSession, type GameStore, type SeatConnections } from "../../src/referee/referee-session";
@@ -51,6 +52,32 @@ class FakeStore implements GameStore {
 	}
 }
 
+class FakeAbsences implements AbsenceStore {
+	saved: AbsenceRecord = {};
+
+	async saveAbsences(record: AbsenceRecord): Promise<void> {
+		this.saved = record;
+	}
+}
+
+class FakeAlarm implements ForfeitAlarm {
+	time: number | undefined;
+
+	async setFor(time: number | undefined): Promise<void> {
+		this.time = time;
+	}
+}
+
+class FakeClock implements Clock {
+	time = 1_000;
+
+	now(): number {
+		return this.time;
+	}
+}
+
+const FORFEIT_AFTER_MS = 60_000;
+
 function text(message: unknown): string {
 	return JSON.stringify(message);
 }
@@ -59,14 +86,30 @@ describe("a Referee session", () => {
 	let game: OnlineGame;
 	let seats: FakeSeats;
 	let store: FakeStore;
+	let absences: FakeAbsences;
+	let alarm: FakeAlarm;
+	let clock: FakeClock;
 	let session: RefereeSession<string>;
+
+	function watchFrom(record: AbsenceRecord): ForfeitWatch {
+		return new ForfeitWatch(record, { forfeitAfterMs: FORFEIT_AFTER_MS, clock, store: absences, alarm });
+	}
 
 	beforeEach(() => {
 		game = OnlineGame.open(SEATING);
 		seats = new FakeSeats();
 		store = new FakeStore();
-		session = new RefereeSession(game, seats, store);
+		absences = new FakeAbsences();
+		alarm = new FakeAlarm();
+		clock = new FakeClock();
+		session = new RefereeSession(game, seats, store, watchFrom({}));
 	});
+
+	/** The socket closing, as the server sees it. */
+	async function drop(connection: string): Promise<void> {
+		seats.closed.add(connection);
+		await session.disconnect(connection);
+	}
 
 	async function seatBoth(): Promise<void> {
 		await session.receive("ada", text({ type: "take_seat", seatToken: "red-token" }));
@@ -214,6 +257,171 @@ describe("a Referee session", () => {
 				{ type: "seated", side: "green", opponent: "Ada" },
 				{ type: "game_state", view: game.viewOf("green"), history: game.history() },
 			]);
+		});
+	});
+
+	describe("Resign", () => {
+		it("gives Victory to the Opponent and shows both players the whole Board", async () => {
+			await startPlay();
+			await session.receive("bob", text({ type: "resign" }));
+
+			for (const player of ["ada", "bob"]) {
+				expect(seats.lastReplyTo(player)).toMatchObject({
+					type: "game_state",
+					view: { result: { status: "red_wins", reason: "resigned" } },
+					finalBoard: game.finalBoard(),
+				});
+			}
+			expect(store.saved.at(-1)?.concession).toEqual({ loser: "green", reason: "resigned" });
+		});
+
+		it("is refused during Setup", async () => {
+			await seatBoth();
+			await session.receive("ada", text({ type: "resign" }));
+
+			expect(seats.lastReplyTo("ada")).toEqual({ type: "refused", reason: "game_not_started" });
+			expect(store.saved).toEqual([]);
+		});
+
+		it("is refused once the game is over", async () => {
+			await startPlay();
+			await session.receive("ada", text({ type: "move", move: WINNING_MOVE }));
+			await session.receive("bob", text({ type: "resign" }));
+
+			expect(seats.lastReplyTo("bob")).toEqual({ type: "refused", reason: "game_over" });
+		});
+
+		it("shows out a socket that Resigns before taking a seat", async () => {
+			await session.receive("eve", text({ type: "resign" }));
+			expect(seats.closeReasons.get("eve")).toBe("not_seated");
+		});
+	});
+
+	describe("the Opponent's presence", () => {
+		it("tells a player when their Opponent's last socket closes", async () => {
+			await startPlay();
+			await drop("bob");
+
+			expect(seats.lastReplyTo("ada")).toEqual({ type: "opponent_presence", connected: false });
+			expect(absences.saved).toEqual({ green: 1_000 });
+		});
+
+		it("tells a player when their Opponent takes their seat again", async () => {
+			await startPlay();
+			await drop("bob");
+			await session.receive("bob-again", text({ type: "take_seat", seatToken: "green-token" }));
+
+			expect(seats.lastReplyTo("ada")).toEqual({ type: "opponent_presence", connected: true });
+			expect(absences.saved).toEqual({});
+		});
+
+		it("tells a player taking their seat that their Opponent is away", async () => {
+			await startPlay();
+			await drop("bob");
+			await drop("ada");
+			await session.receive("ada-again", text({ type: "take_seat", seatToken: "red-token" }));
+
+			expect(seats.repliesTo("ada-again").map((reply) => reply.type)).toEqual([
+				"seated",
+				"game_state",
+				"opponent_presence",
+			]);
+			expect(seats.lastReplyTo("ada-again")).toEqual({ type: "opponent_presence", connected: false });
+		});
+
+		it("says nothing when a socket replaced by a newer one closes", async () => {
+			await startPlay();
+			await session.receive("bob-again", text({ type: "take_seat", seatToken: "green-token" }));
+			const redRepliesBefore = seats.repliesTo("ada").length;
+			await drop("bob");
+
+			expect(seats.repliesTo("ada")).toHaveLength(redRepliesBefore);
+			expect(absences.saved).toEqual({});
+		});
+
+		it("ignores a socket that closes before taking a seat", async () => {
+			await startPlay();
+			await drop("eve");
+			expect(absences.saved).toEqual({});
+		});
+	});
+
+	describe("Forfeit", () => {
+		it("sets the alarm for when a player who left during play would Forfeit", async () => {
+			await startPlay();
+			await drop("bob");
+			expect(alarm.time).toBe(1_000 + FORFEIT_AFTER_MS);
+		});
+
+		it("cancels the alarm when the player comes back", async () => {
+			await startPlay();
+			await drop("bob");
+			await session.receive("bob-again", text({ type: "take_seat", seatToken: "green-token" }));
+			expect(alarm.time).toBeUndefined();
+		});
+
+		it("gives Victory to the Opponent of a player who stayed away too long", async () => {
+			await startPlay();
+			await drop("bob");
+			clock.time += FORFEIT_AFTER_MS;
+			await session.forfeitOverdue();
+
+			expect(seats.lastReplyTo("ada")).toMatchObject({
+				type: "game_state",
+				view: { result: { status: "red_wins", reason: "forfeited" } },
+				finalBoard: game.finalBoard(),
+			});
+			expect(store.saved.at(-1)?.concession).toEqual({ loser: "green", reason: "forfeited" });
+			expect(alarm.time).toBeUndefined();
+		});
+
+		it("Forfeits no one before the delay is up", async () => {
+			await startPlay();
+			await drop("bob");
+			clock.time += FORFEIT_AFTER_MS - 1;
+			await session.forfeitOverdue();
+
+			expect(game.phase()).toBe("playing");
+			expect(alarm.time).toBe(1_000 + FORFEIT_AFTER_MS);
+		});
+
+		it("Forfeits the player who left first when both are away", async () => {
+			await startPlay();
+			await drop("ada");
+			clock.time += 10;
+			await drop("bob");
+			clock.time += FORFEIT_AFTER_MS;
+			await session.forfeitOverdue();
+
+			expect(game.viewOf("green").result).toEqual({ status: "green_wins", reason: "forfeited" });
+		});
+
+		it("waits for play to start before setting the alarm", async () => {
+			await seatBoth();
+			await session.receive("bob", text({ type: "setup", placements: placementsOf("green", GREEN_SETUP) }));
+			await drop("bob");
+			expect(alarm.time).toBeUndefined();
+
+			await session.receive("ada", text({ type: "setup", placements: placementsOf("red", RED_SETUP) }));
+			expect(alarm.time).toBe(1_000 + FORFEIT_AFTER_MS);
+		});
+
+		it("still Forfeits a player once the referee was rebuilt from storage", async () => {
+			await startPlay();
+			await drop("bob");
+			const rebuilt = OnlineGame.fromRecord(game.toRecord());
+			const restarted = new RefereeSession(rebuilt, seats, store, watchFrom(absences.saved));
+			clock.time += FORFEIT_AFTER_MS;
+			await restarted.forfeitOverdue();
+
+			expect(rebuilt.viewOf("red").result).toEqual({ status: "red_wins", reason: "forfeited" });
+		});
+
+		it("cancels the alarm when a Move ends the game", async () => {
+			await startPlay();
+			await drop("bob");
+			await session.receive("ada", text({ type: "move", move: WINNING_MOVE }));
+			expect(alarm.time).toBeUndefined();
 		});
 	});
 });

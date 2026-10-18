@@ -7,6 +7,7 @@ enum Kind {
 	SETUP_STATUS,
 	GAME_STATE,
 	MOVED,
+	OPPONENT_PRESENCE,
 	REFUSED,
 	MALFORMED,
 }
@@ -27,5 +28,7 @@ var event: PublicMoveEvent = null
 ## GAME_STATE and MOVED once the game is over: every Piece left, Types shown.
 ## Null before.
 var final_board: Board = null
+## OPPONENT_PRESENCE: whether the Opponent has a connection to the game.
+var opponent_connected: bool = true
 ## REFUSED: the server's reason, for example "illegal_move".
 var refusal: String = ""

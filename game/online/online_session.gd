@@ -2,8 +2,8 @@ class_name OnlineSession
 extends RefCounted
 ## This Guest's side of one online game. The referee holds the real game; the
 ## session only keeps what this Guest may know, arranges their Setup before
-## sending it, and checks a Move is legal before asking the referee to play
-## it. Poll it once per frame.
+## sending it, checks a Move is legal before asking the referee to play it,
+## and knows whether the Opponent is connected. Poll it once per frame.
 
 signal changed
 ## The referee refused a request, for example "illegal_move".
@@ -28,6 +28,7 @@ var _position: KnownPosition = null
 var _history: Array[PublicMoveEvent] = []
 var _final_board: Board = null
 var _awaiting_answer: bool = false
+var _opponent_connected: bool = true
 var _disconnection_reason: String = ""
 
 
@@ -43,6 +44,7 @@ func connect_to(server_url: String) -> void:
 	_server_url = server_url
 	_phase = Phase.CONNECTING
 	_awaiting_answer = false
+	_opponent_connected = true
 	_socket.open("%s/games/%s" % [server_url, _seat.game_id])
 	_socket.send_text(OnlineRequests.take_seat(_seat.seat_token))
 	changed.emit()
@@ -82,6 +84,12 @@ func side() -> Side.Id:
 
 func opponent() -> String:
 	return _seat.opponent
+
+
+## False from when the referee says the Opponent lost their connection until
+## they take their seat again.
+func is_opponent_connected() -> bool:
+	return _opponent_connected
 
 
 ## This Guest's Setup while they arrange it, or null.
@@ -132,6 +140,17 @@ func play(move: Move) -> bool:
 		return false
 	_awaiting_answer = true
 	_socket.send_text(OnlineRequests.move(move))
+	changed.emit()
+	return true
+
+
+## Asks the referee to end the game with Victory to the Opponent. False, and
+## nothing sent, unless the game is being played and no answer is awaited.
+func resign() -> bool:
+	if _phase != Phase.PLAYING or _awaiting_answer:
+		return false
+	_awaiting_answer = true
+	_socket.send_text(OnlineRequests.resign())
 	changed.emit()
 	return true
 
@@ -197,6 +216,8 @@ func _handle(reply: RefereeReply) -> void:
 		RefereeReply.Kind.MOVED:
 			_history.append(reply.event)
 			_show_position(reply)
+		RefereeReply.Kind.OPPONENT_PRESENCE:
+			_opponent_connected = reply.opponent_connected
 		RefereeReply.Kind.REFUSED:
 			_awaiting_answer = false
 			refused.emit(reply.refusal)

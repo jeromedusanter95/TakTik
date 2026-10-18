@@ -19,6 +19,10 @@ func test_a_move_names_its_squares_by_column_and_row() -> void:
 	})
 
 
+func test_a_resignation_is_only_its_type() -> void:
+	assert_eq(_parsed(OnlineRequests.resign()), {"type": "resign"})
+
+
 func test_a_setup_places_every_piece_of_the_army() -> void:
 	var setup: Setup = BoardNotation.parse_setup(Side.Id.RED, ["BSNMBE", "MOSPBO", "NSOTBK"])
 	var message: Dictionary = _parsed(OnlineRequests.setup(setup))
@@ -159,6 +163,26 @@ func test_the_referee_tells_why_it_refused() -> void:
 	assert_eq(reply.refusal, "illegal_move")
 
 
+func test_the_referee_tells_whether_the_opponent_is_connected() -> void:
+	var away: RefereeReply = OnlineReplies.referee('{"type":"opponent_presence","connected":false}')
+	assert_eq(away.kind, RefereeReply.Kind.OPPONENT_PRESENCE)
+	assert_false(away.opponent_connected)
+	var back: RefereeReply = OnlineReplies.referee('{"type":"opponent_presence","connected":true}')
+	assert_true(back.opponent_connected)
+
+
+func test_a_result_can_end_by_resign_or_forfeit() -> void:
+	for reason: String in ["resigned", "forfeited"]:
+		var view: Dictionary = _view("red", "green", [], [])
+		view["result"] = {"status": "green_wins", "reason": reason}
+		var text: String = JSON.stringify({"type": "game_state", "view": view, "history": []})
+		var reply: RefereeReply = OnlineReplies.referee(text)
+		assert_eq(reply.kind, RefereeReply.Kind.GAME_STATE, reason)
+		assert_eq(WireNames.reason(reason), reply.position.result.reason)
+	assert_eq(WireNames.reason("resigned"), GameResult.Reason.RESIGNED)
+	assert_eq(WireNames.reason("forfeited"), GameResult.Reason.FORFEITED)
+
+
 func test_anything_unexpected_from_the_referee_is_malformed() -> void:
 	var off_board: Dictionary = _view("red", "red", [], [])
 	off_board["enemySquares"] = [{"column": 6, "row": 0}]
@@ -168,6 +192,8 @@ func test_anything_unexpected_from_the_referee_is_malformed() -> void:
 		"",
 		'{"type":"seated","side":"blue"}',
 		'{"type":"setup_status","ownSetupDone":"yes","opponentSetupDone":false}',
+		'{"type":"opponent_presence"}',
+		'{"type":"opponent_presence","connected":"no"}',
 		JSON.stringify({"type": "game_state", "view": off_board, "history": []}),
 		JSON.stringify({"type": "game_state", "view": fractional, "history": []}),
 		JSON.stringify({"type": "game_state", "view": _view("red", "red", [], []), "history": [{}]}),

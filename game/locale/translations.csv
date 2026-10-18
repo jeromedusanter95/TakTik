@@ -43,6 +43,8 @@ REASON_PRINCESS_CAPTURED,the enemy Princess was captured,la Princesse adverse a 
 REASON_PRINCESS_REACHED_HOME_ROW,the Princess reached the enemy Home Row,la Princesse a atteint la Rangée de départ adverse
 REASON_BLOCKED,the opponent has no legal Move left,l'adversaire n'a plus aucun Coup possible
 REASON_NO_FIGHT_LIMIT,50 Rounds passed without a Fight,50 Tours se sont écoulés sans Combat
+REASON_RESIGNED,{loser} resigned,{loser} a abandonné
+REASON_FORFEITED,{loser} stayed disconnected too long,{loser} est resté trop longtemps déconnecté
 PIECE_DESCRIPTION,"{piece}, attack {attack}, defense {defense}","{piece}, attaque {attack}, défense {defense}"
 GRAVEYARD,{side} lost: {pieces},{side} a perdu : {pieces}
 GRAVEYARD_NOTHING,nothing,rien
@@ -67,3 +69,9 @@ ONLINE_RECONNECT,Reconnect,Se reconnecter
 ONLINE_REFUSED,The referee refused that. Try again.,L'arbitre a refusé. Réessayez.
 ONLINE_NEW_OPPONENT,Find a new Opponent,Trouver un nouvel Adversaire
 ONLINE_SEAT_TAKEN,This game is now open in another window.,Cette partie est maintenant ouverte dans une autre fenêtre.
+ONLINE_RESIGN,Resign,Abandonner
+ONLINE_RESIGN_TITLE,Resign this game?,Abandonner cette partie ?
+ONLINE_RESIGN_CONFIRM,{opponent} will win the game.,{opponent} remportera la partie.
+ONLINE_KEEP_PLAYING,Keep playing,Continuer à jouer
+ONLINE_OPPONENT_AWAY,"{opponent} lost their connection. If they do not come back soon, they lose by Forfeit.","Connexion de {opponent} perdue. Sans retour rapide de sa part, la partie se termine par forfait."
+ONLINE_OPPONENT_AWAY_SETUP,{opponent} lost their connection. Waiting for them to come back...,Connexion de {opponent} perdue. En attente de son retour...

@@ -9,13 +9,15 @@ import { asObject, parseJsonObject } from "../wire/json-object";
 
 /**
  * The messages of a game's WebSocket. A Guest first takes their seat with the
- * Seat Token Quick Match gave them, then sends their Setup and their Moves.
+ * Seat Token Quick Match gave them, then sends their Setup and their Moves,
+ * and may Resign at any point of play.
  * Squares are { column, row } with column 0 as "a" and row 0 as rank 1.
  */
 export type RefereeRequest =
 	| { readonly type: "take_seat"; readonly seatToken: string }
 	| { readonly type: "setup"; readonly placements: readonly Placement[] }
-	| { readonly type: "move"; readonly move: Move };
+	| { readonly type: "move"; readonly move: Move }
+	| { readonly type: "resign" };
 
 /** One Piece of a Setup. */
 export interface Placement {
@@ -48,6 +50,11 @@ export type RefereeReply =
 			readonly view: PlayerView;
 			readonly finalBoard?: readonly ShownPiece[];
 	  }
+	/**
+	 * Sent when the Opponent's last socket closes and when they take their seat
+	 * again, and on taking a seat while the Opponent is away.
+	 */
+	| { readonly type: "opponent_presence"; readonly connected: boolean }
 	| { readonly type: "refused"; readonly reason: RefereeRefusal };
 
 export type RefereeRefusal =
@@ -88,6 +95,8 @@ function requestFrom(message: Record<string, unknown>): RefereeRequest | undefin
 			return setupFrom(message["placements"]);
 		case "move":
 			return moveRequestFrom(message["move"]);
+		case "resign":
+			return { type: "resign" };
 		default:
 			return undefined;
 	}

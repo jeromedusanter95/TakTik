@@ -2,7 +2,16 @@ import type { Side } from "./side";
 
 export type GameStatus = "in_progress" | "red_wins" | "green_wins" | "draw";
 
-export type GameEndReason = "none" | "princess_captured" | "princess_reached_home_row" | "blocked" | "no_fight_limit";
+/** Why a player gave the game away: they Resigned, or they Forfeited by staying disconnected too long. */
+export type ConcessionReason = "resigned" | "forfeited";
+
+export type GameEndReason =
+	| "none"
+	| "princess_captured"
+	| "princess_reached_home_row"
+	| "blocked"
+	| "no_fight_limit"
+	| ConcessionReason;
 
 /** Whether a game is still going, and if not, who won and why. */
 export interface GameResult {

@@ -123,6 +123,74 @@ func test_the_end_shows_the_result_and_offers_a_new_opponent() -> void:
 	assert_true(_panel().visible)
 
 
+func test_resign_asks_for_confirmation_before_sending() -> void:
+	_start_play()
+	assert_true(_button("%ResignButton").visible)
+	_button("%ResignButton").pressed.emit()
+	assert_true(_resign_dialog().visible)
+	assert_eq(_resign_dialog().dialog_text, "Bob will win the game.")
+	assert_eq(_resign_dialog().get_ok_button().text, "Resign")
+	var sent_type: String = _sockets[1].last_sent()["type"]
+	assert_eq(sent_type, "setup", "nothing sent before confirming")
+	_resign_dialog().confirmed.emit()
+	assert_eq(_sockets[1].last_sent(), {"type": "resign"})
+	assert_false(_button("%ResignButton").visible)
+
+
+func test_resign_is_offered_only_during_play() -> void:
+	_pair_and_arrange()
+	assert_false(_button("%ResignButton").visible)
+
+
+func test_a_resignation_is_narrated() -> void:
+	_start_play()
+	var view: Dictionary = _view("red", [_own(2, 3, "knight")], [_square(2, 5)])
+	view["result"] = {"status": "green_wins", "reason": "resigned"}
+	_sockets[1].receive({"type": "game_state", "view": view, "history": [], "finalBoard": []})
+	_frame()
+	assert_eq(_label("%StatusLabel").text, "Green wins: Red resigned.")
+	assert_false(_button("%ResignButton").visible)
+
+
+func test_a_forfeit_is_narrated_in_french() -> void:
+	_start_play()
+	TranslationServer.set_locale("fr")
+	var view: Dictionary = _view("red", [_own(2, 3, "knight")], [_square(2, 5)])
+	view["result"] = {"status": "red_wins", "reason": "forfeited"}
+	_sockets[1].receive({"type": "game_state", "view": view, "history": [], "finalBoard": []})
+	_frame()
+	assert_eq(_label("%StatusLabel").text, "Rouge gagne : Vert est resté trop longtemps déconnecté.")
+	TranslationServer.set_locale(Languages.ENGLISH)
+
+
+func test_the_opponents_disconnection_shows_in_the_status() -> void:
+	_start_play()
+	_sockets[1].receive({"type": "opponent_presence", "connected": false})
+	_frame()
+	assert_eq(
+		_label("%StatusLabel").text,
+		"Your turn\nBob lost their connection. If they do not come back soon, they lose by Forfeit.",
+	)
+	_sockets[1].receive({"type": "opponent_presence", "connected": true})
+	_frame()
+	assert_eq(_label("%StatusLabel").text, "Your turn")
+
+
+func test_an_opponent_who_left_on_their_turn_is_not_said_to_be_playing() -> void:
+	_start_play()
+	_sockets[1].receive({
+		"type": "moved",
+		"event": {"moverSide": "red", "move": _move(2, 3, 2, 4)},
+		"view": _view("green", [_own(2, 4, "knight")], [_square(2, 5)]),
+	})
+	_sockets[1].receive({"type": "opponent_presence", "connected": false})
+	_frame()
+	assert_eq(
+		_label("%StatusLabel").text,
+		"Bob lost their connection. If they do not come back soon, they lose by Forfeit.",
+	)
+
+
 func test_a_lost_connection_offers_to_reconnect() -> void:
 	_start_play()
 	_sockets[1].close()
@@ -198,6 +266,12 @@ func _move(from_column: int, from_row: int, to_column: int, to_row: int) -> Dict
 
 func _square(column: int, row: int) -> Dictionary:
 	return {"column": column, "row": row}
+
+
+func _resign_dialog() -> ConfirmationDialog:
+	var node: Node = _match.get_node("%ResignDialog")
+	assert_true(node is ConfirmationDialog)
+	return node
 
 
 func _panel() -> FindOpponentPanel:

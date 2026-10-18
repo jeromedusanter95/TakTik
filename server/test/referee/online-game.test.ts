@@ -143,6 +143,43 @@ describe("an online game", () => {
 		});
 	});
 
+	describe("a concession", () => {
+		it("gives Victory to the Opponent of a player who Resigns", () => {
+			const game = gameInPlay();
+			expect(game.concede("red", "resigned")).toEqual({ accepted: true });
+
+			expect(game.phase()).toBe("over");
+			expect(game.viewOf("red").result).toEqual({ status: "green_wins", reason: "resigned" });
+			expect(game.finalBoard()).toHaveLength(36);
+		});
+
+		it("gives Victory to the Opponent of a player who Forfeits", () => {
+			const game = gameInPlay();
+			game.concede("green", "forfeited");
+			expect(game.viewOf("green").result).toEqual({ status: "red_wins", reason: "forfeited" });
+		});
+
+		it("is refused during Setup", () => {
+			expect(OnlineGame.open(SEATING).concede("red", "resigned")).toEqual({
+				accepted: false,
+				reason: "game_not_started",
+			});
+		});
+
+		it("is refused once the game is over", () => {
+			const game = gameInPlay();
+			game.play("red", WINNING_MOVE);
+			expect(game.concede("green", "resigned")).toEqual({ accepted: false, reason: "game_over" });
+			expect(game.viewOf("green").result).toEqual({ status: "red_wins", reason: "princess_captured" });
+		});
+
+		it("ends any further play", () => {
+			const game = gameInPlay();
+			game.concede("green", "resigned");
+			expect(game.play("red", parseMove("c3-c4"))).toEqual({ accepted: false, reason: "game_over" });
+		});
+	});
+
 	describe("its record", () => {
 		it("rebuilds the same game during Setup", () => {
 			const game = OnlineGame.open(SEATING);
@@ -165,6 +202,22 @@ describe("an online game", () => {
 				expect(rebuilt.viewOf(side)).toEqual(game.viewOf(side));
 			}
 			expect(rebuilt.history()).toEqual(game.history());
+		});
+
+		it("rebuilds a game someone Resigned", () => {
+			const game = gameInPlay();
+			game.play("red", parseMove("c3-c4"));
+			game.concede("green", "resigned");
+			const rebuilt = OnlineGame.fromRecord(JSON.parse(JSON.stringify(game.toRecord())));
+
+			expect(rebuilt.phase()).toBe("over");
+			expect(rebuilt.viewOf("red")).toEqual(game.viewOf("red"));
+			expect(rebuilt.toRecord()).toEqual(game.toRecord());
+		});
+
+		it("refuses a record with a concession before play", () => {
+			const record = OnlineGame.open(SEATING).toRecord();
+			expect(() => OnlineGame.fromRecord({ ...record, concession: { loser: "red", reason: "resigned" } })).toThrow();
 		});
 
 		it("refuses a record whose Moves cannot be replayed", () => {

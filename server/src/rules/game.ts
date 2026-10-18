@@ -1,7 +1,7 @@
 import type { Board, ReadonlyBoard } from "./board";
 import type { Fight } from "./fight";
 import { resolveFight } from "./fight-outcome";
-import { IN_PROGRESS, isOver, type GameResult } from "./game-result";
+import { IN_PROGRESS, isOver, victoryOf, type ConcessionReason, type GameResult } from "./game-result";
 import type { Move } from "./move";
 import type { MoveRecord } from "./move-record";
 import { movementRuleFor } from "./movement-catalog";
@@ -99,6 +99,13 @@ export class Game implements PositionAfterMove {
 		const record = this.play(move);
 		this.outcome = judgeAfterMove(this, record);
 		return { accepted: true, record };
+	}
+
+	/** Gives Victory to the opponent of [loser]. Does nothing once the game is over. */
+	concede(loser: Side, reason: ConcessionReason): void {
+		if (!isOver(this.outcome)) {
+			this.outcome = victoryOf(opponentOf(loser), reason);
+		}
 	}
 
 	private play(move: Move): MoveRecord {
