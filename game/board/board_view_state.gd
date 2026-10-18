@@ -14,3 +14,9 @@ var selected: Vector2i = NO_SQUARE
 var destinations: Array[Vector2i] = []
 ## The last Move played, or null.
 var last_move: Move = null
+## During Setup: covers the enemy's rows with stripes and this label, since
+## their Army stays hidden.
+var cover_enemy_zone: bool = false
+var enemy_zone_label: String = ""
+## Draws the green Army blue, for colour-blind players.
+var adapted_colours: bool = false
