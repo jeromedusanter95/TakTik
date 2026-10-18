@@ -4,7 +4,7 @@ import { OnlineGame } from "../referee/online-game";
 import { RefereeSession } from "../referee/referee-session";
 import type { Seating } from "../referee/seating";
 import { DurableObjectAbsenceStore } from "./durable-object-absence-store";
-import { DurableObjectForfeitAlarm } from "./durable-object-forfeit-alarm";
+import { DurableObjectRefereeAlarm } from "./durable-object-referee-alarm";
 import { DurableObjectGameStore } from "./durable-object-game-store";
 import { RandomLobbyDraws } from "./random-lobby-draws";
 import { RefereeGameOpener } from "./referee-game-opener";
@@ -16,7 +16,7 @@ const SYSTEM_CLOCK = { now: (): number => Date.now() };
 /**
  * The referee of one online game. Its record and who is away are reloaded
  * whenever the object wakes, since hibernation wipes memory; the sockets and
- * the forfeit alarm survive it.
+ * the alarm survive it.
  */
 export class Referee extends DurableObject<Env> {
 	private readonly store: DurableObjectGameStore;
@@ -65,7 +65,7 @@ export class Referee extends DurableObject<Env> {
 	}
 
 	override async alarm(): Promise<void> {
-		await this.session?.forfeitOverdue();
+		await this.session?.alarmRang();
 	}
 
 	private startSession(game: OnlineGame, absences: AbsenceRecord): void {
@@ -73,15 +73,10 @@ export class Referee extends DurableObject<Env> {
 			forfeitAfterMs: Number(this.env.FORFEIT_AFTER_SECONDS) * 1_000,
 			clock: SYSTEM_CLOCK,
 			store: this.absences,
-			alarm: new DurableObjectForfeitAlarm(this.ctx.storage),
 		});
+		const connections = new WebSocketSeatConnections(this.ctx);
+		const alarm = new DurableObjectRefereeAlarm(this.ctx.storage);
 		const rematchMaker = new RefereeRematchMaker(new RefereeGameOpener(this.env.REFEREE), new RandomLobbyDraws());
-		this.session = new RefereeSession(
-			game,
-			new WebSocketSeatConnections(this.ctx),
-			this.store,
-			forfeitWatch,
-			rematchMaker,
-		);
+		this.session = new RefereeSession(game, connections, this.store, forfeitWatch, alarm, rematchMaker);
 	}
 }

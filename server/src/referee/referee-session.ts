@@ -9,6 +9,7 @@ import {
 	type RefereeRefusal,
 	type RefereeReply,
 } from "./protocol";
+import type { RefereeAlarm } from "./referee-alarm";
 import type { OpenedRematch, RematchMaker } from "./rematch-maker";
 
 /** The open sockets of one game and the side each one has taken. */
@@ -46,6 +47,7 @@ export class RefereeSession<Connection> {
 		private readonly connections: SeatConnections<Connection>,
 		private readonly store: GameStore,
 		private readonly forfeitWatch: ForfeitWatch,
+		private readonly alarm: RefereeAlarm,
 		private readonly rematchMaker: RematchMaker,
 	) {}
 
@@ -95,17 +97,17 @@ export class RefereeSession<Connection> {
 		}
 		await this.forfeitWatch.left(side);
 		this.tellOpponentOf(side, { type: "opponent_presence", connected: false });
-		await this.forfeitWatch.arm(this.isPlaying());
+		await this.scheduleAlarm();
 	}
 
-	/** Forfeits the player who has stayed away too long, if anyone has. Called when the forfeit alarm rings. */
-	async forfeitOverdue(): Promise<void> {
+	/** Forfeits the player who has stayed away too long, if anyone has, and sets the alarm again. */
+	async alarmRang(): Promise<void> {
 		const absent = this.forfeitWatch.overdue();
 		if (absent !== undefined && this.game.concede(absent, "forfeited").accepted) {
 			await this.endByConcession();
 			return;
 		}
-		await this.forfeitWatch.arm(this.isPlaying());
+		await this.scheduleAlarm();
 	}
 
 	private async takeSeat(connection: Connection, seatToken: string, currentSide: Side | undefined): Promise<void> {
@@ -132,7 +134,7 @@ export class RefereeSession<Connection> {
 		if (this.forfeitWatch.isAway(side)) {
 			await this.forfeitWatch.returned(side);
 			this.tellOpponentOf(side, { type: "opponent_presence", connected: true });
-			await this.forfeitWatch.arm(this.isPlaying());
+			await this.scheduleAlarm();
 		}
 		if (this.forfeitWatch.isAway(opponentOf(side))) {
 			this.connections.send(connection, { type: "opponent_presence", connected: false });
@@ -147,7 +149,7 @@ export class RefereeSession<Connection> {
 		}
 		await this.store.save(this.game.toRecord());
 		this.tellBothSides((viewer) => this.stateFor(viewer));
-		await this.forfeitWatch.arm(this.isPlaying());
+		await this.scheduleAlarm();
 	}
 
 	private async play(connection: Connection, side: Side, move: Move): Promise<void> {
@@ -164,8 +166,8 @@ export class RefereeSession<Connection> {
 			view: this.game.viewOf(viewer),
 			...(finalBoard === undefined ? {} : { finalBoard }),
 		}));
-		if (!this.isPlaying()) {
-			await this.forfeitWatch.arm(false);
+		if (finalBoard !== undefined) {
+			await this.scheduleAlarm();
 		}
 	}
 
@@ -224,11 +226,13 @@ export class RefereeSession<Connection> {
 	private async endByConcession(): Promise<void> {
 		await this.store.save(this.game.toRecord());
 		this.tellBothSides((viewer) => this.stateFor(viewer));
-		await this.forfeitWatch.arm(false);
+		await this.scheduleAlarm();
 	}
 
-	private isPlaying(): boolean {
-		return this.game.phase() === "playing";
+	/** Sets the alarm for the next deadline: a Forfeit while play goes on, none otherwise. */
+	private async scheduleAlarm(): Promise<void> {
+		const playing = this.game.phase() === "playing";
+		await this.alarm.setFor(playing ? this.forfeitWatch.firstDeadline() : undefined);
 	}
 
 	/** Where the game stands for [side]: the Setup progress, or the game so far. */

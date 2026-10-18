@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { parseMove } from "../../src/rules/board-notation";
 import type { Side } from "../../src/rules/side";
-import { ForfeitWatch, type AbsenceRecord, type AbsenceStore, type Clock, type ForfeitAlarm } from "../../src/referee/forfeit-watch";
+import type { Clock } from "../../src/referee/clock";
+import { ForfeitWatch, type AbsenceRecord, type AbsenceStore } from "../../src/referee/forfeit-watch";
 import { OnlineGame, type GameRecord } from "../../src/referee/online-game";
 import type { RefereeRefusal, RefereeReply } from "../../src/referee/protocol";
+import type { RefereeAlarm } from "../../src/referee/referee-alarm";
 import { RefereeSession, type GameStore, type SeatConnections } from "../../src/referee/referee-session";
 import type { OpenedRematch, RematchMaker } from "../../src/referee/rematch-maker";
 import { GREEN_SETUP, placementsOf, RED_SETUP, SEATING, WINNING_MOVE } from "./fixtures";
@@ -91,7 +93,7 @@ class FakeAbsences implements AbsenceStore {
 	}
 }
 
-class FakeAlarm implements ForfeitAlarm {
+class FakeAlarm implements RefereeAlarm {
 	time: number | undefined;
 
 	async setFor(time: number | undefined): Promise<void> {
@@ -124,7 +126,7 @@ describe("a Referee session", () => {
 	let rematches: FakeRematchMaker;
 
 	function watchFrom(record: AbsenceRecord): ForfeitWatch {
-		return new ForfeitWatch(record, { forfeitAfterMs: FORFEIT_AFTER_MS, clock, store: absences, alarm });
+		return new ForfeitWatch(record, { forfeitAfterMs: FORFEIT_AFTER_MS, clock, store: absences });
 	}
 
 	beforeEach(() => {
@@ -135,7 +137,7 @@ describe("a Referee session", () => {
 		alarm = new FakeAlarm();
 		clock = new FakeClock();
 		rematches = new FakeRematchMaker();
-		session = new RefereeSession(game, seats, store, watchFrom({}), rematches);
+		session = new RefereeSession(game, seats, store, watchFrom({}), alarm, rematches);
 	});
 
 	/** The socket closing, as the server sees it. */
@@ -397,7 +399,7 @@ describe("a Referee session", () => {
 			await startPlay();
 			await drop("bob");
 			clock.time += FORFEIT_AFTER_MS;
-			await session.forfeitOverdue();
+			await session.alarmRang();
 
 			expect(seats.lastReplyTo("ada")).toMatchObject({
 				type: "game_state",
@@ -412,7 +414,7 @@ describe("a Referee session", () => {
 			await startPlay();
 			await drop("bob");
 			clock.time += FORFEIT_AFTER_MS - 1;
-			await session.forfeitOverdue();
+			await session.alarmRang();
 
 			expect(game.phase()).toBe("playing");
 			expect(alarm.time).toBe(1_000 + FORFEIT_AFTER_MS);
@@ -424,7 +426,7 @@ describe("a Referee session", () => {
 			clock.time += 10;
 			await drop("bob");
 			clock.time += FORFEIT_AFTER_MS;
-			await session.forfeitOverdue();
+			await session.alarmRang();
 
 			expect(game.viewOf("green").result).toEqual({ status: "green_wins", reason: "forfeited" });
 		});
@@ -443,9 +445,9 @@ describe("a Referee session", () => {
 			await startPlay();
 			await drop("bob");
 			const rebuilt = OnlineGame.fromRecord(game.toRecord());
-			const restarted = new RefereeSession(rebuilt, seats, store, watchFrom(absences.saved), rematches);
+			const restarted = new RefereeSession(rebuilt, seats, store, watchFrom(absences.saved), alarm, rematches);
 			clock.time += FORFEIT_AFTER_MS;
-			await restarted.forfeitOverdue();
+			await restarted.alarmRang();
 
 			expect(rebuilt.viewOf("red").result).toEqual({ status: "red_wins", reason: "forfeited" });
 		});

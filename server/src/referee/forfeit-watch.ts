@@ -1,4 +1,5 @@
 import { SIDES, type Side } from "../rules/side";
+import type { Clock } from "./clock";
 
 /** When each side that is away lost its last socket, in milliseconds since the epoch. Plain data, so it can be stored. */
 export type AbsenceRecord = Readonly<Partial<Record<Side, number>>>;
@@ -8,27 +9,16 @@ export interface AbsenceStore {
 	saveAbsences(record: AbsenceRecord): Promise<void>;
 }
 
-/** Wakes the referee at a set time, to Forfeit whoever stayed away too long. */
-export interface ForfeitAlarm {
-	/** Replaces any earlier alarm; undefined cancels it. */
-	setFor(time: number | undefined): Promise<void>;
-}
-
-export interface Clock {
-	now(): number;
-}
-
-/** What a ForfeitWatch needs from outside: the delay and the ports it uses. */
+/** What a ForfeitWatch needs from outside: the delay, the time and where absences are kept. */
 export interface ForfeitWatchSettings {
 	readonly forfeitAfterMs: number;
 	readonly clock: Clock;
 	readonly store: AbsenceStore;
-	readonly alarm: ForfeitAlarm;
 }
 
 /**
- * Knows which players are disconnected and since when, and keeps an alarm set
- * for the moment the first of them has been away long enough to Forfeit.
+ * Knows which players are disconnected and since when, and so when the first
+ * of them will have been away long enough to Forfeit.
  */
 export class ForfeitWatch {
 	private readonly awaySince: Map<Side, number>;
@@ -65,10 +55,9 @@ export class ForfeitWatch {
 		return this.byDeadline().find(([, deadline]) => deadline <= now)?.[0];
 	}
 
-	/** Sets the alarm for the first deadline while play goes on; cancels it otherwise. */
-	async arm(playing: boolean): Promise<void> {
-		const first = playing ? this.byDeadline()[0]?.[1] : undefined;
-		await this.settings.alarm.setFor(first);
+	/** When the longest absent player will have been away long enough to Forfeit, or undefined when no one is away. */
+	firstDeadline(): number | undefined {
+		return this.byDeadline()[0]?.[1];
 	}
 
 	private byDeadline(): [Side, number][] {
