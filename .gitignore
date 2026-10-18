@@ -10,3 +10,6 @@ docs/reference/
 
 # Web export output
 build/
+
+# Compiled from game/locale/translations.csv on import
+*.translation

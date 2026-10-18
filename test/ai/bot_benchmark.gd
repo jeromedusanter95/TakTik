@@ -117,7 +117,7 @@ func _play_one(first: BotProfile, second: BotProfile, first_side: Side.Id, seed_
 
 
 func _timed_turn(bot: Bot, game: Game) -> Move:
-	var name: String = bot.profile().display_name
+	var name: String = Translated.text(bot.profile().display_name)
 	var turn_start: int = Time.get_ticks_usec()
 	var thinking: BotThinking = bot.start_thinking(PlayerView.of(game, bot.side()))
 	while not thinking.is_done():

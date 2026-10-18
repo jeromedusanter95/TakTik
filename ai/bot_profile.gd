@@ -2,6 +2,7 @@ class_name BotProfile
 extends Resource
 ## The tunable settings of one Difficulty.
 
+## Translation key of the Difficulty name, for example "DIFFICULTY_EASY".
 @export var display_name: String = ""
 ## How many Moves ahead each sampled world is searched (1 = only the Bot's
 ## own Move).

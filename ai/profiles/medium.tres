@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-display_name = "Medium"
+display_name = "DIFFICULTY_MEDIUM"
 search_depth = 2
 sample_count = 6
 mistake_chance = 0.1

@@ -7,6 +7,7 @@ var _menu: MainMenu = null
 
 
 func before_each() -> void:
+	TranslationServer.set_locale(Languages.ENGLISH)
 	var instance: Node = MainMenuScene.instantiate()
 	if instance is not MainMenu:
 		fail_test("main_menu.tscn root should be a MainMenu")
@@ -40,6 +41,27 @@ func test_a_difficulty_button_reports_its_profile() -> void:
 	_menu.show_difficulties([_profile("Easy"), hard])
 	_bot_buttons()[1].pressed.emit()
 	assert_signal_emitted_with_parameters(_menu, "bot_chosen", [hard])
+
+
+func test_difficulty_buttons_follow_the_language() -> void:
+	_menu.show_difficulties([_profile("DIFFICULTY_EASY")])
+	assert_eq(_bot_buttons()[0].text, "Easy Bot")
+	TranslationServer.set_locale("fr")
+	assert_eq(_bot_buttons()[0].text, "Bot Facile")
+
+
+func test_the_language_button_reports_the_request() -> void:
+	_button("%LanguageButton").pressed.emit()
+	assert_signal_emitted(_menu, "language_switch_requested")
+
+
+func test_the_language_button_shows_the_name_it_is_given() -> void:
+	_menu.show_language_switch("Français")
+	assert_eq(_button("%LanguageButton").text, "Français")
+
+
+func after_all() -> void:
+	TranslationServer.set_locale(Languages.ENGLISH)
 
 
 func _profile(display_name: String) -> BotProfile:
