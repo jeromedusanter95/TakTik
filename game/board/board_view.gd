@@ -22,6 +22,8 @@ const SELECTED_BOB: Vector2 = Vector2(-4.0, -9.0)
 const SELECTED_SCALE: float = 1.07
 const PIECE_SHADOW_OFFSET: Vector2 = Vector2(0.0, 5.0)
 const PIECE_SHADOW: Color = Color(0.0, 0.0, 0.0, 0.35)
+## How visible a Piece is on the target of a Move still on its way.
+const PENDING_ALPHA: float = 0.5
 
 ## The largest and smallest a Square may be drawn.
 @export var max_cell: float = UiTokens.CELL_MATCH
@@ -69,6 +71,7 @@ func _draw() -> void:
 	for row: int in Board.ROWS:
 		for column: int in Board.COLUMNS:
 			_draw_piece_on(Vector2i(column, row), geometry)
+	_draw_pending_move(geometry)
 	_draw_cursor(geometry)
 	_draw_labels(geometry)
 
@@ -134,6 +137,21 @@ func play_swap(first: Vector2i, second: Vector2i) -> void:
 
 ## The picture of the Piece on [param square] as the viewer sees it now, or
 ## null when the Square is empty.
+## Animates the viewer's Pieces sliding from [param before] to the
+## arrangement shown now.
+func play_shuffle(before: Board) -> void:
+	_motion.reduced_motion = reduced_motion
+	_hidden_squares = _state.board.squares_of(_state.viewer)
+	queue_redraw()
+	_motion.play_shuffle(before, self)
+
+
+## The global rectangle of the Piece on [param square].
+func global_piece_rect(square: Vector2i) -> Rect2:
+	var rect: Rect2 = geometry().piece_rect_of(square)
+	return Rect2(get_global_transform() * rect.position, rect.size * get_global_transform().get_scale())
+
+
 func picture_of(square: Vector2i) -> Texture2D:
 	var piece: Piece = _state.board.piece_at(square)
 	if piece == null:
@@ -232,6 +250,8 @@ func _draw_piece_on(square: Vector2i, geometry: BoardGeometry) -> void:
 	var piece: Piece = _state.board.piece_at(square)
 	if piece == null or square in _hidden_squares:
 		return
+	if _state.pending_move != null and square == _state.pending_move.from:
+		return
 	var rect: Rect2 = geometry.piece_rect_of(square)
 	if square == _state.selected and not reduced_motion:
 		var bob: float = (sin(_seconds() * TAU / SELECTION_PERIOD) + 1.0) / 2.0
@@ -243,6 +263,17 @@ func _draw_piece_on(square: Vector2i, geometry: BoardGeometry) -> void:
 	draw_texture_rect(texture, rect, false)
 	if _shows_type(piece):
 		_draw_strength_badge(piece.type, geometry.rect_of(square))
+
+
+## The Piece of a Move still on its way, faded on its target.
+func _draw_pending_move(geometry: BoardGeometry) -> void:
+	var move: Move = _state.pending_move
+	if move == null:
+		return
+	var piece: Piece = _state.board.piece_at(move.from)
+	if piece == null:
+		return
+	draw_texture_rect(_texture_for(piece), geometry.piece_rect_of(move.to), false, Color(1.0, 1.0, 1.0, PENDING_ALPHA))
 
 
 ## "attack/defense" in a small dark pill along the bottom of the Square, so

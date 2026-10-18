@@ -9,6 +9,9 @@ extends Control
 ## The Guest leaves the game for the Lobby.
 signal lobby_requested
 
+## How long a Move may wait for the referee before the top bar says the
+## connection is slow.
+const SLOW_AFTER_MSEC: int = 3_000
 ## How long the referee gives, to draw the timer rings in proportion.
 const SETUP_SECONDS: int = 180
 const TURN_SECONDS: int = 60
@@ -23,6 +26,8 @@ var _rng: RandomNumberGenerator = null
 var _ticks_msec: Callable = Callable()
 var _nickname: String = ""
 var _session: OnlineSession = null
+## Keeps this Guest listed in the Lobby as in a game while they play.
+var _presence: LobbyClient = null
 var _selected: Vector2i = BoardViewState.NO_SQUARE
 ## The timer seconds on screen, redrawn only when they change.
 var _shown_seconds_left: int = OnlineSession.NO_TIMER
@@ -33,6 +38,10 @@ var _setup_announced: bool = false
 var _random_setup_announced: bool = false
 var _result_shown: bool = false
 var _retry_index: int = 0
+## The Move sent and not answered yet, and when it left, or null.
+var _pending_move: Move = null
+var _pending_since_msec: int = 0
+var _shown_slow: bool = false
 ## Seconds until the next reconnection try, or a negative number for none.
 var _retry_in: float = -1.0
 
@@ -56,6 +65,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _presence != null:
+		_presence.poll()
 	if _session == null:
 		return
 	_session.poll()
@@ -65,7 +76,7 @@ func _process(delta: float) -> void:
 		_retry_in -= delta
 		if _retry_in < 0.0:
 			_session.reconnect()
-	if _seconds_left() != _shown_seconds_left:
+	if _seconds_left() != _shown_seconds_left or _is_slow() != _shown_slow:
 		_refresh()
 
 
@@ -86,6 +97,14 @@ func use_preferences(preferences: PlayerPreferences) -> void:
 	_screen.use_preferences(preferences)
 
 
+func use_sound(sound: SoundOutput) -> void:
+	_screen.use_sound(sound)
+
+
+func set_layout(layout: ScreenLayout.Id) -> void:
+	_screen.set_layout(layout)
+
+
 func set_phone(phone: bool) -> void:
 	_screen.set_phone(phone)
 
@@ -94,10 +113,20 @@ func set_phone(phone: bool) -> void:
 func play(seat: PairedSeat, nickname: String) -> void:
 	_nickname = nickname
 	_join_game(seat)
+	_presence = LobbyClient.new(_new_socket())
+	_presence.failed.connect(_on_presence_failed)
+	_presence.enter(_server_url, nickname, true)
 
 
-## Leaves any game.
+## Leaves any game, and the Lobby listing.
 func leave() -> void:
+	_leave_game()
+	if _presence != null:
+		_presence.leave()
+		_presence = null
+
+
+func _leave_game() -> void:
 	_retry_in = -1.0
 	if _session != null:
 		_session.leave()
@@ -106,13 +135,14 @@ func leave() -> void:
 
 ## Leaves any game and takes [param seat] in a new one.
 func _join_game(seat: PairedSeat) -> void:
-	leave()
+	_leave_game()
 	_selected = BoardViewState.NO_SQUARE
 	_shown_moves = 0
 	_was_own_turn = false
 	_setup_announced = false
 	_random_setup_announced = false
 	_result_shown = false
+	_pending_move = null
 	_retry_index = 0
 	_screen.close_overlays()
 	_screen.clear_chat()
@@ -126,6 +156,11 @@ func _join_game(seat: PairedSeat) -> void:
 	_session.connect_to(_server_url)
 
 
+## Being listed is a courtesy to the others; the game goes on without it.
+func _on_presence_failed(_reason: String) -> void:
+	_presence = null
+
+
 func _back_to_lobby() -> void:
 	leave()
 	_screen.close_overlays()
@@ -133,6 +168,8 @@ func _back_to_lobby() -> void:
 
 
 func _on_session_changed() -> void:
+	if not _session.is_awaiting_answer():
+		_pending_move = null
 	_show_new_moves()
 	_announce_setup()
 	_follow_connection()
@@ -181,6 +218,8 @@ func _press_during_play(square: Vector2i) -> void:
 	if is_own_piece and square != _selected:
 		_selected = square
 	elif _selected != BoardViewState.NO_SQUARE and _session.play(Move.new(_selected, square)):
+		_pending_move = Move.new(_selected, square)
+		_pending_since_msec = _now_msec()
 		_selected = BoardViewState.NO_SQUARE
 	else:
 		_selected = BoardViewState.NO_SQUARE
@@ -188,9 +227,10 @@ func _press_during_play(square: Vector2i) -> void:
 
 
 func _on_shuffle_pressed() -> void:
-	_session.shuffle_setup()
+	var before: Board = _session.display_board()
 	_selected = BoardViewState.NO_SQUARE
-	_refresh()
+	_session.shuffle_setup()
+	_screen.play_shuffle(before)
 
 
 func _on_action_pressed() -> void:
@@ -350,7 +390,10 @@ func _show_status() -> void:
 	var opponent_turn: bool = (
 		phase == OnlineSession.Phase.PLAYING and not _session.is_own_turn() and not _session.is_awaiting_answer()
 	)
-	_screen.show_status(text, UiTokens.GREEN_400 if opponent_turn else Color.TRANSPARENT, opponent_turn)
+	_shown_slow = _is_slow()
+	if _shown_slow:
+		text = Translated.text(&"ONLINE_SLOW")
+	_screen.show_status(text, UiTokens.AMBER_400 if _shown_slow else (UiTokens.GREEN_400 if opponent_turn else Color.TRANSPARENT), opponent_turn)
 	var setup_seconds: int = _session.setup_seconds_left()
 	var turn_seconds: int = _session.turn_seconds_left()
 	if setup_seconds != OnlineSession.NO_TIMER:
@@ -415,12 +458,23 @@ func _board_state() -> BoardViewState:
 	state.selected = _selected
 	var last: PublicMoveEvent = _session.last_event()
 	state.last_move = last.move if last != null else null
+	state.pending_move = _pending_move
 	if _session.position() == null:
 		state.cover_enemy_zone = true
 		state.enemy_zone_label = Translated.text(&"ZONE_HIDDEN", {"name": _session.opponent()})
 	elif _selected != BoardViewState.NO_SQUARE:
 		state.destinations = _session.legal_destinations(_selected)
 	return state
+
+
+## True once a Move has waited for the referee longer than SLOW_AFTER_MSEC.
+func _is_slow() -> bool:
+	return _pending_move != null and _now_msec() - _pending_since_msec >= SLOW_AFTER_MSEC
+
+
+func _now_msec() -> int:
+	var now: Variant = _ticks_msec.call()
+	return now if now is int else 0
 
 
 func _last_fight() -> PublicMoveEvent:
@@ -431,10 +485,12 @@ func _last_fight() -> PublicMoveEvent:
 	return null
 
 
-## The seconds left on whichever timer runs: at most one of them does, and the
-## other is OnlineSession.NO_TIMER, which is lower than any time left.
+## A number that changes whenever a countdown on screen does: the Setup or
+## Turn Timer (at most one runs, the other is OnlineSession.NO_TIMER) and an
+## away Opponent's Forfeit.
 func _seconds_left() -> int:
-	return maxi(_session.setup_seconds_left(), _session.turn_seconds_left())
+	var timer: int = maxi(_session.setup_seconds_left(), _session.turn_seconds_left())
+	return timer * 10_000 + _session.opponent_forfeit_seconds_left()
 
 
 func _new_socket() -> WireSocket:

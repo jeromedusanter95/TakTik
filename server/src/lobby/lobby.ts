@@ -17,6 +17,8 @@ export interface GuestState {
 	readonly enteredAt: number;
 	/** True while they wait for a Quick Match. */
 	readonly waiting: boolean;
+	/** True for a Guest playing an online game, listed so others see them busy. */
+	readonly inGame: boolean;
 	/** The Guest they sent a Challenge to, if any. */
 	readonly challenging?: string;
 }
@@ -87,7 +89,7 @@ export class Lobby<Connection> {
 		}
 		const request = parse.request;
 		if (request.type === "enter") {
-			this.enter(connection, request.nickname, entered);
+			this.enter(connection, request.nickname, request.inGame, entered);
 			return;
 		}
 		if (!entered) {
@@ -96,6 +98,10 @@ export class Lobby<Connection> {
 		}
 		const guest = this.guestOn(connection);
 		if (guest === undefined) {
+			return;
+		}
+		if (guest.inGame) {
+			this.connections.send(connection, { type: "refused", reason: "in_game" });
 			return;
 		}
 		switch (request.type) {
@@ -138,13 +144,13 @@ export class Lobby<Connection> {
 		this.connections.refuseAndClose(connection, reason);
 	}
 
-	private enter(connection: Connection, nickname: string, entered: boolean): void {
+	private enter(connection: Connection, nickname: string, inGame: boolean, entered: boolean): void {
 		if (entered) {
 			this.connections.send(connection, { type: "refused", reason: "already_entered" });
 			return;
 		}
 		const guestId = this.draws.guestId();
-		this.connections.setState(connection, { guestId, nickname, enteredAt: this.clock.now(), waiting: false });
+		this.connections.setState(connection, { guestId, nickname, enteredAt: this.clock.now(), waiting: false, inGame });
 		this.connections.send(connection, { type: "entered", guestId });
 		this.listGuests();
 	}
@@ -171,6 +177,10 @@ export class Lobby<Connection> {
 		const target = this.guests().find((other) => other.guestId === targetId && other.connection !== sender.connection);
 		if (target === undefined) {
 			this.connections.send(sender.connection, { type: "refused", reason: "unknown_guest" });
+			return;
+		}
+		if (target.inGame) {
+			this.connections.send(sender.connection, { type: "challenge_ended", guestId: targetId, reason: "busy" });
 			return;
 		}
 		if (sender.challenging !== targetId) {
@@ -275,7 +285,7 @@ export class Lobby<Connection> {
 			const others: ListedGuest[] = guests
 				.filter((other) => other.connection !== viewer.connection)
 				.slice(0, MAX_LISTED_GUESTS)
-				.map(({ guestId, nickname, waiting }) => ({ guestId, nickname, waiting }));
+				.map(({ guestId, nickname, waiting, inGame }) => ({ guestId, nickname, waiting, inGame }));
 			this.connections.send(viewer.connection, { type: "guests", guests: others });
 		}
 	}
@@ -294,8 +304,8 @@ export class Lobby<Connection> {
 	}
 
 	private update(guest: LobbyGuest<Connection>, change: GuestChange): void {
-		const { guestId, nickname, enteredAt, waiting, challenging } = this.refreshed(guest);
-		const next = { guestId, nickname, enteredAt, waiting: change.waiting ?? waiting };
+		const { guestId, nickname, enteredAt, waiting, inGame, challenging } = this.refreshed(guest);
+		const next = { guestId, nickname, enteredAt, waiting: change.waiting ?? waiting, inGame };
 		const challenge = "challenging" in change ? change.challenging : challenging;
 		this.connections.setState(guest.connection, challenge === undefined ? next : { ...next, challenging: challenge });
 	}

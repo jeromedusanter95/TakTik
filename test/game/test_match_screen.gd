@@ -86,3 +86,56 @@ func test_the_menu_button_opens_the_game_menu() -> void:
 	button.pressed.emit()
 	var menu: Control = _screen.get_node("%GameMenu")
 	assert_true(menu.visible)
+
+
+func test_a_fight_flies_the_loser_to_its_losses_tray() -> void:
+	var event: PublicMoveEvent = PublicMoveEvent.of_move(
+		Side.Id.RED, Move.new(Vector2i(1, 2), Vector2i(1, 3))
+	).with_fight(PieceType.Id.KNIGHT, PieceType.Id.SOLDIER, FightOutcome.Id.ATTACKER_WINS)
+	_screen.play_move(event)
+	var flight: Control = _screen.get_node("%CaptureFlight")
+	await wait_seconds(BoardMotion.FIGHT_SECONDS + 0.1)
+	assert_eq(flight.get_child_count(), 1, "the beaten Soldier is in the air")
+	await wait_seconds(CaptureFlight.FLIGHT_TIME + 0.2)
+	assert_eq(flight.get_child_count(), 0, "and has landed")
+
+
+func test_hiding_the_chat_drops_the_opponents_messages_for_this_game() -> void:
+	_screen.set_chat_enabled(true)
+	var menu: GameMenu = _screen.get_node("%GameMenu")
+	menu.chat_hidden_changed.emit(true)
+	_screen.add_chat("Bob", "Oops!", false)
+	_screen.add_chat("You", "Thanks!", true)
+	var panel: ChatPanel = _screen.get_node("%ChatPanel")
+	var texts: Array[String] = []
+	for label: Node in panel.get_node("%Messages").find_children("*", "Label", true, false):
+		texts.append((label as Label).text)
+	assert_false("Oops!" in texts)
+	assert_true("Thanks!" in texts)
+	_screen.clear_chat()
+	_screen.add_chat("Bob", "Hello!", false)
+	assert_eq(panel.message_count(), 1, "a new game shows them again")
+
+
+func test_medium_screens_fold_the_cards_into_strips_and_keep_a_narrower_chat() -> void:
+	_screen.set_chat_enabled(true)
+	_screen.set_layout(ScreenLayout.Id.MEDIUM)
+	assert_false((_screen.get_node("%LeftColumn") as Control).visible)
+	assert_true((_screen.get_node("%OpponentStrip") as Control).visible)
+	var column: Control = _screen.get_node("%RightColumn")
+	assert_true(column.visible)
+	assert_eq(column.custom_minimum_size.x, 320.0)
+
+
+func test_narrow_screens_open_the_chat_as_a_drawer_from_the_right() -> void:
+	_screen.set_chat_enabled(true)
+	_screen.set_layout(ScreenLayout.Id.NARROW)
+	assert_false((_screen.get_node("%RightColumn") as Control).visible)
+	var chat_button: Control = _screen.get_node("%TopBar").get_node("%ChatButton")
+	assert_true(chat_button.visible)
+	var sheet: ChatSheet = _screen.get_node("%ChatSheet")
+	var panel: Node = _screen.get_node("%ChatPanel")
+	assert_true(sheet.body().is_ancestor_of(panel))
+	var drawer: Control = sheet.get_node("%Sheet")
+	assert_eq(drawer.anchor_left, 1.0, "anchored to the right edge")
+	assert_eq(drawer.theme_type_variation, &"Drawer")

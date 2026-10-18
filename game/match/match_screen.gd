@@ -44,13 +44,18 @@ enum Phase {
 const BOARD_DIM: float = 0.4
 const PHONE_MAX_CELL: float = 64.0
 const PHONE_MIN_CELL: float = 48.0
+## The chat column between 1024 and 1279 pixels.
+const MEDIUM_CHAT_WIDTH: int = 320
 
 var _preferences: PlayerPreferences = null
-var _phone: bool = false
+var _sound: SoundOutput = null
+var _layout: ScreenLayout.Id = ScreenLayout.Id.WIDE
 var _has_chat: bool = true
 var _resign_allowed: bool = false
 var _phase: Phase = Phase.SETUP
 var _unread: int = 0
+## The Opponent's messages are hidden for this game.
+var _chat_hidden: bool = false
 
 @onready var _top_bar: TopBar = %TopBar
 @onready var _body: MarginContainer = %Body
@@ -73,6 +78,7 @@ var _unread: int = 0
 @onready var _chat_bar: Button = %ChatBar
 @onready var _chat_bar_margin: MarginContainer = %ChatBarMargin
 @onready var _turn_banner: TurnBanner = %TurnBanner
+@onready var _capture_flight: CaptureFlight = %CaptureFlight
 @onready var _result_modal: ResultModal = %ResultModal
 @onready var _chat_sheet: ChatSheet = %ChatSheet
 @onready var _game_menu: GameMenu = %GameMenu
@@ -91,6 +97,7 @@ func _ready() -> void:
 	_chat_bar.pressed.connect(_open_chat_sheet)
 	_game_menu.resign_pressed.connect(_ask_to_resign)
 	_game_menu.quit_pressed.connect(_on_quit_pressed)
+	_game_menu.chat_hidden_changed.connect(_on_chat_hidden_changed)
 	_resign_dialog.primary_pressed.connect(_on_resign_confirmed)
 	_connection_dialog.primary_pressed.connect(_on_connection_retry)
 	_connection_dialog.secondary_pressed.connect(_on_connection_leave)
@@ -99,14 +106,21 @@ func _ready() -> void:
 	_chat_panel.quick_chat_chosen.connect(_on_quick_chat_chosen)
 	_chat_panel.message_added.connect(_on_message_added)
 	_chat_sheet.closed.connect(_on_chat_sheet_closed)
+	_top_bar.timer_beat.connect(_play.bind(SoundCue.Id.TICK))
 	_apply_layout()
 
 
 func use_preferences(preferences: PlayerPreferences) -> void:
 	_preferences = preferences
 	_game_menu.use_preferences(preferences)
+	_top_bar.use_preferences(preferences)
 	_preferences.changed.connect(_on_preferences_changed)
 	_apply_motion()
+
+
+## Where the game's sound cues go; without one the screen stays silent.
+func use_sound(sound: SoundOutput) -> void:
+	_sound = sound
 
 
 ## Whether the colour-blind palette is on.
@@ -135,15 +149,19 @@ func set_phase(phase: Phase) -> void:
 	_apply_board_size()
 
 
-func set_phone(phone: bool) -> void:
-	if phone == _phone:
+func set_layout(layout: ScreenLayout.Id) -> void:
+	if layout == _layout:
 		return
-	_phone = phone
+	_layout = layout
 	_apply_layout()
 
 
+func set_phone(phone: bool) -> void:
+	set_layout(ScreenLayout.Id.PHONE if phone else ScreenLayout.Id.WIDE)
+
+
 func is_phone() -> bool:
-	return _phone
+	return _layout == ScreenLayout.Id.PHONE
 
 
 # The top bar.
@@ -208,7 +226,7 @@ func show_last_fight(event: PublicMoveEvent) -> void:
 	_fight_strip_label.text = "%s · %s" % [
 		Translated.text(&"FIGHT_TITLE"), FightCard.result_text(event),
 	]
-	_fight_strip.visible = _phone and _phase != Phase.SETUP
+	_fight_strip.visible = _uses_strips() and not _has_chat_column() and _phase != Phase.SETUP
 
 
 func show_no_fight() -> void:
@@ -225,10 +243,21 @@ func show_board(state: BoardViewState) -> void:
 
 func play_move(event: PublicMoveEvent) -> void:
 	_board_view.play_move(event)
+	_play(SoundCue.Id.FIGHT if event.has_fight else SoundCue.Id.MOVE)
+	if event.has_fight:
+		get_tree().create_timer(BoardMotion.FIGHT_SECONDS).timeout.connect(_fly_captures.bind(event))
+
+
+## Animates the viewer's Pieces sliding to the arrangement shown now, from
+## [param before].
+func play_shuffle(before: Board) -> void:
+	_board_view.play_shuffle(before)
+	_play(SoundCue.Id.SWAP)
 
 
 func play_swap(first: Vector2i, second: Vector2i) -> void:
 	_board_view.play_swap(first, second)
+	_play(SoundCue.Id.SWAP)
 
 
 ## The buttons under the Board: Shuffle when [param shuffle], and the gold
@@ -246,13 +275,19 @@ func show_board_actions(shuffle: bool, action_text: String, enabled: bool) -> vo
 
 func clear_chat() -> void:
 	_chat_panel.clear()
+	_chat_hidden = false
 	_unread = 0
 	_top_bar.show_unread(0)
 	_chat_bar.text = Translated.text(&"CHAT_OPEN")
 
 
+## A Quick Chat bubble; the Opponent's are dropped while hidden.
 func add_chat(author: String, text: String, is_you: bool) -> void:
+	if _chat_hidden and not is_you:
+		return
 	_chat_panel.add_chat(author, text, is_you)
+	if not is_you:
+		_play(SoundCue.Id.CHAT)
 	_chat_bar.text = Translated.text(&"CHAT_LINE", {"name": author, "message": text})
 
 
@@ -276,10 +311,12 @@ func set_chips_enabled(enabled: bool) -> void:
 
 func play_turn_banner() -> void:
 	_turn_banner.play()
+	_play(SoundCue.Id.TURN)
 
 
 func show_result(view: MatchResultView) -> void:
 	_result_modal.present(view, adapted_colours())
+	_play(SoundCue.Id.VICTORY if view.mood == MatchResultView.Mood.VICTORY else SoundCue.Id.DEFEAT)
 	_board_view.modulate.a = BOARD_DIM
 
 
@@ -317,6 +354,53 @@ func close_overlays() -> void:
 	hide_result()
 
 
+## Flies each Piece [param event]'s Fight eliminated to its owner's losses.
+func _fly_captures(event: PublicMoveEvent) -> void:
+	_play(SoundCue.Id.CAPTURE)
+	if _preferences != null and _preferences.reduced_motion:
+		return
+	var viewer: Side.Id = _board_view.state().viewer
+	var eliminated: Dictionary[Side.Id, PieceType.Id] = event.eliminated_types()
+	for side: Side.Id in eliminated:
+		var square: Vector2i = event.move.from if side == event.mover_side else event.move.to
+		var badge: PlayerBadge = _shown_badge(MatchScreen.Slot.YOU if side == viewer else MatchScreen.Slot.OPPONENT)
+		_capture_flight.fly(
+			PieceArt.token(eliminated[side], side, adapted_colours()),
+			_board_view.global_piece_rect(square), badge.last_loss_rect(), badge.pulse_tray
+		)
+
+
+## The card on wide screens, the strip elsewhere.
+func _shown_badge(slot: Slot) -> PlayerBadge:
+	var badges: Array[PlayerBadge] = _badges(slot)
+	return badges[1] if _uses_strips() else badges[0]
+
+
+## Player strips around the Board instead of cards in a left column.
+func _uses_strips() -> bool:
+	return _layout != ScreenLayout.Id.WIDE
+
+
+## The chat in a column on the right, rather than in a drawer or a sheet.
+func _has_chat_column() -> bool:
+	return _has_chat and (_layout == ScreenLayout.Id.WIDE or _layout == ScreenLayout.Id.MEDIUM)
+
+
+## The chat opens over the game: a drawer from the right, or a bottom sheet
+## on phones.
+func _chat_in_drawer() -> bool:
+	return _layout == ScreenLayout.Id.NARROW or _layout == ScreenLayout.Id.PHONE
+
+
+func _chat_column_width() -> int:
+	return UiTokens.COL_RIGHT if _layout == ScreenLayout.Id.WIDE else MEDIUM_CHAT_WIDTH
+
+
+func _play(cue: SoundCue.Id) -> void:
+	if _sound != null:
+		_sound.play(cue)
+
+
 func _badges(slot: Slot) -> Array[PlayerBadge]:
 	if slot == Slot.OPPONENT:
 		return [_opponent_card, _opponent_strip]
@@ -326,44 +410,50 @@ func _badges(slot: Slot) -> Array[PlayerBadge]:
 
 
 func _apply_layout() -> void:
-	_left_column.visible = not _phone
-	_right_column.visible = _has_chat and not _phone
-	_opponent_strip.visible = _phone
-	_you_strip.visible = _phone
+	var phone: bool = _layout == ScreenLayout.Id.PHONE
+	_left_column.visible = not _uses_strips()
+	_right_column.visible = _has_chat_column()
+	_right_column.custom_minimum_size.x = _chat_column_width()
+	_opponent_strip.visible = _uses_strips()
+	_you_strip.visible = _uses_strips()
 	_fight_strip.visible = false
-	_chat_bar_margin.visible = _phone and _has_chat
-	_top_bar.set_phone(_phone)
-	var margin: int = UiTokens.SPACE_M if _phone else UiTokens.SPACE_2XL
+	_chat_bar_margin.visible = phone and _has_chat
+	_top_bar.set_phone(phone)
+	_top_bar.set_chat_in_drawer(_chat_in_drawer())
+	var margin: int = UiTokens.SPACE_M if phone else UiTokens.SPACE_2XL
 	_body.add_theme_constant_override("margin_left", margin)
 	_body.add_theme_constant_override("margin_right", margin)
-	_body.add_theme_constant_override("margin_top", UiTokens.SPACE_M if _phone else 22)
-	_body.add_theme_constant_override("margin_bottom", UiTokens.SPACE_L if _phone else 26)
-	_columns.add_theme_constant_override("separation", 10 if _phone else UiTokens.GAP_COLUMNS)
-	_turn_banner.rest_y = (UiTokens.TOPBAR_PHONE if _phone else UiTokens.TOPBAR_DESKTOP) + UiTokens.SPACE_L
+	_body.add_theme_constant_override("margin_top", UiTokens.SPACE_M if phone else 22)
+	_body.add_theme_constant_override("margin_bottom", UiTokens.SPACE_L if phone else 26)
+	_columns.add_theme_constant_override("separation", 10 if phone else UiTokens.GAP_COLUMNS)
+	var top_bar_height: int = UiTokens.TOPBAR_PHONE if phone else UiTokens.TOPBAR_DESKTOP
+	_turn_banner.rest_y = top_bar_height + UiTokens.SPACE_L
 	# The end of game modal covers the Board side and leaves the chat usable.
-	_result_modal.offset_top = UiTokens.TOPBAR_PHONE if _phone else UiTokens.TOPBAR_DESKTOP
-	var chat_width: int = UiTokens.COL_RIGHT + UiTokens.SPACE_2XL + UiTokens.GAP_COLUMNS
-	_result_modal.offset_right = -chat_width if _has_chat and not _phone else 0
-	_result_modal.set_phone(_phone)
+	_result_modal.offset_top = top_bar_height
+	var chat_width: int = _chat_column_width() + UiTokens.SPACE_2XL + UiTokens.GAP_COLUMNS
+	_result_modal.offset_right = -chat_width if _has_chat_column() else 0
+	_result_modal.set_phone(phone)
+	_chat_sheet.set_side_drawer(_layout == ScreenLayout.Id.NARROW)
 	_move_chat()
 	_apply_board_size()
 
 
-## The chat lives in the right column on large screens and in the sheet on
-## phones.
+## The chat lives in the right column on wide screens, in the drawer or the
+## sheet elsewhere.
 func _move_chat() -> void:
-	var target: Container = _chat_sheet.body() if _phone else _right_column
+	var in_drawer: bool = _chat_in_drawer()
+	var target: Container = _chat_sheet.body() if in_drawer else _right_column
 	if _chat_panel.get_parent() == target:
 		return
 	_chat_panel.reparent(target, false)
-	# Inside the sheet the chat needs no panel of its own.
-	_chat_panel.theme_type_variation = &"Bare" if _phone else &"SidePanel"
-	if not _phone:
+	# Inside the drawer the chat needs no panel of its own.
+	_chat_panel.theme_type_variation = &"Bare" if in_drawer else &"SidePanel"
+	if not in_drawer:
 		_chat_sheet.close()
 
 
 func _apply_board_size() -> void:
-	if _phone:
+	if _layout == ScreenLayout.Id.PHONE:
 		_board_view.max_cell = PHONE_MAX_CELL
 		_board_view.min_cell = PHONE_MIN_CELL
 	else:
@@ -383,7 +473,7 @@ func _apply_motion() -> void:
 
 
 func _open_chat_sheet() -> void:
-	if not _phone:
+	if not _chat_in_drawer():
 		return
 	_unread = 0
 	_top_bar.show_unread(0)
@@ -414,7 +504,12 @@ func _on_action_pressed() -> void:
 
 
 func _on_menu_pressed() -> void:
-	_game_menu.open(_resign_allowed)
+	_game_menu.open(_resign_allowed, _has_chat, _chat_hidden)
+
+
+func _on_chat_hidden_changed(hidden: bool) -> void:
+	_chat_hidden = hidden
+	add_system(Translated.text(&"CHAT_HIDDEN" if hidden else &"CHAT_SHOWN"))
 
 
 func _on_quit_pressed() -> void:
@@ -446,7 +541,7 @@ func _on_quick_chat_chosen(message: String) -> void:
 
 
 func _on_message_added(is_from_opponent: bool) -> void:
-	if _phone and is_from_opponent and not _chat_sheet.is_open():
+	if _chat_in_drawer() and is_from_opponent and not _chat_sheet.is_open():
 		_unread += 1
 		_top_bar.show_unread(_unread)
 

@@ -361,7 +361,11 @@ describe("a Referee session", () => {
 			await startPlay();
 			await drop("bob");
 
-			expect(seats.lastReplyTo("ada")).toEqual({ type: "opponent_presence", connected: false });
+			expect(seats.lastReplyTo("ada")).toEqual({
+				type: "opponent_presence",
+				connected: false,
+				forfeitInMs: FORFEIT_AFTER_MS,
+			});
 			expect(absences.saved).toEqual({ green: 1_000 });
 		});
 
@@ -385,7 +389,11 @@ describe("a Referee session", () => {
 				"game_state",
 				"opponent_presence",
 			]);
-			expect(seats.lastReplyTo("ada-again")).toEqual({ type: "opponent_presence", connected: false });
+			expect(seats.lastReplyTo("ada-again")).toEqual({
+				type: "opponent_presence",
+				connected: false,
+				forfeitInMs: FORFEIT_AFTER_MS,
+			});
 		});
 
 		it("says nothing when a socket replaced by a newer one closes", async () => {

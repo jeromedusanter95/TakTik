@@ -25,6 +25,9 @@ static func status(session: OnlineSession) -> String:
 ## The line on the Opponent's card: arranging, ready, or gone.
 static func opponent_status(session: OnlineSession) -> String:
 	if not session.is_opponent_connected():
+		var seconds: int = session.opponent_forfeit_seconds_left()
+		if seconds != OnlineSession.NO_TIMER:
+			return Translated.text(&"PLAYER_AWAY", {"time": TimerRing.format(seconds)})
 		return Translated.text(&"PLAYER_DISCONNECTED")
 	match session.phase():
 		OnlineSession.Phase.ARRANGING, OnlineSession.Phase.WAITING_FOR_OPPONENT_SETUP:
@@ -85,6 +88,8 @@ static func challenge_end(nickname: String, reason: String) -> String:
 			return Translated.text(&"LOBBY_DECLINED", {"nickname": nickname})
 		"withdrawn":
 			return Translated.text(&"LOBBY_WITHDRAWN", {"nickname": nickname})
+		"busy":
+			return Translated.text(&"LOBBY_BUSY", {"nickname": nickname})
 		_:
 			return Translated.text(&"LOBBY_GONE", {"nickname": nickname})
 

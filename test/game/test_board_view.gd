@@ -120,3 +120,25 @@ func _rng() -> RandomNumberGenerator:
 
 func _on_square_pressed(square: Vector2i) -> void:
 	_pressed.append(square)
+
+
+func test_a_shuffle_matches_pieces_of_a_type_in_square_order() -> void:
+	var before: Board = Board.new()
+	before.place(Piece.new(0, PieceType.Id.SOLDIER, Side.Id.RED), Vector2i(0, 0))
+	before.place(Piece.new(1, PieceType.Id.KING, Side.Id.RED), Vector2i(1, 0))
+	var after: Board = Board.new()
+	after.place(Piece.new(0, PieceType.Id.KING, Side.Id.RED), Vector2i(0, 0))
+	after.place(Piece.new(1, PieceType.Id.SOLDIER, Side.Id.RED), Vector2i(1, 0))
+	var moves: Array[Move] = BoardMotion.shuffle_moves(before, after, Side.Id.RED)
+	assert_eq(moves.size(), 2)
+	assert_eq(moves[0].from, Vector2i(0, 0))
+	assert_eq(moves[0].to, Vector2i(1, 0))
+	assert_eq(moves[1].to, Vector2i(0, 0))
+
+
+func test_a_shuffle_plays_then_shows_the_pieces_again() -> void:
+	var before: Board = _view.state().board.duplicate_board()
+	_view.play_shuffle(before)
+	assert_true(_view.is_animating())
+	await wait_seconds(1.0)
+	assert_false(_view.is_animating())

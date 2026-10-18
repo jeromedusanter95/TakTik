@@ -93,6 +93,7 @@ static func _read_opponent_presence(message: Dictionary, reply: RefereeReply) ->
 	if connected is not bool:
 		return
 	reply.opponent_connected = connected
+	reply.forfeit_in_msec = _time_left(message, "forfeitInMs")
 	reply.kind = RefereeReply.Kind.OPPONENT_PRESENCE
 
 

@@ -9,7 +9,8 @@ import { parseJsonObject } from "../wire/json-object";
  * as a message and as the close reason.
  */
 export type LobbyRequest =
-	| { readonly type: "enter"; readonly nickname: string }
+	/** [inGame] enters a Guest who is playing an online game, listed but out of reach. */
+	| { readonly type: "enter"; readonly nickname: string; readonly inGame: boolean }
 	| { readonly type: "quick_match" }
 	| { readonly type: "stop_waiting" }
 	| { readonly type: "challenge"; readonly guestId: string }
@@ -22,10 +23,15 @@ export interface ListedGuest {
 	readonly nickname: string;
 	/** True while they wait for a Quick Match. */
 	readonly waiting: boolean;
+	/** True while they play an online game: they can be seen but not challenged. */
+	readonly inGame: boolean;
 }
 
-/** Why a Challenge stopped: its Guest declined, its sender withdrew it, or one of them left the Lobby. */
-export type ChallengeEnd = "declined" | "withdrawn" | "gone";
+/**
+ * Why a Challenge stopped: its Guest declined, its sender withdrew it, one of
+ * them left the Lobby, or its Guest is playing a game.
+ */
+export type ChallengeEnd = "declined" | "withdrawn" | "gone" | "busy";
 
 export type LobbyReply =
 	| { readonly type: "entered"; readonly guestId: string }
@@ -54,7 +60,8 @@ export type LobbyRefusal =
 	| "not_entered"
 	| "unknown_guest"
 	| "no_such_challenge"
-	| "game_unavailable";
+	| "game_unavailable"
+	| "in_game";
 
 export type LobbyRequestParse =
 	| { readonly valid: true; readonly request: LobbyRequest }
@@ -75,7 +82,7 @@ export function parseLobbyRequest(text: string): LobbyRequestParse {
 	const message = parseJsonObject(text);
 	switch (message?.["type"]) {
 		case "enter":
-			return enterFrom(message["nickname"]);
+			return enterFrom(message["nickname"], message["inGame"]);
 		case "quick_match":
 			return accepted({ type: "quick_match" });
 		case "stop_waiting":
@@ -99,11 +106,15 @@ function accepted(request: LobbyRequest): LobbyRequestParse {
 	return { valid: true, request };
 }
 
-function enterFrom(value: unknown): LobbyRequestParse {
+function enterFrom(value: unknown, inGameValue: unknown): LobbyRequestParse {
 	const nickname = nicknameFrom(value);
-	return nickname === undefined
-		? { valid: false, reason: "invalid_nickname" }
-		: accepted({ type: "enter", nickname });
+	if (nickname === undefined) {
+		return { valid: false, reason: "invalid_nickname" };
+	}
+	if (inGameValue !== undefined && typeof inGameValue !== "boolean") {
+		return MALFORMED;
+	}
+	return accepted({ type: "enter", nickname, inGame: inGameValue === true });
 }
 
 function challengeFrom(value: unknown): LobbyRequestParse {

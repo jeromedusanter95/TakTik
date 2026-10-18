@@ -148,6 +148,38 @@ describe("the Lobby", () => {
 		await lobby.receive(connection, text(message));
 	}
 
+	describe("Guests playing a game", () => {
+		it("lists them as in a game", async () => {
+			await enter("Ada");
+			await send("Bob", { type: "enter", nickname: "Bob", inGame: true });
+
+			expect(connections.lastReplyTo("Ada")).toEqual({
+				type: "guests",
+				guests: [{ guestId: "guest-2", nickname: "Bob", waiting: false, inGame: true }],
+			});
+		});
+
+		it("answers a Challenge to them that they are busy", async () => {
+			await enter("Ada");
+			await send("Bob", { type: "enter", nickname: "Bob", inGame: true });
+			await send("Ada", { type: "challenge", guestId: "guest-2" });
+
+			expect(connections.lastReplyTo("Ada")).toEqual({ type: "challenge_ended", guestId: "guest-2", reason: "busy" });
+			expect(connections.repliesOfType("Bob", "challenged")).toEqual([]);
+		});
+
+		it("never pairs them by Quick Match", async () => {
+			await send("Bob", { type: "enter", nickname: "Bob", inGame: true });
+			await send("Bob", { type: "quick_match" });
+			await enter("Ada");
+			await send("Ada", { type: "quick_match" });
+
+			expect(connections.lastReplyTo("Bob")).not.toMatchObject({ type: "paired" });
+			expect(connections.repliesOfType("Bob", "refused")).toEqual([{ type: "refused", reason: "in_game" }]);
+			expect(connections.repliesOfType("Ada", "quick_match")).toEqual([{ type: "quick_match", waiting: true }]);
+		});
+	});
+
 	describe("entering", () => {
 		it("gives the Guest an id and lists the Guests already there", async () => {
 			await enter("Ada", "Bob");
@@ -155,7 +187,7 @@ describe("the Lobby", () => {
 			expect(connections.repliesTo("Bob")[0]).toEqual({ type: "entered", guestId: "guest-2" });
 			expect(connections.lastReplyTo("Bob")).toEqual({
 				type: "guests",
-				guests: [{ guestId: "guest-1", nickname: "Ada", waiting: false }],
+				guests: [{ guestId: "guest-1", nickname: "Ada", waiting: false, inGame: false }],
 			});
 		});
 
@@ -164,7 +196,7 @@ describe("the Lobby", () => {
 
 			expect(connections.lastReplyTo("Ada")).toEqual({
 				type: "guests",
-				guests: [{ guestId: "guest-2", nickname: "Bob", waiting: false }],
+				guests: [{ guestId: "guest-2", nickname: "Bob", waiting: false, inGame: false }],
 			});
 		});
 
@@ -215,7 +247,7 @@ describe("the Lobby", () => {
 			expect(connections.repliesOfType("Ada", "quick_match")).toEqual([{ type: "quick_match", waiting: true }]);
 			expect(connections.lastReplyTo("Bob")).toEqual({
 				type: "guests",
-				guests: [{ guestId: "guest-1", nickname: "Ada", waiting: true }],
+				guests: [{ guestId: "guest-1", nickname: "Ada", waiting: true, inGame: false }],
 			});
 		});
 

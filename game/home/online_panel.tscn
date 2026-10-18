@@ -6,7 +6,6 @@
 [ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="4"]
 
 [node name="OnlinePanel" type="PanelContainer"]
-custom_minimum_size = Vector2(420, 0)
 theme_type_variation = &"SidePanel"
 script = ExtResource("1")
 

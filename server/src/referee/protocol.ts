@@ -77,7 +77,12 @@ export type RefereeReply =
 	 * Sent when the Opponent's last socket closes and when they take their seat
 	 * again, and on taking a seat while the Opponent is away.
 	 */
-	| { readonly type: "opponent_presence"; readonly connected: boolean }
+	| {
+			readonly type: "opponent_presence";
+			readonly connected: boolean;
+			/** While play goes on and the Opponent is away: how long until they lose by Forfeit, counted when sent. */
+			readonly forfeitInMs?: number;
+	  }
 	/** A Quick Chat [side] sent, relayed to both players. */
 	| { readonly type: "quick_chat"; readonly side: Side; readonly message: QuickChatMessage }
 	/** The Opponent asks for a Rematch. */

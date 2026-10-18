@@ -70,6 +70,24 @@ func test_the_lobby_lists_you_first_then_the_others() -> void:
 	assert_eq(_label("%CountLabel", _panel()).text, "3 players")
 
 
+func test_guests_in_a_game_come_last_and_cannot_be_challenged() -> void:
+	_enter_with_guests([
+		{"guestId": "g2", "nickname": "Al", "waiting": false, "inGame": true},
+		{"guestId": "g3", "nickname": "Bob", "waiting": false},
+	])
+	assert_eq(_row_names(), ["Ada", "Bob", "Al"] as Array[String])
+	assert_true(_rows()[2].find_children("*", "Button", true, false).is_empty())
+	assert_has(_row_texts(2), "In a game")
+
+
+func test_a_challenge_to_a_guest_in_a_game_is_explained() -> void:
+	_enter_with_guests([{"guestId": "g2", "nickname": "Bob", "waiting": false}])
+	_row_button(1).pressed.emit()
+	_sockets[0].receive({"type": "challenge_ended", "guestId": "g2", "reason": "busy"})
+	_frame()
+	assert_eq(_label("%MessageLabel", _panel()).text, "Bob is in a game.")
+
+
 func test_nobody_else_online_explains_what_to_do() -> void:
 	_enter_with_guests([])
 	assert_true((_panel().get_node("%EmptyState") as Control).visible)
@@ -181,6 +199,21 @@ func test_phones_switch_between_play_and_online() -> void:
 	assert_false((_home.get_node("%LeftScroll") as Control).visible)
 
 
+func test_narrow_screens_put_the_online_panel_under_the_menu() -> void:
+	_home.set_layout(ScreenLayout.Id.NARROW)
+	assert_true(_home.get_node("%Hero").is_ancestor_of(_panel()))
+	assert_false((_home.get_node("%Illustration") as Control).visible)
+	_home.set_layout(ScreenLayout.Id.WIDE)
+	assert_false(_home.get_node("%Hero").is_ancestor_of(_panel()))
+	assert_eq(_panel().custom_minimum_size.x, 420.0)
+
+
+func test_medium_screens_hide_the_illustration_and_narrow_the_panel() -> void:
+	_home.set_layout(ScreenLayout.Id.MEDIUM)
+	assert_false((_home.get_node("%Illustration") as Control).visible)
+	assert_eq(_panel().custom_minimum_size.x, 360.0)
+
+
 func _open_socket() -> WireSocket:
 	var socket: FakeWireSocket = FakeWireSocket.new()
 	_sockets.append(socket)
@@ -223,6 +256,13 @@ func _row_names() -> Array[String]:
 	return names
 
 
+func _row_texts(index: int) -> Array[String]:
+	var texts: Array[String] = []
+	for label: Node in _rows()[index].find_children("*", "Label", true, false):
+		texts.append((label as Label).text)
+	return texts
+
+
 func _row_button(index: int) -> Button:
 	var buttons: Array[Node] = _rows()[index].find_children("*", "Button", true, false)
 	assert_false(buttons.is_empty())
@@ -239,3 +279,8 @@ func _button(path: String, owner_node: Node = null) -> Button:
 	var node: Node = (owner_node if owner_node != null else _home).get_node(path)
 	assert_true(node is Button, path)
 	return node
+
+
+func test_one_player_online_is_counted_in_the_singular() -> void:
+	_enter_with_guests([])
+	assert_eq(_label("%CountLabel", _panel()).text, "1 player")

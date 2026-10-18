@@ -49,6 +49,9 @@ var _setup_deadline_msec: int = NO_TIMER
 ## When the current turn runs out, on the _ticks_msec clock, or NO_TIMER.
 var _turn_deadline_msec: int = NO_TIMER
 var _setup_arranged_at_random: bool = false
+## When an away Opponent loses by Forfeit, on the _ticks_msec clock, or
+## NO_TIMER.
+var _opponent_forfeit_deadline_msec: int = NO_TIMER
 
 
 ## [param ticks_msec] returns the milliseconds of a clock that never goes back,
@@ -145,6 +148,14 @@ func turn_seconds_left() -> int:
 ## Guest handed in their Setup, so the referee arranged their Army at random.
 func was_setup_arranged_at_random() -> bool:
 	return _setup_arranged_at_random
+
+
+## Whole seconds, rounded up, until the away Opponent loses by Forfeit;
+## NO_TIMER while they are connected or the referee did not say.
+func opponent_forfeit_seconds_left() -> int:
+	if _opponent_connected or _phase != Phase.PLAYING:
+		return NO_TIMER
+	return _seconds_until(_opponent_forfeit_deadline_msec)
 
 
 ## True once the referee said the Opponent handed in their Setup.
@@ -292,6 +303,8 @@ func _handle(reply: RefereeReply) -> void:
 			_show_position(reply)
 		RefereeReply.Kind.OPPONENT_PRESENCE:
 			_opponent_connected = reply.opponent_connected
+			var forfeit_in: int = reply.forfeit_in_msec
+			_opponent_forfeit_deadline_msec = _deadline_after(forfeit_in) if forfeit_in >= 0 else NO_TIMER
 		RefereeReply.Kind.QUICK_CHAT:
 			quick_chat_received.emit(reply.chat_side, reply.chat_message)
 			return

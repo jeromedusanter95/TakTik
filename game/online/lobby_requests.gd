@@ -3,7 +3,11 @@ extends RefCounted
 ## The messages this client sends on the Lobby socket, as JSON text.
 
 
-static func enter(nickname: String) -> String:
+## [param in_game] enters a Guest who is playing a game: listed, but out of
+## reach of Challenges and Quick Match.
+static func enter(nickname: String, in_game: bool = false) -> String:
+	if in_game:
+		return JSON.stringify({"type": "enter", "nickname": nickname, "inGame": true})
 	return JSON.stringify({"type": "enter", "nickname": nickname})
 
 
