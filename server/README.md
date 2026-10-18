@@ -37,6 +37,9 @@ The referee answers `seated` with the side and the Opponent's nickname, then whe
 - A Guest who stays away during play for `FORFEIT_AFTER_SECONDS` (in `wrangler.jsonc`) Forfeits: both get `game_state` with `"reason":"forfeited"`. The clock counts during Setup too, but a Forfeit only happens once play has started.
 - A wrong message gets `refused` with a reason. A socket that never took a seat is then closed; a seated one stays open.
 
+- At any time, a Guest may send `{"type":"quick_chat","message":"good_luck"}`, one of a fixed set (`QUICK_CHAT_MESSAGES`); both Guests get it back as `quick_chat` with its sender's side.
+- Once the game is over, a Guest may send `rematch`. The Opponent gets `rematch_offered`; when both have asked, both get `rematch_ready` with their seat in a new game, sides swapped.
+
 Taking a seat again, from a new tab or after a dropped connection, moves the seat to the new socket, closes the old one and resends the game so far.
 The messages are defined in [src/referee/protocol.ts](src/referee/protocol.ts).
 

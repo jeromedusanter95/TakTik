@@ -6,6 +6,9 @@ import type { Seating } from "../referee/seating";
 import { DurableObjectAbsenceStore } from "./durable-object-absence-store";
 import { DurableObjectForfeitAlarm } from "./durable-object-forfeit-alarm";
 import { DurableObjectGameStore } from "./durable-object-game-store";
+import { RandomLobbyDraws } from "./random-lobby-draws";
+import { RefereeGameOpener } from "./referee-game-opener";
+import { RefereeRematchMaker } from "./referee-rematch-maker";
 import { WebSocketSeatConnections } from "./websocket-seat-connections";
 
 const SYSTEM_CLOCK = { now: (): number => Date.now() };
@@ -72,6 +75,13 @@ export class Referee extends DurableObject<Env> {
 			store: this.absences,
 			alarm: new DurableObjectForfeitAlarm(this.ctx.storage),
 		});
-		this.session = new RefereeSession(game, new WebSocketSeatConnections(this.ctx), this.store, forfeitWatch);
+		const rematchMaker = new RefereeRematchMaker(new RefereeGameOpener(this.env.REFEREE), new RandomLobbyDraws());
+		this.session = new RefereeSession(
+			game,
+			new WebSocketSeatConnections(this.ctx),
+			this.store,
+			forfeitWatch,
+			rematchMaker,
+		);
 	}
 }

@@ -180,6 +180,34 @@ describe("the Referee Worker", () => {
 		expect(await green.reply(4)).toMatchObject({ type: "moved", event: { moverSide: "red" } });
 	});
 
+	it("relays a Quick Chat and opens a Rematch with the sides swapped once both ask", async () => {
+		const { seats, red, green } = await startGame();
+		green.send({ type: "quick_chat", message: "good_luck" });
+		expect(await red.replyWhere((reply) => reply.type === "quick_chat")).toEqual({
+			type: "quick_chat",
+			side: "green",
+			message: "good_luck",
+		});
+
+		red.send({ type: "move", move: WINNING_MOVE });
+		await green.replyWhere((reply) => reply.type === "moved");
+		red.send({ type: "rematch" });
+		await green.replyWhere((reply) => reply.type === "rematch_offered");
+		green.send({ type: "rematch" });
+		const redRematch = await red.replyWhere((reply) => reply.type === "rematch_ready");
+		const greenRematch = await green.replyWhere((reply) => reply.type === "rematch_ready");
+		if (redRematch.type !== "rematch_ready" || greenRematch.type !== "rematch_ready") {
+			throw new Error("both players should get their Rematch seat");
+		}
+		expect(redRematch.gameId).toBe(greenRematch.gameId);
+		expect(redRematch.gameId).not.toBe(seats.red.gameId);
+		expect(redRematch.side).toBe("green");
+		expect(greenRematch.side).toBe("red");
+
+		const back = await takeSeat({ gameId: redRematch.gameId, seatToken: redRematch.seatToken, opponent: "" });
+		expect(back.replies[0]).toMatchObject({ type: "seated", side: "green", opponent: seats.red.opponent });
+	});
+
 	it("shows out a socket with a wrong Seat Token", async () => {
 		const seats = await pairTwoGuests();
 		const intruder = await JsonSocket.open<RefereeReply>(socketUrl(base, `/games/${seats.red.gameId}`));

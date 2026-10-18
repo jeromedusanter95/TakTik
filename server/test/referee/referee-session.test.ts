@@ -5,17 +5,27 @@ import { ForfeitWatch, type AbsenceRecord, type AbsenceStore, type Clock, type F
 import { OnlineGame, type GameRecord } from "../../src/referee/online-game";
 import type { RefereeRefusal, RefereeReply } from "../../src/referee/protocol";
 import { RefereeSession, type GameStore, type SeatConnections } from "../../src/referee/referee-session";
+import type { OpenedRematch, RematchMaker } from "../../src/referee/rematch-maker";
 import { GREEN_SETUP, placementsOf, RED_SETUP, SEATING, WINNING_MOVE } from "./fixtures";
 
 /** Sockets held in memory, seated in the order they take their seats. */
 class FakeSeats implements SeatConnections<string> {
 	readonly closed = new Set<string>();
+	private readonly rematchWishes = new Set<string>();
 	readonly closeReasons = new Map<string, RefereeRefusal>();
 	private readonly sides = new Map<string, Side>();
 	private readonly sent = new Map<string, RefereeReply[]>();
 
 	sideOf(connection: string): Side | undefined {
 		return this.sides.get(connection);
+	}
+
+	markWantsRematch(connection: string): void {
+		this.rematchWishes.add(connection);
+	}
+
+	wantsRematch(side: Side): boolean {
+		return this.connectionsOf(side).some((connection) => this.rematchWishes.has(connection));
 	}
 
 	seat(connection: string, side: Side): void {
@@ -41,6 +51,27 @@ class FakeSeats implements SeatConnections<string> {
 
 	lastReplyTo(connection: string): RefereeReply | undefined {
 		return this.repliesTo(connection).at(-1);
+	}
+}
+
+/** Hands out game-1, game-2... with seat tokens named after the new side. */
+class FakeRematchMaker implements RematchMaker {
+	readonly opened: Readonly<Record<Side, string>>[] = [];
+	failing = false;
+
+	async open(nicknames: Readonly<Record<Side, string>>): Promise<OpenedRematch> {
+		if (this.failing) {
+			throw new Error("no referee");
+		}
+		this.opened.push(nicknames);
+		const gameId = `game-${this.opened.length}`;
+		return {
+			gameId,
+			seating: {
+				red: { nickname: nicknames.red, seatToken: `${gameId}-red` },
+				green: { nickname: nicknames.green, seatToken: `${gameId}-green` },
+			},
+		};
 	}
 }
 
@@ -90,6 +121,7 @@ describe("a Referee session", () => {
 	let alarm: FakeAlarm;
 	let clock: FakeClock;
 	let session: RefereeSession<string>;
+	let rematches: FakeRematchMaker;
 
 	function watchFrom(record: AbsenceRecord): ForfeitWatch {
 		return new ForfeitWatch(record, { forfeitAfterMs: FORFEIT_AFTER_MS, clock, store: absences, alarm });
@@ -102,7 +134,8 @@ describe("a Referee session", () => {
 		absences = new FakeAbsences();
 		alarm = new FakeAlarm();
 		clock = new FakeClock();
-		session = new RefereeSession(game, seats, store, watchFrom({}));
+		rematches = new FakeRematchMaker();
+		session = new RefereeSession(game, seats, store, watchFrom({}), rematches);
 	});
 
 	/** The socket closing, as the server sees it. */
@@ -410,7 +443,7 @@ describe("a Referee session", () => {
 			await startPlay();
 			await drop("bob");
 			const rebuilt = OnlineGame.fromRecord(game.toRecord());
-			const restarted = new RefereeSession(rebuilt, seats, store, watchFrom(absences.saved));
+			const restarted = new RefereeSession(rebuilt, seats, store, watchFrom(absences.saved), rematches);
 			clock.time += FORFEIT_AFTER_MS;
 			await restarted.forfeitOverdue();
 
@@ -422,6 +455,96 @@ describe("a Referee session", () => {
 			await drop("bob");
 			await session.receive("ada", text({ type: "move", move: WINNING_MOVE }));
 			expect(alarm.time).toBeUndefined();
+		});
+	});
+	describe("Quick Chat", () => {
+		it("relays a Quick Chat to both players with its sender", async () => {
+			await seatBoth();
+			await session.receive("bob", text({ type: "quick_chat", message: "good_luck" }));
+
+			for (const connection of ["ada", "bob"]) {
+				expect(seats.lastReplyTo(connection)).toEqual({ type: "quick_chat", side: "green", message: "good_luck" });
+			}
+		});
+
+		it("refuses a message outside the fixed set", async () => {
+			await seatBoth();
+			await session.receive("bob", text({ type: "quick_chat", message: "you are bad" }));
+
+			expect(seats.lastReplyTo("bob")).toEqual({ type: "refused", reason: "malformed_message" });
+			expect(seats.lastReplyTo("ada")?.type).not.toBe("quick_chat");
+		});
+	});
+
+	describe("Rematch", () => {
+		async function finishGame(): Promise<void> {
+			await startPlay();
+			await session.receive("ada", text({ type: "move", move: WINNING_MOVE }));
+		}
+
+		it("is refused while the game goes on", async () => {
+			await startPlay();
+			await session.receive("ada", text({ type: "rematch" }));
+
+			expect(seats.lastReplyTo("ada")).toEqual({ type: "refused", reason: "game_not_over" });
+		});
+
+		it("tells the Opponent when one player asks for it", async () => {
+			await finishGame();
+			await session.receive("ada", text({ type: "rematch" }));
+
+			expect(seats.lastReplyTo("bob")).toEqual({ type: "rematch_offered" });
+			expect(rematches.opened).toEqual([]);
+		});
+
+		it("opens a new game with the sides swapped once both ask", async () => {
+			await finishGame();
+			await session.receive("ada", text({ type: "rematch" }));
+			await session.receive("bob", text({ type: "rematch" }));
+
+			expect(rematches.opened).toEqual([{ red: "Bob", green: "Ada" }]);
+			expect(seats.lastReplyTo("ada")).toEqual({
+				type: "rematch_ready",
+				gameId: "game-1",
+				side: "green",
+				seatToken: "game-1-green",
+				opponent: "Bob",
+			});
+			expect(seats.lastReplyTo("bob")).toEqual({
+				type: "rematch_ready",
+				gameId: "game-1",
+				side: "red",
+				seatToken: "game-1-red",
+				opponent: "Ada",
+			});
+		});
+
+		it("gives the same seat again to a player who asks twice", async () => {
+			await finishGame();
+			await session.receive("ada", text({ type: "rematch" }));
+			await session.receive("bob", text({ type: "rematch" }));
+			await session.receive("ada", text({ type: "rematch" }));
+
+			expect(rematches.opened).toHaveLength(1);
+			expect(seats.lastReplyTo("ada")).toMatchObject({ type: "rematch_ready", side: "green", gameId: "game-1" });
+		});
+
+		it("forgets the wish of a player whose socket closed", async () => {
+			await finishGame();
+			await session.receive("ada", text({ type: "rematch" }));
+			await drop("ada");
+			await session.receive("bob", text({ type: "rematch" }));
+
+			expect(rematches.opened).toEqual([]);
+		});
+
+		it("tells both players when no Rematch could be opened", async () => {
+			rematches.failing = true;
+			await finishGame();
+			await session.receive("ada", text({ type: "rematch" }));
+			await session.receive("bob", text({ type: "rematch" }));
+
+			expect(seats.lastReplyTo("ada")).toEqual({ type: "refused", reason: "rematch_unavailable" });
 		});
 	});
 });
