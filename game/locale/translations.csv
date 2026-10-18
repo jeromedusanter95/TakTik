@@ -89,3 +89,15 @@ LOBBY_DECLINE,Decline,Refuser
 LOBBY_DECLINED,{nickname} declined your Challenge.,{nickname} a refusé votre Défi.
 LOBBY_WITHDRAWN,{nickname} withdrew their Challenge.,{nickname} a retiré son Défi.
 LOBBY_GONE,{nickname} left the Lobby.,{nickname} a quitté le Salon.
+ONLINE_CHAT,Chat,Discuter
+ONLINE_REMATCH,Rematch,Revanche
+ONLINE_REMATCH_ACCEPT,{opponent} wants a Rematch: accept,{opponent} veut une Revanche : accepter
+ONLINE_REMATCH_WAITING,Waiting for {opponent}...,En attente de {opponent}...
+CHAT_LINE,{name}: {message},{name} : {message}
+CHAT_YOU,You,Vous
+CHAT_HELLO,Hello!,Bonjour !
+CHAT_GOOD_LUCK,Good luck!,Bonne chance !
+CHAT_WELL_PLAYED,Well played!,Bien joué !
+CHAT_THANKS,Thanks!,Merci !
+CHAT_OOPS,Oops!,Oups !
+CHAT_GOOD_GAME,Good game!,Bonne partie !

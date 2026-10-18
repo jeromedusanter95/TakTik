@@ -144,6 +144,39 @@ func test_the_opponents_move_is_narrated() -> void:
 	assert_eq(_label("%InfoLabel").text, "Red moved a Piece from c4 to c5.")
 
 
+func test_a_quick_chat_is_chosen_from_the_menu_and_shown_when_relayed() -> void:
+	_start_play()
+	assert_true(_button("%ChatButton").visible)
+	_button("%ChatButton").pressed.emit()
+	_chat_menu().id_pressed.emit(QuickChat.MESSAGES.find("good_luck"))
+	assert_eq(_sockets[1].last_sent(), {"type": "quick_chat", "message": "good_luck"})
+	_sockets[1].receive({"type": "quick_chat", "side": "green", "message": "thanks"})
+	_frame()
+	assert_eq(_label("%ChatLabel").text, "Bob: Thanks!")
+	_sockets[1].receive({"type": "quick_chat", "side": "red", "message": "good_luck"})
+	_frame()
+	assert_eq(_label("%ChatLabel").text, "You: Good luck!")
+
+
+func test_a_rematch_moves_both_guests_to_the_new_game() -> void:
+	_start_play()
+	assert_false(_button("%RematchButton").visible)
+	var view: Dictionary = _view("green", [_own(2, 4, "knight")], [])
+	view["result"] = {"status": "red_wins", "reason": "resigned"}
+	_sockets[1].receive({"type": "game_state", "view": view, "history": []})
+	_sockets[1].receive({"type": "rematch_offered"})
+	_frame()
+	assert_eq(_button("%RematchButton").text, "Bob wants a Rematch: accept")
+	_button("%RematchButton").pressed.emit()
+	assert_eq(_sockets[1].last_sent(), {"type": "rematch"})
+	assert_true(_button("%RematchButton").disabled)
+	_sockets[1].receive({"type": "rematch_ready", "gameId": "g2", "side": "green", "seatToken": "t2", "opponent": "Bob"})
+	_frame()
+	assert_eq(_last_socket().opened_url, "ws://referee.test/games/g2")
+	assert_eq(_last_socket().last_sent(), {"type": "take_seat", "seatToken": "t2"})
+	assert_eq(_sockets[1].state(), WireSocket.State.CLOSED)
+
+
 func test_the_end_shows_the_result_and_offers_a_new_opponent() -> void:
 	_start_play()
 	var view: Dictionary = _view("green", [_own(2, 4, "knight")], [])
@@ -355,6 +388,12 @@ func _node(unique_name: String) -> Node:
 func _control(unique_name: String) -> Control:
 	var node: Node = _node(unique_name)
 	assert_true(node is Control, unique_name)
+	return node
+
+
+func _chat_menu() -> PopupMenu:
+	var node: Node = _match.get_node("%ChatMenu")
+	assert_true(node is PopupMenu)
 	return node
 
 

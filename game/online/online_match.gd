@@ -27,6 +27,10 @@ var _notice: String = ""
 @onready var _action_button: Button = %ActionButton
 @onready var _resign_button: Button = %ResignButton
 @onready var _resign_dialog: ConfirmationDialog = %ResignDialog
+@onready var _rematch_button: Button = %RematchButton
+@onready var _chat_button: Button = %ChatButton
+@onready var _chat_menu: PopupMenu = %ChatMenu
+@onready var _chat_label: Label = %ChatLabel
 
 
 func _ready() -> void:
@@ -41,6 +45,9 @@ func _ready() -> void:
 	_board_view.square_pressed.connect(_on_square_pressed)
 	_shuffle_button.pressed.connect(_on_shuffle_pressed)
 	_action_button.pressed.connect(_on_action_pressed)
+	_rematch_button.pressed.connect(_on_rematch_pressed)
+	_chat_button.pressed.connect(_on_chat_pressed)
+	_chat_menu.id_pressed.connect(_on_chat_chosen)
 	_resign_button.pressed.connect(_on_resign_pressed)
 	_resign_dialog.confirmed.connect(_on_resign_confirmed)
 
@@ -111,11 +118,21 @@ func _on_lobby_failed(reason: String) -> void:
 
 func _on_paired(seat: PairedSeat) -> void:
 	_lobby = null
+	_join_game(seat)
+
+
+## Leaves any game and takes [param seat] in a new one.
+func _join_game(seat: PairedSeat) -> void:
+	if _session != null:
+		_session.leave()
 	_selected = BoardViewState.NO_SQUARE
 	_notice = ""
+	_chat_label.text = ""
 	_session = OnlineSession.new(_new_socket(), seat, _rng)
 	_session.changed.connect(_refresh)
 	_session.refused.connect(_on_refused)
+	_session.quick_chat_received.connect(_on_quick_chat_received)
+	_session.rematch_ready.connect(_join_game)
 	_session.connect_to(_server_url)
 	_lobby_panel.hide()
 
@@ -180,6 +197,30 @@ func _on_action_pressed() -> void:
 			_enter_lobby(_nickname)
 
 
+func _on_rematch_pressed() -> void:
+	_session.ask_for_rematch()
+
+
+func _on_chat_pressed() -> void:
+	_chat_menu.clear()
+	for index: int in QuickChat.MESSAGES.size():
+		_chat_menu.add_item(QuickChat.text(QuickChat.MESSAGES[index]), index)
+	var button_rect: Rect2 = _chat_button.get_global_rect()
+	_chat_menu.popup(Rect2i(Vector2i(button_rect.position) - Vector2i(0, 220), Vector2i(220, 0)))
+
+
+func _on_chat_chosen(index: int) -> void:
+	if _session != null and index >= 0 and index < QuickChat.MESSAGES.size():
+		_session.send_quick_chat(QuickChat.MESSAGES[index])
+
+
+func _on_quick_chat_received(sender: Side.Id, message: String) -> void:
+	var name: String = (
+		Translated.text(&"CHAT_YOU") if sender == _session.side() else _session.opponent()
+	)
+	_chat_label.text = Translated.text(&"CHAT_LINE", {"name": name, "message": QuickChat.text(message)})
+
+
 func _on_resign_pressed() -> void:
 	_resign_dialog.title = Translated.text(&"ONLINE_RESIGN_TITLE")
 	_resign_dialog.dialog_text = Translated.text(
@@ -213,6 +254,12 @@ func _refresh() -> void:
 		phase == OnlineSession.Phase.PLAYING and not _session.is_awaiting_answer()
 	)
 	_resign_button.visible = can_resign
+	_rematch_button.visible = phase == OnlineSession.Phase.OVER
+	_rematch_button.disabled = _session.has_asked_for_rematch()
+	_rematch_button.text = OnlineMatchTexts.rematch_button(_session)
+	_chat_button.visible = (
+		phase != OnlineSession.Phase.CONNECTING and phase != OnlineSession.Phase.DISCONNECTED
+	)
 	if not can_resign and _resign_dialog.visible:
 		_resign_dialog.hide()
 

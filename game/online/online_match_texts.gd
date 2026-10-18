@@ -61,6 +61,15 @@ static func lobby_failure(reason: String) -> String:
 			return Translated.text(&"ONLINE_FAILED_OTHER")
 
 
+## The Rematch button: ask, accept the Opponent's ask, or wait for theirs.
+static func rematch_button(session: OnlineSession) -> String:
+	if session.has_asked_for_rematch():
+		return Translated.text(&"ONLINE_REMATCH_WAITING", {"opponent": session.opponent()})
+	if session.opponent_wants_rematch():
+		return Translated.text(&"ONLINE_REMATCH_ACCEPT", {"opponent": session.opponent()})
+	return Translated.text(&"ONLINE_REMATCH")
+
+
 ## What a Guest reads when a Challenge with [param nickname] ends.
 static func challenge_end(nickname: String, reason: String) -> String:
 	match reason:

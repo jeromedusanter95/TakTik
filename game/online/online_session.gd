@@ -8,6 +8,10 @@ extends RefCounted
 signal changed
 ## The referee refused a request, for example "illegal_move".
 signal refused(reason: String)
+## A Quick Chat arrived, from either player, as one of QuickChat.MESSAGES.
+signal quick_chat_received(sender: Side.Id, message: String)
+## Both players asked for a Rematch: this Guest's seat in the new game.
+signal rematch_ready(seat: PairedSeat)
 
 enum Phase {
 	CONNECTING,
@@ -30,6 +34,8 @@ var _final_board: Board = null
 var _awaiting_answer: bool = false
 var _opponent_connected: bool = true
 var _disconnection_reason: String = ""
+var _rematch_asked: bool = false
+var _opponent_wants_rematch: bool = false
 
 
 func _init(socket: WireSocket, seat: PairedSeat, rng: RandomNumberGenerator) -> void:
@@ -155,6 +161,30 @@ func resign() -> bool:
 	return true
 
 
+## Sends one of QuickChat.MESSAGES to the game. It comes back to both players.
+func send_quick_chat(message: String) -> void:
+	if QuickChat.is_message(message):
+		_socket.send_text(RefereeRequests.quick_chat(message))
+
+
+## Asks for a Rematch once the game is over. False, and nothing sent, before.
+func ask_for_rematch() -> bool:
+	if _phase != Phase.OVER:
+		return false
+	_rematch_asked = true
+	_socket.send_text(RefereeRequests.rematch())
+	changed.emit()
+	return true
+
+
+func has_asked_for_rematch() -> bool:
+	return _rematch_asked
+
+
+func opponent_wants_rematch() -> bool:
+	return _opponent_wants_rematch
+
+
 func legal_destinations(from: Vector2i) -> Array[Vector2i]:
 	if not is_own_turn():
 		return []
@@ -218,8 +248,19 @@ func _handle(reply: RefereeReply) -> void:
 			_show_position(reply)
 		RefereeReply.Kind.OPPONENT_PRESENCE:
 			_opponent_connected = reply.opponent_connected
+		RefereeReply.Kind.QUICK_CHAT:
+			quick_chat_received.emit(reply.chat_side, reply.chat_message)
+			return
+		RefereeReply.Kind.REMATCH_OFFERED:
+			_opponent_wants_rematch = true
+		RefereeReply.Kind.REMATCH_READY:
+			rematch_ready.emit(reply.rematch_seat)
+			return
 		RefereeReply.Kind.REFUSED:
 			_awaiting_answer = false
+			if reply.refusal == "rematch_unavailable":
+				_rematch_asked = false
+				_opponent_wants_rematch = false
 			refused.emit(reply.refusal)
 		_:
 			return
