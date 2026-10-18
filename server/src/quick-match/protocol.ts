@@ -1,4 +1,5 @@
 import type { Side } from "../rules/side";
+import { parseJsonObject } from "../wire/json-object";
 
 /**
  * The messages of the Quick Match WebSocket. A Guest sends one join; the
@@ -45,19 +46,6 @@ export function parseQuickMatchRequest(text: string): RequestParse {
 
 export function formatQuickMatchReply(reply: QuickMatchReply): string {
 	return JSON.stringify(reply);
-}
-
-function parseJsonObject(text: string): Record<string, unknown> | undefined {
-	let value: unknown;
-	try {
-		value = JSON.parse(text);
-	} catch {
-		return undefined;
-	}
-	if (typeof value !== "object" || value === null || Array.isArray(value)) {
-		return undefined;
-	}
-	return value as Record<string, unknown>;
 }
 
 function nicknameFrom(value: unknown): string | undefined {

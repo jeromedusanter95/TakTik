@@ -5,9 +5,9 @@ import {
 	type GameOpener,
 	type GuestConnections,
 	type PairingDraws,
-	type Seating,
 	type WaitingGuest,
 } from "../../src/quick-match/quick-match-pairer";
+import type { Seating } from "../../src/referee/seating";
 
 /** Connections held in memory, joined in the order they arrive. */
 class FakeConnections implements GuestConnections<string> {

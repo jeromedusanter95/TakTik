@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import type { Seating } from "../quick-match/quick-match-pairer";
+import type { Seating } from "../referee/seating";
 
 const SEATING_KEY = "seating";
 

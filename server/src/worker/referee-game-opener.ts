@@ -1,4 +1,5 @@
-import type { GameOpener, Seating } from "../quick-match/quick-match-pairer";
+import type { GameOpener } from "../quick-match/quick-match-pairer";
+import type { Seating } from "../referee/seating";
 import type { Referee } from "./referee";
 
 /** Opens each game in a new Referee Durable Object. */
