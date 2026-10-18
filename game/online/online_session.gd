@@ -46,7 +46,7 @@ func connect_to(server_url: String) -> void:
 	_awaiting_answer = false
 	_opponent_connected = true
 	_socket.open("%s/games/%s" % [server_url, _seat.game_id])
-	_socket.send_text(OnlineRequests.take_seat(_seat.seat_token))
+	_socket.send_text(RefereeRequests.take_seat(_seat.seat_token))
 	changed.emit()
 
 
@@ -60,7 +60,7 @@ func leave() -> void:
 
 func poll() -> void:
 	for text: String in _socket.poll():
-		_handle(OnlineReplies.referee(text))
+		_handle(RefereeReplies.read(text))
 	var lost: bool = _socket.state() == WireSocket.State.CLOSED
 	if lost and _phase != Phase.DISCONNECTED and _phase != Phase.OVER:
 		_phase = Phase.DISCONNECTED
@@ -129,7 +129,7 @@ func confirm_setup() -> void:
 	if _phase != Phase.ARRANGING or _awaiting_answer:
 		return
 	_awaiting_answer = true
-	_socket.send_text(OnlineRequests.setup(_setup))
+	_socket.send_text(RefereeRequests.setup(_setup))
 	changed.emit()
 
 
@@ -139,7 +139,7 @@ func play(move: Move) -> bool:
 	if not is_own_turn() or not _position.legal_destinations(move.from).has(move.to):
 		return false
 	_awaiting_answer = true
-	_socket.send_text(OnlineRequests.move(move))
+	_socket.send_text(RefereeRequests.move(move))
 	changed.emit()
 	return true
 
@@ -150,7 +150,7 @@ func resign() -> bool:
 	if _phase != Phase.PLAYING or _awaiting_answer:
 		return false
 	_awaiting_answer = true
-	_socket.send_text(OnlineRequests.resign())
+	_socket.send_text(RefereeRequests.resign())
 	changed.emit()
 	return true
 

@@ -1,8 +1,9 @@
 class_name OnlineMatch
 extends Control
-## A game against another Guest through the online server: find an Opponent
-## with Quick Match, arrange the Army, then play, always seeing the Board from
-## this Guest's side, with the choice to Resign.
+## A game against another Guest through the online server: enter the Lobby,
+## find an Opponent there by Quick Match or Challenge, arrange the Army, then
+## play, always seeing the Board from this Guest's side, with the choice to
+## Resign.
 
 signal menu_requested
 
@@ -10,12 +11,13 @@ var _server_url: String = ""
 ## Returns a new WireSocket for each connection.
 var _open_socket: Callable = Callable()
 var _rng: RandomNumberGenerator = null
-var _search: QuickMatchSearch = null
+var _nickname: String = ""
+var _lobby: LobbyClient = null
 var _session: OnlineSession = null
 var _selected: Vector2i = BoardViewState.NO_SQUARE
 var _notice: String = ""
 
-@onready var _find_panel: FindOpponentPanel = %FindOpponentPanel
+@onready var _lobby_panel: LobbyPanel = %LobbyPanel
 @onready var _status_label: Label = %StatusLabel
 @onready var _menu_button: Button = %MenuButton
 @onready var _board_view: BoardView = %BoardView
@@ -28,9 +30,13 @@ var _notice: String = ""
 
 
 func _ready() -> void:
-	_find_panel.find_requested.connect(_on_find_requested)
-	_find_panel.cancel_requested.connect(_on_cancel_requested)
-	_find_panel.back_requested.connect(_on_menu_pressed)
+	_lobby_panel.enter_requested.connect(_enter_lobby)
+	_lobby_panel.quick_match_requested.connect(_on_quick_match_requested)
+	_lobby_panel.stop_waiting_requested.connect(_on_stop_waiting_requested)
+	_lobby_panel.challenge_requested.connect(_on_challenge_requested)
+	_lobby_panel.withdraw_requested.connect(_on_withdraw_requested)
+	_lobby_panel.answer_requested.connect(_on_answer_requested)
+	_lobby_panel.back_requested.connect(_on_menu_pressed)
 	_menu_button.pressed.connect(_on_menu_pressed)
 	_board_view.square_pressed.connect(_on_square_pressed)
 	_shuffle_button.pressed.connect(_on_shuffle_pressed)
@@ -40,8 +46,8 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _search != null:
-		_search.poll()
+	if _lobby != null:
+		_lobby.poll()
 	if _session != null:
 		_session.poll()
 
@@ -53,36 +59,65 @@ func start(server_url: String, open_socket: Callable, rng: RandomNumberGenerator
 	_open_socket = open_socket
 	_rng = rng
 	_leave()
-	_find_panel.show_entry("")
+	_lobby_panel.show_entry("")
 
 
-func _on_find_requested(nickname: String) -> void:
-	_search = QuickMatchSearch.new(_new_socket())
-	_search.paired.connect(_on_paired)
-	_search.failed.connect(_on_search_failed)
-	_search.start(_server_url, nickname)
-	_find_panel.show_searching()
-
-
-func _on_cancel_requested() -> void:
+func _enter_lobby(nickname: String) -> void:
 	_leave()
-	_find_panel.show_entry("")
+	_nickname = nickname
+	_lobby = LobbyClient.new(_new_socket())
+	_lobby.changed.connect(_on_lobby_changed)
+	_lobby.paired.connect(_on_paired)
+	_lobby.failed.connect(_on_lobby_failed)
+	_lobby.challenge_ended.connect(_on_challenge_ended)
+	_lobby.enter(_server_url, nickname)
+	_lobby_panel.show_entering()
 
 
-func _on_search_failed(reason: String) -> void:
-	_search = null
-	_find_panel.show_entry(OnlineMatchTexts.search_failure(reason))
+func _on_lobby_changed() -> void:
+	if _lobby.has_entered():
+		_lobby_panel.show_lobby(_lobby)
+
+
+func _on_quick_match_requested() -> void:
+	_lobby.join_quick_match()
+
+
+func _on_stop_waiting_requested() -> void:
+	_lobby.stop_waiting()
+
+
+func _on_challenge_requested(guest_id: String) -> void:
+	_lobby_panel.show_message("")
+	_lobby.challenge(guest_id)
+
+
+func _on_withdraw_requested() -> void:
+	_lobby.withdraw_challenge()
+
+
+func _on_answer_requested(guest_id: String, accept: bool) -> void:
+	_lobby.answer_challenge(guest_id, accept)
+
+
+func _on_challenge_ended(nickname: String, reason: String) -> void:
+	_lobby_panel.show_message(OnlineMatchTexts.challenge_end(nickname, reason))
+
+
+func _on_lobby_failed(reason: String) -> void:
+	_lobby = null
+	_lobby_panel.show_entry(OnlineMatchTexts.lobby_failure(reason))
 
 
 func _on_paired(seat: PairedSeat) -> void:
-	_search = null
+	_lobby = null
 	_selected = BoardViewState.NO_SQUARE
 	_notice = ""
 	_session = OnlineSession.new(_new_socket(), seat, _rng)
 	_session.changed.connect(_refresh)
 	_session.refused.connect(_on_refused)
 	_session.connect_to(_server_url)
-	_find_panel.hide()
+	_lobby_panel.hide()
 
 
 func _on_menu_pressed() -> void:
@@ -142,8 +177,7 @@ func _on_action_pressed() -> void:
 		OnlineSession.Phase.DISCONNECTED:
 			_session.reconnect()
 		OnlineSession.Phase.OVER:
-			_leave()
-			_find_panel.show_entry("")
+			_enter_lobby(_nickname)
 
 
 func _on_resign_pressed() -> void:
@@ -216,11 +250,11 @@ func _new_socket() -> WireSocket:
 	return socket
 
 
-## Stops any search and leaves any game.
+## Leaves the Lobby and any game.
 func _leave() -> void:
-	if _search != null:
-		_search.cancel()
-		_search = null
+	if _lobby != null:
+		_lobby.leave()
+		_lobby = null
 	if _session != null:
 		_session.leave()
 		_session = null

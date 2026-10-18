@@ -1,6 +1,7 @@
 extends SceneTree
-## Plays a whole online game between two clients through a running server,
-## each playing random legal Moves. Not a GUT test (no test_ prefix).
+## Plays a whole online game between two clients through a running server:
+## both enter the Lobby, one Challenges the other, who accepts, then each plays
+## random legal Moves. Not a GUT test (no test_ prefix).
 ##
 ## cd server && npm run dev   (in another terminal)
 ## Godot --headless --path . -s test/online/online_smoke.gd -- [server url] [max plies]
@@ -12,9 +13,10 @@ const TIMEOUT_MSEC: int = 120_000
 var _server_url: String = DEFAULT_SERVER_URL
 var _max_plies: int = DEFAULT_MAX_PLIES
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
-var _searches: Array[QuickMatchSearch] = []
+var _lobbies: Dictionary[String, LobbyClient] = {}
 var _sessions: Array[OnlineSession] = []
 var _started_msec: int = 0
+var _challenge_sent: bool = false
 
 
 func _initialize() -> void:
@@ -26,24 +28,36 @@ func _initialize() -> void:
 	_rng.seed = 11
 	_started_msec = Time.get_ticks_msec()
 	for nickname: String in ["Ada", "Bob"]:
-		var search: QuickMatchSearch = QuickMatchSearch.new(WebSocketWireSocket.new())
-		search.paired.connect(_on_paired)
-		search.failed.connect(_on_failed)
-		search.start(_server_url, nickname)
-		_searches.append(search)
+		var lobby: LobbyClient = LobbyClient.new(WebSocketWireSocket.new())
+		lobby.paired.connect(_on_paired)
+		lobby.failed.connect(_on_failed)
+		lobby.enter(_server_url, nickname)
+		_lobbies[nickname] = lobby
 
 
 func _process(_delta: float) -> bool:
 	if Time.get_ticks_msec() - _started_msec > TIMEOUT_MSEC:
 		return _finish(false, "timed out")
-	for search: QuickMatchSearch in _searches:
-		search.poll()
+	for lobby: LobbyClient in _lobbies.values():
+		lobby.poll()
+	_challenge_through_the_lobby()
 	for session: OnlineSession in _sessions:
 		session.poll()
 		_act(session)
 	if _sessions.size() == 2 and _sessions.all(_is_done):
 		return _check_ending()
 	return false
+
+
+## Ada Challenges Bob once she sees him; Bob accepts once challenged.
+func _challenge_through_the_lobby() -> void:
+	var ada: LobbyClient = _lobbies["Ada"]
+	var bob: LobbyClient = _lobbies["Bob"]
+	if ada.is_active() and not _challenge_sent and not ada.guests().is_empty():
+		ada.challenge(ada.guests()[0].guest_id)
+		_challenge_sent = true
+	if bob.is_active() and not bob.challengers().is_empty():
+		bob.answer_challenge(bob.challengers()[0].guest_id, true)
 
 
 func _on_paired(seat: PairedSeat) -> void:
@@ -55,7 +69,7 @@ func _on_paired(seat: PairedSeat) -> void:
 
 
 func _on_failed(reason: String) -> void:
-	_finish(false, "Quick Match failed: " + reason)
+	_finish(false, "the Lobby failed: " + reason)
 
 
 func _act(session: OnlineSession) -> void:

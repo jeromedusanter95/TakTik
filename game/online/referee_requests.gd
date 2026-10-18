@@ -1,10 +1,6 @@
-class_name OnlineRequests
+class_name RefereeRequests
 extends RefCounted
-## The messages this client sends to the online server, as JSON text.
-
-
-static func join(nickname: String) -> String:
-	return JSON.stringify({"type": "join", "nickname": nickname})
+## The messages this client sends on an online game's socket, as JSON text.
 
 
 static func take_seat(seat_token: String) -> String:
