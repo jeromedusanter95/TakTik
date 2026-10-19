@@ -114,6 +114,10 @@ _Avoid_: AI, CPU, computer
 The strength of a Bot: Easy, Medium or Hard.
 _Avoid_: Level, skill
 
+**Strategy**:
+A Bot's plan of play for one game: Aggressive, Balanced or Defensive. It guides its Setup and the Moves it favours.
+_Avoid_: Personality, difficulty
+
 **Lobby**:
 The place where online Guests see who else is online and find an Opponent.
 _Avoid_: Room, hall

@@ -15,6 +15,8 @@ var _profile: BotProfile
 var _side: Side.Id
 var _rng: RandomNumberGenerator
 var _searcher: MoveSearcher
+var _evaluator: PositionEvaluator
+var _strategy: BotStrategy = null
 var _tracker: EnemyTracker = null
 
 
@@ -28,6 +30,7 @@ func _init(
 	_profile = profile
 	_side = side
 	_rng = rng
+	_evaluator = evaluator
 	_searcher = MoveSearcher.new(evaluator, profile.search_depth, profile.attack_depth)
 
 
@@ -41,12 +44,16 @@ func side() -> Side.Id:
 
 ## Draws on [param rng], the caller's, so a match can replay its Setups.
 func arrange_setup(rng: RandomNumberGenerator) -> Setup:
-	if _profile.setup_plan == null:
+	_select_strategy(rng)
+	var plan: SetupPlan = _setup_plan()
+	if plan == null:
 		return Setup.random(_side, rng)
-	return _profile.setup_plan.arrange(_side, rng)
+	return plan.arrange(_side, rng)
 
 
 func begin(view: PlayerView) -> void:
+	if _strategy == null:
+		_select_strategy(_rng)
 	_tracker = EnemyTracker.new(view)
 
 
@@ -57,7 +64,7 @@ func observe(event: PublicMoveEvent) -> void:
 
 func start_thinking(view: PlayerView) -> BotThinking:
 	if _tracker == null:
-		_tracker = EnemyTracker.new(view)
+		begin(view)
 	var sampler: WorldSampler = WorldSampler.new(_tracker, _rng)
 	if _rng.randf() < _profile.mistake_chance:
 		return DecidedThinking.new(_random_move(sampler.sample(view)))
@@ -71,3 +78,19 @@ func _random_move(world: Game) -> Move:
 	if moves.is_empty():
 		return null
 	return moves[_rng.randi_range(0, moves.size() - 1)]
+
+
+func _select_strategy(rng: RandomNumberGenerator) -> void:
+	if _profile.strategies.is_empty():
+		return
+	_strategy = _profile.strategies[rng.randi_range(0, _profile.strategies.size() - 1)]
+	var evaluator: PositionEvaluator = _evaluator
+	if _strategy.priorities != null:
+		evaluator = StrategicEvaluator.new(evaluator, _strategy.priorities, _side)
+	_searcher = MoveSearcher.new(evaluator, _profile.search_depth, _profile.attack_depth)
+
+
+func _setup_plan() -> SetupPlan:
+	if _strategy != null and _strategy.setup_plan != null:
+		return _strategy.setup_plan
+	return _profile.setup_plan

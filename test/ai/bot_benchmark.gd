@@ -164,6 +164,7 @@ static func _search_only(profile: BotProfile) -> BotProfile:
 	copy.sample_count = profile.sample_count
 	copy.attack_depth = profile.attack_depth
 	copy.positions_per_turn = profile.positions_per_turn
+	copy.strategies = profile.strategies
 	return copy
 
 
