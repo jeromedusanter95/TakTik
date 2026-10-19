@@ -36,6 +36,28 @@ func test_following_attacks_still_counts_every_searched_position() -> void:
 	assert_gt(following.nodes_searched(), plain.nodes_searched())
 
 
+func test_following_tactics_does_not_miss_a_quiet_princess_win() -> void:
+	var game: Game = _game([
+		"k.....", "......", "......", ".#..#.", ".#..#.", "K.....", "P....p", ".B....",
+	])
+	var searcher: MoveSearcher = MoveSearcher.new(ZeroEvaluator.new(), 1, 2)
+	var unsafe: int = searcher.score_move(game, BoardNotation.parse_move("a3-a4"))
+	var blocking: int = searcher.score_move(game, BoardNotation.parse_move("b1-f1"))
+	assert_lt(unsafe, -9_000, "the quiet Princess finish is a forced loss")
+	assert_gt(blocking, unsafe, "blocking the Home Row avoids that loss")
+
+
+func test_the_king_does_not_abandon_a_princess_finish_it_cannot_return_to_block() -> void:
+	var game: Game = _game([
+		"k.....", "......", "......", ".#..#.", ".#..#.", ".....p", "......", "P....K",
+	])
+	var searcher: MoveSearcher = MoveSearcher.new(ZeroEvaluator.new(), 3, 4)
+	var unsafe: int = searcher.score_move(game, BoardNotation.parse_move("f1-e1"))
+	var blocking: int = searcher.score_move(game, BoardNotation.parse_move("f1-f2"))
+	assert_lt(unsafe, -9_000, "the Move Back rule stops the King returning to f1")
+	assert_gt(blocking, unsafe)
+
+
 func _best_move(game: Game, depth: int, attack_depth: int = 0) -> String:
 	var searcher: MoveSearcher = MoveSearcher.new(HeuristicEvaluator.new(), depth, attack_depth)
 	var moves: Array[Move] = game.legal_moves()
@@ -50,3 +72,8 @@ func _best_move(game: Game, depth: int, attack_depth: int = 0) -> String:
 
 func _game(rows: Array[String]) -> Game:
 	return Game.new(BoardNotation.parse_board(rows), Side.Id.RED)
+
+
+class ZeroEvaluator extends PositionEvaluator:
+	func evaluate(_game: Game, _side: Side.Id) -> int:
+		return 0

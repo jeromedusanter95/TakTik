@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="BotStrategy" format=3]
+
+[ext_resource type="Script" path="res://ai/position_priorities.gd" id="1_88wf8"]
+[ext_resource type="Script" path="res://ai/bot_strategy.gd" id="2_8rcu5"]
+[ext_resource type="Script" path="res://ai/varied_princess_setup_plan.gd" id="3_le5cg"]
+[ext_resource type="Script" path="res://ai/frontline_king_setup_plan.gd" id="4_fvcba"]
+
+[sub_resource type="Resource" id="Resource_sy4ad"]
+script = ExtResource("1_88wf8")
+advancement_bonus = 1
+king_activity_bonus = 1
+princess_guard_bonus = 3
+princess_advance_penalty = 4
+
+[sub_resource type="Resource" id="Resource_onl6r"]
+script = ExtResource("3_le5cg")
+monster_guards = 2
+
+[sub_resource type="Resource" id="Resource_oa1pa"]
+script = ExtResource("4_fvcba")
+base_plan = SubResource("Resource_onl6r")
+
+[resource]
+script = ExtResource("2_8rcu5")
+setup_plan = SubResource("Resource_oa1pa")
+priorities = SubResource("Resource_sy4ad")
