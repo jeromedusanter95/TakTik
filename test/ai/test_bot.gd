@@ -69,6 +69,24 @@ func test_a_bot_remembers_a_reveal_after_the_screen_hides_it_again() -> void:
 	assert_true(move.equals(BoardNotation.parse_move("b3-a3")))
 
 
+func test_without_a_setup_plan_a_bot_shuffles_its_army_at_random() -> void:
+	var bot: Bot = Bot.new(BotProfile.new(), Side.Id.GREEN, _rng(1))
+	var arranged: Setup = bot.arrange_setup(_rng(6))
+	var shuffled: Setup = Setup.random(Side.Id.GREEN, _rng(6))
+	for square: Vector2i in Setup.squares_for(Side.Id.GREEN):
+		assert_eq(arranged.type_at(square), shuffled.type_at(square))
+
+
+func test_the_hard_bot_hides_its_princess_on_its_home_row() -> void:
+	var bot: Bot = Bot.new(_profile(PROFILE_PATHS[2]), Side.Id.GREEN, _rng(1))
+	for seed_value: int in 10:
+		var setup: Setup = bot.arrange_setup(_rng(seed_value))
+		assert_true(setup.is_valid())
+		for square: Vector2i in setup.squares():
+			if setup.type_at(square) == PieceType.Id.PRINCESS:
+				assert_eq(square.y, Board.home_row(Side.Id.GREEN), "seed %d" % seed_value)
+
+
 func _bot_move(profile: BotProfile, game: Game, seed_value: int) -> Move:
 	var bot: Bot = Bot.new(profile, Side.Id.RED, _rng(seed_value))
 	bot.begin(PlayerView.of(game, Side.Id.RED))

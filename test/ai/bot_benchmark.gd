@@ -95,14 +95,14 @@ func _play_matches(first_name: String, second_name: String, game_count: int, fir
 ## Returns [1 when the first Bot won, -1 when it lost, 0 for a draw, plies,
 ## GameResult.Reason].
 func _play_one(first: BotProfile, second: BotProfile, first_side: Side.Id, seed_value: int) -> Array[int]:
-	var setup_rng: RandomNumberGenerator = _rng(1_000 + seed_value)
-	var game: Game = GameFactory.from_setups(
-		Setup.random(Side.Id.RED, setup_rng), Setup.random(Side.Id.GREEN, setup_rng)
-	)
 	var bots: Dictionary[Side.Id, Bot] = {
 		first_side: Bot.new(first, first_side, _rng(2_000 + seed_value)),
 		Side.opponent(first_side): Bot.new(second, Side.opponent(first_side), _rng(3_000 + seed_value)),
 	}
+	var setup_rng: RandomNumberGenerator = _rng(1_000 + seed_value)
+	var game: Game = GameFactory.from_setups(
+		bots[Side.Id.RED].arrange_setup(setup_rng), bots[Side.Id.GREEN].arrange_setup(setup_rng)
+	)
 	for side: Side.Id in bots:
 		bots[side].begin(PlayerView.of(game, side))
 	var plies: int = 0
@@ -168,7 +168,8 @@ static func _search_only(profile: BotProfile) -> BotProfile:
 
 ## [param name] is a profile file name ("hard") or an ad hoc
 ## "depth/samples/mistake_chance[/attack_depth[/positions_per_turn]]" such as
-## "2/16/0.1" or "3/8/0/4/30000".
+## "2/16/0.1" or "3/8/0/4/30000". Ad hoc profiles shuffle their Setup at
+## random, so "3/8/0/4" is Hard before it guarded its Princess.
 static func _profile(name: String) -> BotProfile:
 	if name.contains("/"):
 		var parts: PackedStringArray = name.split("/")

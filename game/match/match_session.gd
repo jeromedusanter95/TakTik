@@ -37,7 +37,7 @@ func _init(rng: RandomNumberGenerator, bots: Dictionary[Side.Id, Bot] = {}) -> v
 			push_error("A Bot was given for the side it does not play")
 			continue
 		_bots[side] = bot
-		_setups[side] = Setup.random(side, _rng)
+		_setups[side] = bot.arrange_setup(_rng)
 	_advance_setup()
 
 

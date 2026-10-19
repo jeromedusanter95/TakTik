@@ -4,6 +4,7 @@ extends RefCounted
 ## and PublicMoveEvents, so it cannot see Hidden Pieces (ADR 0002).
 ##
 ## Contract used by the match screen:
+## 0. [method arrange_setup] once, to place its Army.
 ## 1. [method begin] once, when play starts.
 ## 2. [method observe] after every Move, by either side.
 ## 3. On its turn, [method start_thinking], then call BotThinking.step() once
@@ -36,6 +37,13 @@ func profile() -> BotProfile:
 
 func side() -> Side.Id:
 	return _side
+
+
+## Draws on [param rng], the caller's, so a match can replay its Setups.
+func arrange_setup(rng: RandomNumberGenerator) -> Setup:
+	if _profile.setup_plan == null:
+		return Setup.random(_side, rng)
+	return _profile.setup_plan.arrange(_side, rng)
 
 
 func begin(view: PlayerView) -> void:

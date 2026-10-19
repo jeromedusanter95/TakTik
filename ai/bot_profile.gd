@@ -15,5 +15,7 @@ extends Resource
 ## The most positions one turn may search before deciding on the worlds it
 ## has fully searched, which bounds how long the Bot thinks.
 @export_range(1_000, 200_000) var positions_per_turn: int = 12_000
+## How the Bot arranges its Army; null shuffles it at random.
+@export var setup_plan: SetupPlan = null
 ## Chance of playing a random legal Move instead of the best one.
 @export_range(0.0, 1.0) var mistake_chance: float = 0.0

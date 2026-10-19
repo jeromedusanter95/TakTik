@@ -1,6 +1,10 @@
-[gd_resource type="Resource" script_class="BotProfile" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BotProfile" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://ai/bot_profile.gd" id="1"]
+[ext_resource type="Script" path="res://ai/guarded_princess_setup_plan.gd" id="2"]
+
+[sub_resource type="Resource" id="Resource_guarded"]
+script = ExtResource("2")
 
 [resource]
 script = ExtResource("1")
@@ -8,4 +12,5 @@ display_name = "DIFFICULTY_HARD"
 search_depth = 3
 sample_count = 8
 attack_depth = 4
+setup_plan = SubResource("Resource_guarded")
 mistake_chance = 0.0
