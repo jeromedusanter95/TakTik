@@ -1,7 +1,10 @@
 class_name MoveSearcher
 extends RefCounted
 ## Looks a fixed number of Moves ahead in one fully known Game (negamax with
-## alpha-beta pruning) and scores each of the side to move's Moves.
+## alpha-beta pruning) and scores each of the side to move's Moves. Past that
+## horizon it can keep following Attacks only, so a search never stops in the
+## middle of an exchange and mistakes a capture that will be answered for a
+## clean win.
 
 ## The score of a won game, minus one per Move it takes, so faster wins
 ## score higher and slower losses score less badly.
@@ -10,14 +13,17 @@ const INFINITY: int = 1_000_000
 
 var _evaluator: PositionEvaluator
 var _depth: int
+var _attack_depth: int
 var _nodes_searched: int = 0
 
 
 ## [param depth] counts Moves of both sides; 1 looks only at the Bot's own
-## Move.
-func _init(evaluator: PositionEvaluator, depth: int) -> void:
+## Move. [param attack_depth] is how many Attacks in a row are still followed
+## after that; 0 stops at the horizon.
+func _init(evaluator: PositionEvaluator, depth: int, attack_depth: int = 0) -> void:
 	_evaluator = evaluator
 	_depth = maxi(depth, 1)
+	_attack_depth = maxi(attack_depth, 0)
 
 
 ## How many positions this searcher has looked at so far, a measure of work
@@ -47,12 +53,35 @@ func _negamax(game: Game, depth: int, alpha: int, beta: int, ply: int) -> int:
 	if game.result().is_over():
 		return _finished_score(game, ply)
 	if depth == 0:
-		return _evaluator.evaluate(game, game.side_to_move())
+		return _follow_attacks(game, _attack_depth, alpha, beta, ply)
 	var best: int = -INFINITY
 	for move: Move in _attacks_first(game):
 		var child: Game = game.duplicate_game()
 		child.try_play(move)
 		var score: int = -_negamax(child, depth - 1, -beta, -alpha, ply + 1)
+		best = maxi(best, score)
+		alpha = maxi(alpha, score)
+		if alpha >= beta:
+			break
+	return best
+
+
+## The side to move may stop here (the static score) or play an Attack, which
+## is searched the same way, up to [param attacks_left] Attacks deep.
+func _follow_attacks(game: Game, attacks_left: int, alpha: int, beta: int, ply: int) -> int:
+	var standing: int = _evaluator.evaluate(game, game.side_to_move())
+	if attacks_left == 0 or standing >= beta:
+		return standing
+	var best: int = standing
+	alpha = maxi(alpha, standing)
+	for move: Move in _attacks(game):
+		var child: Game = game.duplicate_game()
+		child.try_play(move)
+		_nodes_searched += 1
+		var score: int = (
+			-_finished_score(child, ply + 1) if child.result().is_over()
+			else -_follow_attacks(child, attacks_left - 1, -beta, -alpha, ply + 1)
+		)
 		best = maxi(best, score)
 		alpha = maxi(alpha, score)
 		if alpha >= beta:
@@ -81,4 +110,12 @@ static func _attacks_first(game: Game) -> Array[Move]:
 		else:
 			quiet.append(move)
 	attacks.append_array(quiet)
+	return attacks
+
+
+static func _attacks(game: Game) -> Array[Move]:
+	var attacks: Array[Move] = []
+	for move: Move in game.legal_moves():
+		if game.board().has_piece(move.to):
+			attacks.append(move)
 	return attacks

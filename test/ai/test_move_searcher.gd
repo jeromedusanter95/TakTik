@@ -20,8 +20,24 @@ func test_it_prefers_a_faster_win() -> void:
 	assert_eq(_best_move(game, 3), "c7-c8")
 
 
-func _best_move(game: Game, depth: int) -> String:
-	var searcher: MoveSearcher = MoveSearcher.new(HeuristicEvaluator.new(), depth)
+func test_following_attacks_sees_a_capture_answered_by_a_recapture() -> void:
+	# The Knight can take the Soldier, but the Executioner then takes the Knight.
+	var game: Game = _game(["k....p", "......", "......", ".#e.#.", ".#s.#.", "..N...", "......", "K....P"])
+	assert_eq(_best_move(game, 1), "c3-c4", "without following attacks it grabs the Soldier")
+	assert_ne(_best_move(game, 1, 2), "c3-c4")
+
+
+func test_following_attacks_still_counts_every_searched_position() -> void:
+	var game: Game = _game(["k....p", "......", "......", ".#e.#.", ".#s.#.", "..N...", "......", "K....P"])
+	var plain: MoveSearcher = MoveSearcher.new(HeuristicEvaluator.new(), 1)
+	var following: MoveSearcher = MoveSearcher.new(HeuristicEvaluator.new(), 1, 2)
+	plain.score_moves(game, game.legal_moves())
+	following.score_moves(game, game.legal_moves())
+	assert_gt(following.nodes_searched(), plain.nodes_searched())
+
+
+func _best_move(game: Game, depth: int, attack_depth: int = 0) -> String:
+	var searcher: MoveSearcher = MoveSearcher.new(HeuristicEvaluator.new(), depth, attack_depth)
 	var moves: Array[Move] = game.legal_moves()
 	var scores: Array[int] = searcher.score_moves(game, moves)
 	var best: int = 0
