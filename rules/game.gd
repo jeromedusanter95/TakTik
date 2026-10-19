@@ -2,6 +2,9 @@ class_name Game
 extends RefCounted
 ## One game being played: the Board, whose turn it is and how it ended.
 
+## Asks [method _first_legal_moves] for every legal Move.
+const _ALL_MOVES: int = -1
+
 var _board: Board
 var _side_to_move: Side.Id
 var _plies_without_fight: int
@@ -74,13 +77,18 @@ func legal_destinations(from: Vector2i) -> Array[Vector2i]:
 ## A new Array each call, so callers may change it freely.
 func legal_moves() -> Array[Move]:
 	if _legal_moves is not Array:
-		var moves: Array[Move] = []
-		for from: Vector2i in _board.squares_of(_side_to_move):
-			for to: Vector2i in legal_destinations(from):
-				moves.append(Move.new(from, to))
-		_legal_moves = moves
+		_legal_moves = _first_legal_moves(_ALL_MOVES)
 	var cached: Array[Move] = _legal_moves
 	return cached.duplicate()
+
+
+## Whether the side to move can play at all, which is cheaper to answer than
+## listing every legal Move.
+func has_legal_move() -> bool:
+	if _legal_moves is Array:
+		var cached: Array[Move] = _legal_moves
+		return not cached.is_empty()
+	return not _first_legal_moves(1).is_empty()
 
 
 func is_legal(move: Move) -> bool:
@@ -120,6 +128,22 @@ func _resolve_on_board(move: Move) -> Fight:
 			_board.remove(move.from)
 			_board.remove(move.to)
 	return Fight.new(attacker, defender, outcome)
+
+
+## Up to [param limit] legal Moves of the side to move.
+func _first_legal_moves(limit: int) -> Array[Move]:
+	var moves: Array[Move] = []
+	if _result.is_over():
+		return moves
+	var forbidden: Move = _move_back_forbidden_for(_side_to_move)
+	for from: Vector2i in _board.squares_of(_side_to_move):
+		var type: PieceType.Id = _board.piece_at(from).type
+		for to: Vector2i in MovementCatalog.rule_for(type).destinations(from, _board, _side_to_move):
+			if forbidden == null or not (forbidden.from == from and forbidden.to == to):
+				moves.append(Move.new(from, to))
+				if moves.size() == limit:
+					return moves
+	return moves
 
 
 ## The Move Back that [param side] may not play this turn, written as the

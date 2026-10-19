@@ -15,7 +15,7 @@ static func judge(game: Game, record: MoveRecord) -> GameResult:
 				return GameResult.win(Side.opponent(piece.side), GameResult.Reason.PRINCESS_CAPTURED)
 	if _princess_reached_enemy_home_row(game.board(), record):
 		return GameResult.win(mover_side, GameResult.Reason.PRINCESS_REACHED_HOME_ROW)
-	if game.legal_moves().is_empty():
+	if not game.has_legal_move():
 		return GameResult.win(mover_side, GameResult.Reason.BLOCKED)
 	if game.plies_without_fight() >= NO_FIGHT_PLY_LIMIT:
 		return GameResult.draw(GameResult.Reason.NO_FIGHT_LIMIT)

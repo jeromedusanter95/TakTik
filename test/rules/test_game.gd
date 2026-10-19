@@ -25,6 +25,20 @@ func test_a_copy_lists_the_same_moves_and_then_plays_on_its_own() -> void:
 	assert_eq(_texts(game.legal_moves()), before)
 
 
+func test_a_side_with_moves_has_a_legal_move() -> void:
+	var game: Game = _game()
+	assert_true(game.has_legal_move())
+	game.legal_moves()
+	assert_true(game.has_legal_move(), "once the moves are listed")
+
+
+func test_a_side_whose_pieces_cannot_move_has_no_legal_move() -> void:
+	var rows: Array[String] = ["....k.", "......", "......", ".#..#.", ".#..#.", "......", "......", "O....."]
+	var game: Game = Game.new(BoardNotation.parse_board(rows), Side.Id.RED)
+	assert_false(game.has_legal_move())
+	assert_eq(game.legal_moves().size(), 0)
+
+
 func _game() -> Game:
 	var rows: Array[String] = ["....k.", "......", "......", ".#..#.", ".#..#.", "......", "......", "K....."]
 	return Game.new(BoardNotation.parse_board(rows), Side.Id.RED)
