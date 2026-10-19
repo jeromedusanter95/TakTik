@@ -32,6 +32,7 @@ func test_a_turn_stops_searching_new_worlds_past_its_position_limit() -> void:
 	var profile: BotProfile = BotProfile.new()
 	profile.search_depth = 3
 	profile.sample_count = 1_000
+	profile.positions_per_turn = 12_000
 	var bot: Bot = Bot.new(profile, Side.Id.RED, _rng(5))
 	bot.begin(PlayerView.of(game, Side.Id.RED))
 	var thinking: BotThinking = bot.start_thinking(PlayerView.of(game, Side.Id.RED))
@@ -39,7 +40,7 @@ func test_a_turn_stops_searching_new_worlds_past_its_position_limit() -> void:
 	while not thinking.is_done() and steps < 1_000:
 		thinking.step()
 		steps += 1
-	var step_limit: int = SampledSearchThinking.NODES_PER_TURN / SampledSearchThinking.NODES_PER_STEP
+	var step_limit: int = profile.positions_per_turn / SampledSearchThinking.NODES_PER_STEP
 	assert_lt(steps, step_limit + 10)
 	assert_true(game.is_legal(thinking.chosen_move()))
 

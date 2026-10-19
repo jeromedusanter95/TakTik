@@ -9,5 +9,11 @@ extends Resource
 @export_range(1, 4) var search_depth: int = 1
 ## How many plausible arrangements of the Hidden Pieces are imagined per Move.
 @export_range(1, 64) var sample_count: int = 1
+## How many Attacks in a row are still followed past [member search_depth],
+## so an exchange is never cut off halfway (0 = none).
+@export_range(0, 8) var attack_depth: int = 0
+## The most positions one turn may search before deciding on the worlds it
+## has fully searched, which bounds how long the Bot thinks.
+@export_range(1_000, 200_000) var positions_per_turn: int = 12_000
 ## Chance of playing a random legal Move instead of the best one.
 @export_range(0.0, 1.0) var mistake_chance: float = 0.0

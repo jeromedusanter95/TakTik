@@ -161,11 +161,14 @@ static func _search_only(profile: BotProfile) -> BotProfile:
 	var copy: BotProfile = BotProfile.new()
 	copy.search_depth = profile.search_depth
 	copy.sample_count = profile.sample_count
+	copy.attack_depth = profile.attack_depth
+	copy.positions_per_turn = profile.positions_per_turn
 	return copy
 
 
 ## [param name] is a profile file name ("hard") or an ad hoc
-## "depth/samples/mistake_chance" such as "2/16/0.1".
+## "depth/samples/mistake_chance[/attack_depth[/positions_per_turn]]" such as
+## "2/16/0.1" or "3/8/0/4/30000".
 static func _profile(name: String) -> BotProfile:
 	if name.contains("/"):
 		var parts: PackedStringArray = name.split("/")
@@ -174,6 +177,10 @@ static func _profile(name: String) -> BotProfile:
 		custom.search_depth = int(parts[0])
 		custom.sample_count = int(parts[1])
 		custom.mistake_chance = float(parts[2])
+		if parts.size() >= 4:
+			custom.attack_depth = int(parts[3])
+		if parts.size() >= 5:
+			custom.positions_per_turn = int(parts[4])
 		return custom
 	var resource: Resource = load(PROFILE_DIRECTORY % name)
 	if resource is not BotProfile:

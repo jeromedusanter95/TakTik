@@ -6,12 +6,11 @@ extends BotThinking
 ##
 ## Each step stops once it has searched about [constant NODES_PER_STEP]
 ## positions, so one frame never freezes the single threaded web build, while
-## small searches still finish in a frame or two. A turn that has searched
-## [constant NODES_PER_TURN] positions decides on the worlds it has fully
-## searched, so rare crowded positions do not keep the player waiting.
+## small searches still finish in a frame or two. A turn that has searched its
+## position limit decides on the worlds it has fully searched, so rare crowded
+## positions do not keep the player waiting.
 
 const NODES_PER_STEP: int = 300
-const NODES_PER_TURN: int = 12_000
 
 var _view: PlayerView
 var _sampler: WorldSampler
@@ -33,6 +32,7 @@ func _init(
 		sampler: WorldSampler,
 		searcher: MoveSearcher,
 		world_count: int,
+		position_limit: int,
 		rng: RandomNumberGenerator,
 ) -> void:
 	_view = view
@@ -40,7 +40,7 @@ func _init(
 	_searcher = searcher
 	_worlds_left = maxi(world_count, 1)
 	_rng = rng
-	_turn_end = searcher.nodes_searched() + NODES_PER_TURN
+	_turn_end = searcher.nodes_searched() + position_limit
 
 
 func step() -> void:
