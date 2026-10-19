@@ -7,6 +7,9 @@ var _side_to_move: Side.Id
 var _plies_without_fight: int
 var _last_move_by_side: Dictionary[Side.Id, Move] = {}
 var _result: GameResult = GameResult.in_progress()
+## The legal Moves of this position once computed, null until then. Bots ask
+## for them many times per position, so they are worked out only once.
+var _legal_moves: Variant = null
 
 
 func _init(
@@ -51,6 +54,7 @@ func duplicate_game() -> Game:
 		_board.duplicate_board(), _side_to_move, _plies_without_fight, _last_move_by_side
 	)
 	copy._result = _result
+	copy._legal_moves = _legal_moves
 	return copy
 
 
@@ -67,12 +71,16 @@ func legal_destinations(from: Vector2i) -> Array[Vector2i]:
 	return squares
 
 
+## A new Array each call, so callers may change it freely.
 func legal_moves() -> Array[Move]:
-	var moves: Array[Move] = []
-	for from: Vector2i in _board.squares_of(_side_to_move):
-		for to: Vector2i in legal_destinations(from):
-			moves.append(Move.new(from, to))
-	return moves
+	if _legal_moves is not Array:
+		var moves: Array[Move] = []
+		for from: Vector2i in _board.squares_of(_side_to_move):
+			for to: Vector2i in legal_destinations(from):
+				moves.append(Move.new(from, to))
+		_legal_moves = moves
+	var cached: Array[Move] = _legal_moves
+	return cached.duplicate()
 
 
 func is_legal(move: Move) -> bool:
@@ -89,6 +97,7 @@ func try_play(move: Move) -> MoveRecord:
 	_plies_without_fight = 0 if fight != null else _plies_without_fight + 1
 	_last_move_by_side[mover.side] = move
 	_side_to_move = Side.opponent(_side_to_move)
+	_legal_moves = null
 	var record: MoveRecord = MoveRecord.new(move, mover, fight)
 	_result = VictoryJudge.judge(self, record)
 	return record
