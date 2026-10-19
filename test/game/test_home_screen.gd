@@ -38,6 +38,18 @@ func test_without_a_name_nobody_is_contacted() -> void:
 	assert_eq(_label("%MessageLabel", _panel()).text, "Set your name to appear online.")
 
 
+func test_home_shows_the_version_bundled_with_the_game() -> void:
+	var node: Node = _home.get_node_or_null("%VersionLabel")
+	assert_true(node is Label, "the home screen shows the game version")
+	if node is not Label:
+		return
+	var version: Label = node
+	var bundled: String = str(ProjectSettings.get_setting("application/config/version", ""))
+	assert_false(bundled.is_empty())
+	assert_eq(version.text, "v%s" % bundled)
+	assert_true(version.is_visible_in_tree())
+
+
 func test_a_saved_name_enters_the_lobby_at_once() -> void:
 	_preferences.set_nickname("Ada")
 	_home.open()

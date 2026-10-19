@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" path="res://game/home/online_panel.tscn" id="10"]
 [ext_resource type="Script" path="res://game/ui/components/sound_toggle.gd" id="11"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/book_open.svg" id="12"]
+[ext_resource type="Script" path="res://game/ui/components/version_label.gd" id="13"]
 
 [node name="HomeScreen" type="Control"]
 layout_mode = 3
@@ -299,6 +300,15 @@ script = ExtResource("9")
 [node name="OnlinePanel" parent="Margin/Layout/Columns" instance=ExtResource("10")]
 unique_name_in_owner = true
 layout_mode = 2
+
+[node name="VersionLabel" type="Label" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
+auto_translate_mode = 2
+horizontal_alignment = 2
+script = ExtResource("13")
 
 [node name="TopRight" type="HBoxContainer" parent="."]
 unique_name_in_owner = true
