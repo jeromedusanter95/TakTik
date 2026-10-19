@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://game/ui/components/preference_rows.tscn" id="2"]
 [ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="3"]
 [ext_resource type="Script" path="res://game/ui/components/segmented_control.gd" id="4"]
+[ext_resource type="Script" path="res://game/ui/components/version_label.gd" id="5"]
 
 [node name="GameMenu" type="Control"]
 layout_mode = 3
@@ -100,3 +101,12 @@ text = "MENU_QUIT"
 
 [node name="PressScaleFeedback" type="Node" parent="Veil/Center/Card/Content/QuitButton"]
 script = ExtResource("3")
+
+[node name="VersionLabel" type="Label" parent="Veil/Center/Card/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Caption"
+auto_translate_mode = 2
+horizontal_alignment = 1
+script = ExtResource("5")

@@ -88,6 +88,20 @@ func test_the_menu_button_opens_the_game_menu() -> void:
 	assert_true(menu.visible)
 
 
+func test_the_pause_menu_shows_the_version_bundled_with_the_game() -> void:
+	var menu: GameMenu = _screen.get_node("%GameMenu")
+	menu.open(false)
+	var node: Node = menu.get_node_or_null("%VersionLabel")
+	assert_true(node is Label, "the pause menu shows the game version")
+	if node is not Label:
+		return
+	var version: Label = node
+	var bundled: String = str(ProjectSettings.get_setting("application/config/version", ""))
+	assert_false(bundled.is_empty())
+	assert_eq(version.text, "v%s" % bundled)
+	assert_true(version.is_visible_in_tree())
+
+
 func test_the_book_opens_the_rules_over_the_game() -> void:
 	var bar: Node = _screen.get_node("%TopBar")
 	var button: Button = bar.get_node("%RulesButton")
