@@ -2,9 +2,8 @@ class_name MoveSearcher
 extends RefCounted
 ## Looks a fixed number of Moves ahead in one fully known Game (negamax with
 ## alpha-beta pruning) and scores each of the side to move's Moves. Past that
-## horizon it can keep following Attacks only, so a search never stops in the
-## middle of an exchange and mistakes a capture that will be answered for a
-## clean win.
+## horizon it can keep following Attacks and immediate Princess wins, so an
+## exchange is not cut off halfway and a quiet winning Move is not overlooked.
 
 ## The score of a won game, minus one per Move it takes, so faster wins
 ## score higher and slower losses score less badly.
@@ -21,8 +20,8 @@ var _killers: Dictionary[int, Move] = {}
 
 
 ## [param depth] counts Moves of both sides; 1 looks only at the Bot's own
-## Move. [param attack_depth] is how many Attacks in a row are still followed
-## after that; 0 stops at the horizon.
+## Move. [param attack_depth] is how many tactical Moves are still followed
+## after that, including immediate Princess wins; 0 stops at the horizon.
 func _init(evaluator: PositionEvaluator, depth: int, attack_depth: int = 0) -> void:
 	_evaluator = evaluator
 	_depth = maxi(depth, 1)
@@ -56,7 +55,7 @@ func _negamax(game: Game, depth: int, alpha: int, beta: int, ply: int) -> int:
 	if game.result().is_over():
 		return _finished_score(game, ply)
 	if depth == 0:
-		return _follow_attacks(game, _attack_depth, alpha, beta, ply)
+		return _follow_tactics(game, _attack_depth, alpha, beta, ply)
 	var best: int = -INFINITY
 	for move: Move in _ordered_moves(game, ply):
 		var child: Game = game.duplicate_game()
@@ -70,21 +69,21 @@ func _negamax(game: Game, depth: int, alpha: int, beta: int, ply: int) -> int:
 	return best
 
 
-## The side to move may stop here (the static score) or play an Attack, which
-## is searched the same way, up to [param attacks_left] Attacks deep.
-func _follow_attacks(game: Game, attacks_left: int, alpha: int, beta: int, ply: int) -> int:
+## The side to move may stop here (the static score) or play an Attack or an
+## immediate Princess win, up to [param tactics_left] tactical Moves deep.
+func _follow_tactics(game: Game, tactics_left: int, alpha: int, beta: int, ply: int) -> int:
 	var standing: int = _evaluator.evaluate(game, game.side_to_move())
-	if attacks_left == 0 or standing >= beta:
+	if tactics_left == 0 or standing >= beta:
 		return standing
 	var best: int = standing
 	alpha = maxi(alpha, standing)
-	for move: Move in _attacks(game):
+	for move: Move in _tactical_moves(game):
 		var child: Game = game.duplicate_game()
 		child.try_play(move)
 		_nodes_searched += 1
 		var score: int = (
 			-_finished_score(child, ply + 1) if child.result().is_over()
-			else -_follow_attacks(child, attacks_left - 1, -beta, -alpha, ply + 1)
+			else -_follow_tactics(child, tactics_left - 1, -beta, -alpha, ply + 1)
 		)
 		best = maxi(best, score)
 		alpha = maxi(alpha, score)
@@ -122,9 +121,15 @@ func _ordered_moves(game: Game, ply: int) -> Array[Move]:
 	return first
 
 
-static func _attacks(game: Game) -> Array[Move]:
-	var attacks: Array[Move] = []
+static func _tactical_moves(game: Game) -> Array[Move]:
+	var moves: Array[Move] = []
+	var winning_row: int = Board.home_row(Side.opponent(game.side_to_move()))
 	for move: Move in game.legal_moves():
 		if game.board().has_piece(move.to):
-			attacks.append(move)
-	return attacks
+			moves.append(move)
+		elif (
+			move.to.y == winning_row
+			and game.board().piece_at(move.from).type == PieceType.Id.PRINCESS
+		):
+			moves.append(move)
+	return moves
