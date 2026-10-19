@@ -71,6 +71,7 @@ func _play_matches(first_name: String, second_name: String, game_count: int, fir
 			GameResult.Reason.keys()[outcome[2]],
 		]
 		reasons[reason] = reasons.get(reason, 0) + 1
+		print("game %d: %s" % [index, reason])
 		match outcome[0]:
 			1:
 				first_wins += 1
