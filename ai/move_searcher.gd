@@ -15,6 +15,9 @@ var _evaluator: PositionEvaluator
 var _depth: int
 var _attack_depth: int
 var _nodes_searched: int = 0
+## The last Move that cut the search short at each ply, tried first at that
+## ply next time: it often refutes the neighbouring positions too.
+var _killers: Dictionary[int, Move] = {}
 
 
 ## [param depth] counts Moves of both sides; 1 looks only at the Bot's own
@@ -55,13 +58,14 @@ func _negamax(game: Game, depth: int, alpha: int, beta: int, ply: int) -> int:
 	if depth == 0:
 		return _follow_attacks(game, _attack_depth, alpha, beta, ply)
 	var best: int = -INFINITY
-	for move: Move in _attacks_first(game):
+	for move: Move in _ordered_moves(game, ply):
 		var child: Game = game.duplicate_game()
 		child.try_play(move)
 		var score: int = -_negamax(child, depth - 1, -beta, -alpha, ply + 1)
 		best = maxi(best, score)
 		alpha = maxi(alpha, score)
 		if alpha >= beta:
+			_killers[ply] = move
 			break
 	return best
 
@@ -99,18 +103,23 @@ static func _finished_score(game: Game, ply: int) -> int:
 	return WIN_SCORE - ply if mover_won else ply - WIN_SCORE
 
 
-## Attacks are tried first: they change the score most, so alpha-beta
-## prunes more.
-static func _attacks_first(game: Game) -> Array[Move]:
+## The killer Move of [param ply] first, then Attacks, which change the
+## score most, so alpha-beta prunes more.
+func _ordered_moves(game: Game, ply: int) -> Array[Move]:
+	var killer: Move = _killers.get(ply)
+	var first: Array[Move] = []
 	var attacks: Array[Move] = []
 	var quiet: Array[Move] = []
 	for move: Move in game.legal_moves():
-		if game.board().has_piece(move.to):
+		if move.equals(killer):
+			first.append(move)
+		elif game.board().has_piece(move.to):
 			attacks.append(move)
 		else:
 			quiet.append(move)
-	attacks.append_array(quiet)
-	return attacks
+	first.append_array(attacks)
+	first.append_array(quiet)
+	return first
 
 
 static func _attacks(game: Game) -> Array[Move]:
