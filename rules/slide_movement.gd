@@ -14,3 +14,11 @@ func destinations(from: Vector2i, board: Board, side: Side.Id) -> Array[Vector2i
 		if _is_walkable(target) and _holds_enemy(board, target, side):
 			squares.append(target)
 	return squares
+
+
+func reach() -> Reach:
+	return Reach.ANY_SQUARES
+
+
+func can_attack() -> bool:
+	return true
