@@ -7,4 +7,5 @@ script = ExtResource("1")
 display_name = "DIFFICULTY_HARD"
 search_depth = 3
 sample_count = 8
+attack_depth = 4
 mistake_chance = 0.0

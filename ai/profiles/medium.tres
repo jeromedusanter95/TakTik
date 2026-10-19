@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1")
 display_name = "DIFFICULTY_MEDIUM"
-search_depth = 2
-sample_count = 6
-mistake_chance = 0.1
+search_depth = 3
+sample_count = 8
+mistake_chance = 0.0
