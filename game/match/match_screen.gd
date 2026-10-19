@@ -82,6 +82,7 @@ var _chat_hidden: bool = false
 @onready var _result_modal: ResultModal = %ResultModal
 @onready var _chat_sheet: ChatSheet = %ChatSheet
 @onready var _game_menu: GameMenu = %GameMenu
+@onready var _rules_overlay: RulesOverlay = %RulesOverlay
 @onready var _resign_dialog: VeilDialog = %ResignDialog
 @onready var _connection_dialog: VeilDialog = %ConnectionDialog
 
@@ -92,6 +93,7 @@ func _ready() -> void:
 	_shuffle_button.pressed.connect(_on_shuffle_pressed)
 	_action_button.pressed.connect(_on_action_pressed)
 	_top_bar.menu_pressed.connect(_on_menu_pressed)
+	_top_bar.rules_pressed.connect(_rules_overlay.open)
 	_top_bar.resign_pressed.connect(_ask_to_resign)
 	_top_bar.chat_pressed.connect(_open_chat_sheet)
 	_chat_bar.pressed.connect(_open_chat_sheet)
@@ -114,6 +116,7 @@ func use_preferences(preferences: PlayerPreferences) -> void:
 	_preferences = preferences
 	_game_menu.use_preferences(preferences)
 	_top_bar.use_preferences(preferences)
+	_rules_overlay.use_preferences(preferences)
 	_preferences.changed.connect(_on_preferences_changed)
 	_apply_motion()
 
@@ -348,6 +351,7 @@ func hide_connection() -> void:
 
 func close_overlays() -> void:
 	_game_menu.close()
+	_rules_overlay.close()
 	_resign_dialog.hide()
 	_connection_dialog.hide()
 	_chat_sheet.close()
@@ -433,6 +437,7 @@ func _apply_layout() -> void:
 	var chat_width: int = _chat_column_width() + UiTokens.SPACE_2XL + UiTokens.GAP_COLUMNS
 	_result_modal.offset_right = -chat_width if _has_chat_column() else 0
 	_result_modal.set_phone(phone)
+	_rules_overlay.set_phone(phone)
 	_chat_sheet.set_side_drawer(_layout == ScreenLayout.Id.NARROW)
 	_move_chat()
 	_apply_board_size()

@@ -1,0 +1,109 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/rules_page/rules_screen.gd" id="1"]
+[ext_resource type="Script" path="res://game/ui/components/page_background.gd" id="2"]
+[ext_resource type="PackedScene" path="res://game/rules_page/rules_content.tscn" id="3"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/arrow_left.svg" id="4"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/bot.svg" id="5"]
+[ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="6"]
+
+[node name="RulesScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2")
+glow_center = Vector2(0.5, 0.2)
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="TopBar" type="PanelContainer" parent="Layout"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 76)
+layout_mode = 2
+theme_type_variation = &"TopBar"
+
+[node name="Columns" type="HBoxContainer" parent="Layout/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Left" type="HBoxContainer" parent="Layout/TopBar/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HomeButton" type="Button" parent="Layout/TopBar/Columns/Left"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(46, 46)
+layout_mode = 2
+size_flags_vertical = 4
+tooltip_text = "RULES_HOME"
+theme_type_variation = &"WoodButtonSmall"
+text = "RULES_HOME"
+icon = ExtResource("4")
+
+[node name="PressScaleFeedback" type="Node" parent="Layout/TopBar/Columns/Left/HomeButton"]
+script = ExtResource("6")
+
+[node name="Centre" type="HBoxContainer" parent="Layout/TopBar/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="Logo" type="Label" parent="Layout/TopBar/Columns/Centre"]
+layout_mode = 2
+theme_type_variation = &"TitleLGold"
+text = "TakTik"
+auto_translate_mode = 2
+
+[node name="Right" type="HBoxContainer" parent="Layout/TopBar/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="PracticeButton" type="Button" parent="Layout/TopBar/Columns/Right"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(46, 46)
+layout_mode = 2
+size_flags_vertical = 4
+tooltip_text = "RULES_PRACTICE"
+theme_type_variation = &"GoldButtonSmall"
+text = "RULES_PRACTICE"
+icon = ExtResource("5")
+
+[node name="PressScaleFeedback" type="Node" parent="Layout/TopBar/Columns/Right/PracticeButton"]
+script = ExtResource("6")
+
+[node name="Scroll" type="ScrollContainer" parent="Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Margin" type="MarginContainer" parent="Layout/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Content" parent="Layout/Scroll/Margin" instance=ExtResource("3")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3

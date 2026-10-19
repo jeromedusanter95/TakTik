@@ -191,3 +191,69 @@ CHAT_HIDDEN,The opponent's messages are hidden for this game.,Les messages de l'
 CHAT_SHOWN,The opponent's messages are shown again.,Les messages de l'adversaire sont de nouveau affichés.
 ONLINE_SLOW,Slow connection...,Connexion lente...
 LOBBY_COUNT_ONE,{count} player,{count} joueur
+RULES_BUTTON,Game rules,Règles du jeu
+RULES_HOME,Home,Accueil
+RULES_PRACTICE,Practice against the Bot,S'entraîner contre le bot
+RULES_CLOSE,Close the rules,Fermer les règles
+RULES_TITLE,Game rules,Règles du jeu
+RULES_LEAD,Two armies of 18 hidden pieces face each other on a 6 × 8 board. Find the enemy Princess without giving yours away.,Deux armées de 18 pièces cachées s'affrontent sur un plateau de 6 × 8. Trouvez la Princesse adverse sans trahir la vôtre.
+RULES_WIN_HEADING,Two ways to win,Deux façons de gagner
+RULES_WIN_CAPTURE_TITLE,Capture the Princess,Capturez la Princesse
+RULES_WIN_CAPTURE_BODY,"Attack the enemy Princess with any piece that attacks: her Defense is 0, so she always falls. Lose yours and the game is over.","Attaquez la Princesse adverse avec une pièce qui attaque : sa Défense est de 0, elle tombe à coup sûr. Perdez la vôtre et la partie est finie."
+RULES_WIN_CROSS_TITLE,Cross the board,Traversez le plateau
+RULES_WIN_CROSS_BODY,"Bring your own Princess onto the enemy Home Row, the far row of the board, and you win at once.","Amenez votre Princesse sur la Rangée de départ adverse, la dernière rangée du plateau, et vous gagnez aussitôt."
+RULES_TURNS_HEADING,A game in three steps,Une partie en trois temps
+RULES_STEP_SETUP_TITLE,Setup,Placement
+RULES_STEP_SETUP_BODY,"Arrange your 18 pieces on your three rows. Your opponent only sees their backs. Online, Setup lasts 3 minutes.","Disposez vos 18 pièces sur vos trois rangées. L'adversaire n'en voit que le dos. En ligne, le placement dure 3 minutes."
+RULES_STEP_TURNS_TITLE,Turns,Les tours
+RULES_STEP_TURNS_BODY,"Red moves first. On your turn, move one piece one square forward, back, left or right, never diagonally, onto an empty square or an enemy piece. Online, each turn lasts 1 minute.","Rouge commence. À votre tour, déplacez une pièce d'une case en avant, en arrière ou sur le côté, jamais en diagonale, vers une case vide ou une pièce ennemie. En ligne, chaque tour dure 1 minute."
+RULES_STEP_TURNS_NOTE,No going straight back: a piece cannot return to the square it just left until you have played another move.,Pas d'aller-retour : une pièce ne peut pas revenir sur la case qu'elle vient de quitter avant que vous ayez joué un autre coup.
+RULES_STEP_ATTACK_TITLE,Attacks,L'attaque
+RULES_STEP_ATTACK_BODY,"Moving onto an enemy piece starts a fight. Both pieces are shown for a moment, then the survivor hides again: remember what you saw.","Entrer sur une pièce ennemie déclenche un combat. Les deux pièces se dévoilent un instant, puis la survivante redevient cachée : retenez ce que vous avez vu."
+RULES_COMBAT_HEADING,Fights,Le combat
+RULES_COMBAT_ATTACK,The attacker's Attack beats the defender's Defense: the attacker wins and takes the square.,L'Attaque de l'attaquant dépasse la Défense du défenseur : l'attaquant gagne et prend la case.
+RULES_COMBAT_DEFENSE,"The Defense is higher: the defender wins and stays put, the attacker is eliminated.","La Défense est plus forte : le défenseur gagne et reste sur sa case, l'attaquant est éliminé."
+RULES_COMBAT_TIE,Equal strengths: both pieces are eliminated.,Égalité : les deux pièces sont éliminées.
+RULES_COMBAT_MONSTER,"Exception: the Monster eliminates every attacker, even the Thief, except the Magician, who beats it.","Exception : le Monstre élimine tout attaquant, même le Voleur, sauf le Magicien, qui le bat."
+RULES_COMBAT_LOSSES,"Eliminated pieces go to their side's Losses, which both players can see.","Les pièces éliminées rejoignent les Pertes de leur camp, visibles par les deux joueurs."
+RULES_SIM_TITLE,Try a fight,Essayez un combat
+RULES_SIM_ATTACKER,Attacker,Attaquant
+RULES_SIM_DEFENDER,Defender,Défenseur
+RULES_SIM_VERSUS,against,contre
+RULES_VERDICT_NO_FIGHT,No fight,Pas de combat
+RULES_VERDICT_WINS,{piece} wins,{piece} l'emporte
+RULES_VERDICT_BOTH,Both are eliminated,Les deux sont éliminés
+RULES_REASON_NEVER_MOVES,"{piece} never moves, so it cannot attack.",{piece} ne bouge jamais et ne peut donc pas attaquer.
+RULES_REASON_NEVER_ATTACKS,{piece} never attacks.,{piece} n'attaque jamais.
+RULES_REASON_MAGICIAN,Only the Magician kills a Monster.,Seul le Magicien peut tuer un Monstre.
+RULES_REASON_MONSTER,The Monster eliminates every attacker but the Magician.,Le Monstre élimine tout attaquant sauf le Magicien.
+RULES_REASON_STRONGER_ATTACK,Attack {attack} against Defense {defense}: the attack goes through.,Attaque {attack} contre Défense {defense} : l'attaque passe.
+RULES_REASON_STRONGER_DEFENSE,Defense {defense} against Attack {attack}: the defense holds.,Défense {defense} contre Attaque {attack} : la défense tient.
+RULES_REASON_EQUAL,Attack {attack} against Defense {defense}: a tie.,Attaque {attack} contre Défense {defense} : égalité.
+RULES_PRINCESS_CAPTURED,Princess captured: victory!,Princesse capturée : victoire !
+RULES_PIECES_HEADING,The 9 pieces,Les 9 pièces
+RULES_COUNT,× {count},× {count}
+RULES_MOVE_ONE,1 square,1 case
+RULES_MOVE_ANY,Several squares,Plusieurs cases
+RULES_MOVE_NONE,Never moves,Immobile
+RULES_BEATS,Beats when attacking,Bat en attaquant
+RULES_BEATS_NOBODY,Never attacks,N'attaque jamais
+RULES_NOTE_THIEF,"The strongest attack, but no defense at all.","L'attaque la plus forte, mais aucune défense."
+RULES_NOTE_KING,The top of the hierarchy.,Le sommet de la hiérarchie.
+RULES_NOTE_EXECUTIONER,Just under the King.,Juste sous le Roi.
+RULES_NOTE_MAGICIAN,The only piece that kills a Monster.,La seule pièce qui tue un Monstre.
+RULES_NOTE_BUFFOON,Crosses any number of empty squares in a straight line and may attack the first enemy in that line. The army's scout.,Traverse autant de cases vides qu'il veut en ligne droite et peut attaquer la première pièce ennemie sur sa route. L'éclaireur de l'armée.
+RULES_NOTE_MONSTER,Never moves. Eliminates every attacker except the Magician.,Ne bouge jamais. Élimine tout attaquant sauf le Magicien.
+RULES_NOTE_PRINCESS,Never attacks. Losing her loses the game.,"N'attaque jamais. La perdre, c'est perdre la partie."
+RULES_PIECES_FOOTNOTE,"Every piece moves straight, never diagonally. Strengths go from 0 to 7.","Toutes les pièces se déplacent en ligne droite, jamais en diagonale. Les forces vont de 0 à 7."
+RULES_BOARD_HEADING,The board and the end of the game,Le plateau et la fin de partie
+RULES_ZONE_ENEMY,The top 3 rows: the enemy army,Les 3 rangées du haut : l'armée adverse
+RULES_ZONE_MIDDLE,"The 2 middle rows start empty, with 4 obstacles nobody can enter","Les 2 rangées du milieu sont vides au départ, avec 4 obstacles infranchissables"
+RULES_ZONE_OWN,The bottom 3 rows: your army,Les 3 rangées du bas : votre armée
+RULES_END_PRINCESS,"Victory: the enemy Princess is captured, or yours reaches the enemy Home Row.","Victoire : la Princesse adverse est capturée, ou la vôtre atteint la Rangée de départ adverse."
+RULES_END_BLOCKED,Blocked: a player with no legal move on their turn loses.,Bloqué : le joueur qui ne peut plus bouger aucune pièce à son tour perd.
+RULES_END_DRAW,Draw: 50 rounds in a row without a fight.,Match nul : 50 tours d'affilée sans combat.
+RULES_END_RESIGN,Resign: giving up hands the victory to your opponent.,Abandon : abandonner donne la victoire à l'adversaire.
+RULES_END_DISCONNECT,"Disconnection: online, a player away for more than 2 minutes loses.","Déconnexion : en ligne, un joueur absent plus de 2 minutes perd la partie."
+RULES_END_TIMEOUT,"Time out: online, letting your turn timer run out loses the game.","Temps écoulé : en ligne, laisser filer son minuteur de tour fait perdre la partie."
+RULES_TRY,Ready? A practice game,Prêt ? Une partie d'essai

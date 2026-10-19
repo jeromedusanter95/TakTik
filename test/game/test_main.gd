@@ -27,7 +27,7 @@ func test_the_game_opens_on_the_home_screen_with_three_difficulties() -> void:
 
 
 func test_every_screen_gets_the_theme() -> void:
-	for screen: Control in [_home(), _match()]:
+	for screen: Control in [_home(), _match(), _rules()]:
 		assert_not_null(screen.theme)
 		assert_true(screen.theme.has_stylebox(&"normal", &"GoldButton"))
 
@@ -54,6 +54,25 @@ func test_the_chosen_difficulty_is_remembered() -> void:
 	assert_eq(saved, "0")
 	_button("%BotButton", _home()).pressed.emit()
 	assert_eq(_subtitle(), "Against Easy Bot")
+
+
+func test_the_rules_open_from_home_and_lead_back_home() -> void:
+	_button("%RulesButton", _home()).pressed.emit()
+	assert_true(_rules().visible)
+	assert_false(_home().visible)
+	_button("%HomeButton", _rules()).pressed.emit()
+	assert_true(_home().visible)
+	assert_false(_rules().visible)
+
+
+func test_the_rules_practice_game_plays_the_last_chosen_difficulty() -> void:
+	var difficulty: SegmentedControl = _home().get_node("%Difficulty")
+	difficulty.option(2).pressed.emit()
+	_button("%RulesButton", _home()).pressed.emit()
+	_button("%PracticeButton", _rules()).pressed.emit()
+	assert_true(_match().visible)
+	assert_false(_rules().visible)
+	assert_eq(_subtitle(), "Against Hard Bot")
 
 
 func test_quitting_a_game_leads_back_home() -> void:
@@ -101,6 +120,12 @@ func _home() -> HomeScreen:
 func _match() -> LocalMatch:
 	var node: Node = _main.get_node("%LocalMatch")
 	assert_true(node is LocalMatch)
+	return node
+
+
+func _rules() -> RulesScreen:
+	var node: Node = _main.get_node("%RulesScreen")
+	assert_true(node is RulesScreen)
 	return node
 
 

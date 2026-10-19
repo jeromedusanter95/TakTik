@@ -3,9 +3,11 @@ extends PanelContainer
 ## The bar across the top of a game: the logo and who plays whom on the
 ## left, whose turn it is with the timer in the middle, and Resign and Menu
 ## on the right. On phones it keeps Menu, the turn and the timer, and adds
-## the chat button with its unread count.
+## the chat button with its unread count. The book opens the rules on every
+## screen size.
 
 signal menu_pressed
+signal rules_pressed
 signal resign_pressed
 signal chat_pressed
 ## The timer ring beat in one of its last seconds.
@@ -25,6 +27,7 @@ signal timer_beat
 @onready var _menu_button: Button = %MenuButton
 @onready var _phone_menu_button: Button = %PhoneMenuButton
 @onready var _sound_toggle: SoundToggle = %SoundToggle
+@onready var _rules_button: Button = %RulesButton
 
 var _phone: bool = false
 var _resign_allowed: bool = false
@@ -37,6 +40,7 @@ func _ready() -> void:
 	_phone_menu_button.pressed.connect(_on_menu_pressed)
 	_resign_button.pressed.connect(_on_resign_pressed)
 	_chat_button.pressed.connect(_on_chat_pressed)
+	_rules_button.pressed.connect(_on_rules_pressed)
 	_timer_ring.beat.connect(_on_timer_beat)
 	show_unread(0)
 	hide_timer()
@@ -138,6 +142,10 @@ func _on_resign_pressed() -> void:
 
 func _on_chat_pressed() -> void:
 	chat_pressed.emit()
+
+
+func _on_rules_pressed() -> void:
+	rules_pressed.emit()
 
 
 func _on_timer_beat() -> void:

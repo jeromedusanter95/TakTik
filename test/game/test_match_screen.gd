@@ -88,6 +88,17 @@ func test_the_menu_button_opens_the_game_menu() -> void:
 	assert_true(menu.visible)
 
 
+func test_the_book_opens_the_rules_over_the_game() -> void:
+	var bar: Node = _screen.get_node("%TopBar")
+	var button: Button = bar.get_node("%RulesButton")
+	assert_true(button.is_visible_in_tree(), "the book shows on phones too")
+	button.pressed.emit()
+	var overlay: RulesOverlay = _screen.get_node("%RulesOverlay")
+	assert_true(overlay.visible)
+	_screen.close_overlays()
+	assert_false(overlay.visible)
+
+
 func test_a_fight_flies_the_loser_to_its_losses_tray() -> void:
 	var event: PublicMoveEvent = PublicMoveEvent.of_move(
 		Side.Id.RED, Move.new(Vector2i(1, 2), Vector2i(1, 3))

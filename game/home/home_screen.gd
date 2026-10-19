@@ -8,11 +8,15 @@ signal two_players_chosen
 signal bot_chosen(profile: BotProfile)
 ## The Lobby paired this Guest, by Quick Match or Challenge.
 signal paired(seat: PairedSeat, nickname: String)
+## The player opened the rules page.
+signal rules_requested
 
 ## How long a received Challenge waits for an answer before it is declined.
 const CHALLENGE_SECONDS: float = 30.0
 ## The online panel's height when it sits under the menu.
 const NARROW_PANEL_HEIGHT: float = 420.0
+## Room for the top right utilities, which line up against its right edge.
+const TOP_RIGHT_WIDTH: float = 420.0
 
 var _server_url: String = ""
 ## Returns a new WireSocket for each connection.
@@ -50,6 +54,7 @@ var _active: bool = false
 @onready var _language_switch: SegmentedControl = %LanguageSwitch
 @onready var _top_right: HBoxContainer = %TopRight
 @onready var _sound_toggle: SoundToggle = %SoundToggle
+@onready var _rules_button: Button = %RulesButton
 
 
 func _ready() -> void:
@@ -60,6 +65,7 @@ func _ready() -> void:
 	_quick_match_button.pressed.connect(_on_quick_match_pressed)
 	_bot_button.pressed.connect(_on_bot_pressed)
 	_two_players_button.pressed.connect(_on_two_players_pressed)
+	_rules_button.pressed.connect(_on_rules_pressed)
 	_difficulty.option_chosen.connect(_on_difficulty_chosen)
 	_language_switch.show_options(["FR", "EN"], 0)
 	_language_switch.option_chosen.connect(_on_language_chosen)
@@ -262,8 +268,9 @@ func _apply_layout() -> void:
 	_online_panel.custom_minimum_size = _panel_size()
 	# Beside the left column on two column layouts; in the corner otherwise.
 	var right: float = UiTokens.SPACE_L if single_column else _online_panel.custom_minimum_size.x + 88.0
-	_top_right.offset_left = -190.0 - right
+	_top_right.offset_left = -TOP_RIGHT_WIDTH - right
 	_top_right.offset_right = -right
+	_rules_button.text = "" if phone else "RULES_BUTTON"
 	_top_right.offset_top = UiTokens.SPACE_L if single_column else 28.0
 	_mode_cards.vertical = phone
 	_modes.custom_minimum_size.x = 0.0 if single_column else 560.0
@@ -342,6 +349,11 @@ func _on_bot_pressed() -> void:
 func _on_two_players_pressed() -> void:
 	close()
 	two_players_chosen.emit()
+
+
+func _on_rules_pressed() -> void:
+	close()
+	rules_requested.emit()
 
 
 func _on_difficulty_chosen(index: int) -> void:

@@ -23,6 +23,7 @@ var _fitted: bool = false
 @onready var _home: HomeScreen = %HomeScreen
 @onready var _local_match: LocalMatch = %LocalMatch
 @onready var _online_match: OnlineMatch = %OnlineMatch
+@onready var _rules: RulesScreen = %RulesScreen
 @onready var _sound: SoundPlayer = %SoundPlayer
 
 
@@ -38,7 +39,7 @@ func _ready() -> void:
 	# Main is a plain Node, which breaks theme inheritance from the window,
 	# so each screen gets the Theme itself.
 	var theme: Theme = TaktikTheme.build()
-	for screen: Control in [_home, _local_match, _online_match]:
+	for screen: Control in _screens():
 		screen.theme = theme
 	_sound.use_preferences(_preferences)
 	_home.use_sound(_sound)
@@ -49,10 +50,14 @@ func _ready() -> void:
 	_home.show_difficulties(bot_profiles)
 	_local_match.use_preferences(_preferences)
 	_online_match.use_preferences(_preferences)
+	_rules.use_preferences(_preferences)
 	_online_match.configure(online_server_url, _open_socket, _rng, Time.get_ticks_msec)
 	_home.two_players_chosen.connect(_on_two_players_chosen)
 	_home.bot_chosen.connect(_on_bot_chosen)
 	_home.paired.connect(_on_paired)
+	_home.rules_requested.connect(_show_rules)
+	_rules.home_pressed.connect(_show_home)
+	_rules.practice_pressed.connect(_on_practice_pressed)
 	_local_match.menu_requested.connect(_show_home)
 	_online_match.lobby_requested.connect(_show_home)
 	get_window().size_changed.connect(_fit_window)
@@ -71,6 +76,14 @@ func _on_bot_chosen(profile: BotProfile) -> void:
 		&"MENU_BOT_BUTTON", {"difficulty": Translated.text(profile.display_name)}
 	)
 	_local_match.start(func() -> MatchSession: return _session_against_bot(profile), bot_name)
+
+
+## A practice game from the rules page: against the Bot at the Difficulty
+## last chosen on the home screen.
+func _on_practice_pressed() -> void:
+	if bot_profiles.is_empty():
+		return
+	_on_bot_chosen(bot_profiles[clampi(_preferences.difficulty, 0, bot_profiles.size() - 1)])
 
 
 func _on_paired(seat: PairedSeat, nickname: String) -> void:
@@ -99,9 +112,18 @@ func _show_home() -> void:
 	_home.open()
 
 
+func _show_rules() -> void:
+	_show_only(_rules)
+	_rules.open()
+
+
 func _show_only(screen: Control) -> void:
-	for candidate: Control in [_home, _local_match, _online_match]:
+	for candidate: Control in _screens():
 		candidate.visible = candidate == screen
+
+
+func _screens() -> Array[Control]:
+	return [_home, _local_match, _online_match, _rules]
 
 
 ## Picks the layout from the screen's width in CSS pixels, and draws the
@@ -118,3 +140,4 @@ func _fit_window() -> void:
 	_home.set_layout(layout)
 	_local_match.set_layout(layout)
 	_online_match.set_layout(layout)
+	_rules.set_layout(layout)

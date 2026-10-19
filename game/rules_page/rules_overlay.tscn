@@ -1,0 +1,77 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/rules_page/rules_overlay.gd" id="1"]
+[ext_resource type="PackedScene" path="res://game/rules_page/rules_content.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/x.svg" id="3"]
+[ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="4"]
+
+[node name="RulesOverlay" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Veil" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Veil"
+
+[node name="Panel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -720.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_type_variation = &"Drawer"
+
+[node name="Column" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="Panel/Column"]
+layout_mode = 2
+alignment = 2
+
+[node name="CloseButton" type="Button" parent="Panel/Column/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+tooltip_text = "RULES_CLOSE"
+theme_type_variation = &"IconButton"
+icon = ExtResource("3")
+icon_alignment = 1
+expand_icon = true
+
+[node name="PressScaleFeedback" type="Node" parent="Panel/Column/Header/CloseButton"]
+script = ExtResource("4")
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Margin" type="MarginContainer" parent="Panel/Column/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 40
+
+[node name="Content" parent="Panel/Column/Scroll/Margin" instance=ExtResource("2")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3

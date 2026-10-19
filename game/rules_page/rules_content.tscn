@@ -1,0 +1,314 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/rules_page/rules_content.gd" id="1"]
+[ext_resource type="PackedScene" path="res://game/rules_page/section_heading.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://game/rules_page/win_card.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://game/rules_page/step_card.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://game/rules_page/rule_row.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://game/rules_page/combat_simulator.tscn" id="6"]
+[ext_resource type="Script" path="res://game/rules_page/mini_board.gd" id="7"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/sword.svg" id="8"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/shield.svg" id="9"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/swords.svg" id="10"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/x.svg" id="11"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/crown.svg" id="12"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/rotate_ccw.svg" id="13"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/flag.svg" id="14"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/users.svg" id="15"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/clock.svg" id="16"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/bot.svg" id="17"]
+[ext_resource type="Script" path="res://game/ui/press_scale_feedback.gd" id="18"]
+
+[node name="RulesContent" type="VBoxContainer"]
+script = ExtResource("1")
+theme_override_constants/separation = 64
+
+[node name="Intro" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Intro"]
+layout_mode = 2
+theme_type_variation = &"LogoPhone"
+text = "RULES_TITLE"
+autowrap_mode = 3
+
+[node name="Lead" type="Label" parent="Intro"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_type_variation = &"Tagline"
+text = "RULES_LEAD"
+autowrap_mode = 3
+
+[node name="WinSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Heading" parent="WinSection" instance=ExtResource("2")]
+layout_mode = 2
+number = "01"
+title = "RULES_WIN_HEADING"
+
+[node name="WinCards" type="BoxContainer" parent="WinSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="CaptureCard" parent="WinSection/WinCards" instance=ExtResource("3")]
+layout_mode = 2
+title = "RULES_WIN_CAPTURE_TITLE"
+body = "RULES_WIN_CAPTURE_BODY"
+
+[node name="CrossCard" parent="WinSection/WinCards" instance=ExtResource("3")]
+layout_mode = 2
+way = 1
+title = "RULES_WIN_CROSS_TITLE"
+body = "RULES_WIN_CROSS_BODY"
+
+[node name="TurnsSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Heading" parent="TurnsSection" instance=ExtResource("2")]
+layout_mode = 2
+number = "02"
+title = "RULES_TURNS_HEADING"
+
+[node name="StepCards" type="BoxContainer" parent="TurnsSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="SetupStep" parent="TurnsSection/StepCards" instance=ExtResource("4")]
+layout_mode = 2
+size_flags_vertical = 0
+number = "1"
+title = "RULES_STEP_SETUP_TITLE"
+body = "RULES_STEP_SETUP_BODY"
+
+[node name="TurnsStep" parent="TurnsSection/StepCards" instance=ExtResource("4")]
+layout_mode = 2
+size_flags_vertical = 0
+number = "2"
+title = "RULES_STEP_TURNS_TITLE"
+body = "RULES_STEP_TURNS_BODY"
+note = "RULES_STEP_TURNS_NOTE"
+
+[node name="AttackStep" parent="TurnsSection/StepCards" instance=ExtResource("4")]
+layout_mode = 2
+size_flags_vertical = 0
+number = "3"
+title = "RULES_STEP_ATTACK_TITLE"
+body = "RULES_STEP_ATTACK_BODY"
+
+[node name="CombatSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Heading" parent="CombatSection" instance=ExtResource("2")]
+layout_mode = 2
+number = "03"
+title = "RULES_COMBAT_HEADING"
+
+[node name="CombatColumns" type="BoxContainer" parent="CombatSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="RuleList" type="VBoxContainer" parent="CombatSection/CombatColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 10
+
+[node name="AttackRule" parent="CombatSection/CombatColumns/RuleList" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("8")
+text = "RULES_COMBAT_ATTACK"
+
+[node name="DefenseRule" parent="CombatSection/CombatColumns/RuleList" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("9")
+text = "RULES_COMBAT_DEFENSE"
+
+[node name="TieRule" parent="CombatSection/CombatColumns/RuleList" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("10")
+text = "RULES_COMBAT_TIE"
+
+[node name="MonsterRule" parent="CombatSection/CombatColumns/RuleList" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("9")
+text = "RULES_COMBAT_MONSTER"
+highlighted = true
+
+[node name="LossesRule" parent="CombatSection/CombatColumns/RuleList" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("11")
+text = "RULES_COMBAT_LOSSES"
+
+[node name="Simulator" parent="CombatSection/CombatColumns" instance=ExtResource("6")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="PiecesSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Heading" parent="PiecesSection" instance=ExtResource("2")]
+layout_mode = 2
+number = "04"
+title = "RULES_PIECES_HEADING"
+
+[node name="PieceGrid" type="GridContainer" parent="PiecesSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 3
+
+[node name="Footnote" type="Label" parent="PiecesSection"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_type_variation = &"BodyMuted"
+text = "RULES_PIECES_FOOTNOTE"
+autowrap_mode = 3
+
+[node name="BoardSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Heading" parent="BoardSection" instance=ExtResource("2")]
+layout_mode = 2
+number = "05"
+title = "RULES_BOARD_HEADING"
+
+[node name="BoardColumns" type="BoxContainer" parent="BoardSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="BoardCard" type="PanelContainer" parent="BoardSection/BoardColumns"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"Card"
+
+[node name="BoardRow" type="BoxContainer" parent="BoardSection/BoardColumns/BoardCard"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="MiniBoard" type="Control" parent="BoardSection/BoardColumns/BoardCard/BoardRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(216, 288)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("7")
+
+[node name="Zones" type="VBoxContainer" parent="BoardSection/BoardColumns/BoardCard/BoardRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 14
+
+[node name="EnemyZone" type="HBoxContainer" parent="BoardSection/BoardColumns/BoardCard/BoardRow/Zones"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EnemyZoneRule" type="ColorRect" parent="BoardSection/BoardColumns/BoardCard/BoardRow/Zones/EnemyZone"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(3, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="BoardSection/BoardColumns/BoardCard/BoardRow/Zones/EnemyZone"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodySecondary"
+text = "RULES_ZONE_ENEMY"
+autowrap_mode = 3
+
+[node name="MiddleZone" type="HBoxContainer" parent="BoardSection/BoardColumns/BoardCard/BoardRow/Zones"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MiddleZoneRule" type="ColorRect" parent="BoardSection/BoardColumns/BoardCard/BoardRow/Zones/MiddleZone"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(3, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="BoardSection/BoardColumns/BoardCard/BoardRow/Zones/MiddleZone"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodySecondary"
+text = "RULES_ZONE_MIDDLE"
+autowrap_mode = 3
+
+[node name="OwnZone" type="HBoxContainer" parent="BoardSection/BoardColumns/BoardCard/BoardRow/Zones"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="OwnZoneRule" type="ColorRect" parent="BoardSection/BoardColumns/BoardCard/BoardRow/Zones/OwnZone"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(3, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="BoardSection/BoardColumns/BoardCard/BoardRow/Zones/OwnZone"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodySecondary"
+text = "RULES_ZONE_OWN"
+autowrap_mode = 3
+
+[node name="EndColumn" type="VBoxContainer" parent="BoardSection/BoardColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 10
+
+[node name="PrincessEnd" parent="BoardSection/BoardColumns/EndColumn" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("12")
+text = "RULES_END_PRINCESS"
+
+[node name="BlockedEnd" parent="BoardSection/BoardColumns/EndColumn" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("11")
+text = "RULES_END_BLOCKED"
+
+[node name="DrawEnd" parent="BoardSection/BoardColumns/EndColumn" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("13")
+text = "RULES_END_DRAW"
+
+[node name="ResignEnd" parent="BoardSection/BoardColumns/EndColumn" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("14")
+text = "RULES_END_RESIGN"
+
+[node name="DisconnectEnd" parent="BoardSection/BoardColumns/EndColumn" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("15")
+text = "RULES_END_DISCONNECT"
+
+[node name="TimeoutEnd" parent="BoardSection/BoardColumns/EndColumn" instance=ExtResource("5")]
+layout_mode = 2
+icon = ExtResource("16")
+text = "RULES_END_TIMEOUT"
+
+[node name="PracticeButton" type="Button" parent="BoardSection/BoardColumns/EndColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_type_variation = &"GoldButton"
+text = "RULES_TRY"
+icon = ExtResource("17")
+
+[node name="PressScaleFeedback" type="Node" parent="BoardSection/BoardColumns/EndColumn/PracticeButton"]
+script = ExtResource("18")

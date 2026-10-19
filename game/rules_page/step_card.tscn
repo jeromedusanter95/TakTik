@@ -1,0 +1,56 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/rules_page/step_card.gd" id="1"]
+
+[node name="StepCard" type="PanelContainer"]
+size_flags_horizontal = 3
+theme_type_variation = &"Card"
+script = ExtResource("1")
+
+[node name="Column" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="Column"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Badge" type="PanelContainer" parent="Column/Header"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"GoldBadge"
+
+[node name="Number" type="Label" parent="Column/Header/Badge"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TitleMOnGold"
+auto_translate_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Title" type="Label" parent="Column/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"TitleS"
+
+[node name="Body" type="Label" parent="Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_type_variation = &"BodySecondary"
+autowrap_mode = 3
+
+[node name="NoteBox" type="PanelContainer" parent="Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Sunken"
+
+[node name="Note" type="Label" parent="Column/NoteBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_type_variation = &"Body"
+autowrap_mode = 3

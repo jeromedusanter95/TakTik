@@ -27,6 +27,7 @@ static func build() -> Theme:
 	_add_scroll(theme)
 	_add_popups(theme)
 	_add_separators(theme)
+	_add_rules_page(theme)
 	return theme
 
 
@@ -438,3 +439,31 @@ static func _add_separators(theme: Theme) -> void:
 		line.vertical = type == &"VSeparator"
 		theme.set_stylebox(&"separator", type, line)
 		theme.set_constant(&"separation", type, 1)
+
+
+## The rules page: highlighted rule rows, icon circles, numbered badges, the
+## simulator panel and its toggle tokens.
+static func _add_rules_page(theme: Theme) -> void:
+	_label(theme, &"SectionNumber", UiFonts.nunito(900), 18, UiTokens.GOLD_TEXT)
+	_panel(theme, &"RowHighlight", UiTokens.SURFACE_3, UiTokens.BORDER_3, 1, UiTokens.RADIUS_L, UiTokens.SPACE_M)
+	_panel(theme, &"IconCircle", UiTokens.SURFACE_SUNKEN, UiTokens.BORDER_2, 1, UiTokens.RADIUS_PILL, 8)
+	_panel(theme, &"GoldBadge", UiTokens.GOLD_500, UiTokens.GOLD_SHADOW, 0, UiTokens.RADIUS_PILL, 0)
+	_panel(theme, &"SimulatorPanel", UiTokens.SURFACE_2, UiTokens.BORDER_2, 2, UiTokens.RADIUS_XL, UiTokens.SPACE_XL)
+	var name: StringName = &"SimToken"
+	theme.set_type_variation(name, &"Button")
+	var plain: StyleBoxFlat = UiStyles.box(Color.TRANSPARENT, UiTokens.RADIUS_M, UiStyles.even(3))
+	var hover: StyleBoxFlat = plain.duplicate()
+	hover.bg_color = UiTokens.SURFACE_SUNKEN
+	var chosen: StyleBoxFlat = UiStyles.box(
+		UiTokens.SURFACE_SUNKEN, UiTokens.RADIUS_M, UiStyles.even(3), UiTokens.SELECT_RING, 3
+	)
+	chosen.shadow_color = Color(UiTokens.SELECT_RING, 0.35)
+	chosen.shadow_size = 10
+	theme.set_stylebox(&"normal", name, plain)
+	theme.set_stylebox(&"hover", name, hover)
+	theme.set_stylebox(&"pressed", name, chosen)
+	theme.set_stylebox(&"hover_pressed", name, chosen)
+	theme.set_stylebox(&"disabled", name, UiStyles.disabled(plain))
+	theme.set_stylebox(&"focus", name, UiStyles.focus_ring(UiTokens.RADIUS_M))
+	# The 44 px piece art fills the 50 px token, inside its 3 px ring.
+	theme.set_constant(&"icon_max_width", name, 44)
