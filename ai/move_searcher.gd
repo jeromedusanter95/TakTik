@@ -141,7 +141,7 @@ func _answer(search: MoveSearch, score: int) -> void:
 
 static func _game_after(game: Game, move: Move) -> Game:
 	var child: Game = game.duplicate_game()
-	child.try_play(move)
+	child.play_legal(move)
 	return child
 
 
@@ -163,7 +163,7 @@ func _ordered_moves(game: Game, ply: int) -> Array[Move]:
 	var board: Board = game.board()
 	var first: Array[Move] = []
 	var winning: Array[Move] = []
-	var gains: Dictionary[Move, int] = {}
+	var gains: Array[int] = []
 	var quiet: Array[Move] = []
 	var losing: Array[Move] = []
 	for move: Move in game.legal_moves():
@@ -176,15 +176,27 @@ func _ordered_moves(game: Game, ply: int) -> Array[Move]:
 				board.piece_at(move.from).type, board.piece_at(move.to).type
 			)
 			if gain >= 0:
-				gains[move] = gain
-				winning.append(move)
+				_insert_best_first(winning, gains, move, gain)
 			else:
 				losing.append(move)
-	winning.sort_custom(func(a: Move, b: Move) -> bool: return gains[a] > gains[b])
 	first.append_array(winning)
 	first.append_array(quiet)
 	first.append_array(losing)
 	return first
+
+
+## Inserts [param move] into [param moves], kept best [param gains] first,
+## after the Moves of equal gain. [param gains] holds each Move's gain at
+## the same index. Cheaper than sorting through a Dictionary and a lambda
+## at every searched position.
+static func _insert_best_first(
+		moves: Array[Move], gains: Array[int], move: Move, gain: int,
+) -> void:
+	var at: int = gains.size()
+	while at > 0 and gains[at - 1] < gain:
+		at -= 1
+	gains.insert(at, gain)
+	moves.insert(at, move)
 
 
 static func _tactical_moves(game: Game) -> Array[Move]:

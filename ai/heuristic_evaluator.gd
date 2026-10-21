@@ -19,22 +19,24 @@ const PRINCESS_THREAT_PENALTY: int = 20
 const ADVANCE_VALUE: int = 1
 
 
+## Walks the Board once, without a call per Piece: the search evaluates
+## thousands of positions a turn, and each GDScript call is costly there.
 func evaluate(game: Game, side: Side.Id) -> int:
 	var board: Board = game.board()
-	return _army_score(board, side) - _army_score(board, Side.opponent(side))
-
-
-func _army_score(board: Board, side: Side.Id) -> int:
+	var pieces: Dictionary[Vector2i, Piece] = board.pieces()
 	var score: int = 0
-	for square: Vector2i in board.squares_of(side):
-		var type: PieceType.Id = board.piece_at(square).type
-		score += PIECE_VALUES[type]
-		var advance: int = absi(square.y - Board.home_row(side))
+	for square: Vector2i in pieces:
+		var piece: Piece = pieces[square]
+		var owner: Side.Id = piece.side
+		var type: PieceType.Id = piece.type
+		var value: int = PIECE_VALUES[type]
+		var advance: int = absi(square.y - Board.home_row(owner))
 		if type == PieceType.Id.PRINCESS:
-			score += advance * PRINCESS_ADVANCE_VALUE
-			score -= _attackers_next_to(board, square, side) * PRINCESS_THREAT_PENALTY
+			value += advance * PRINCESS_ADVANCE_VALUE
+			value -= _attackers_next_to(board, square, owner) * PRINCESS_THREAT_PENALTY
 		elif type != PieceType.Id.MONSTER:
-			score += advance * ADVANCE_VALUE
+			value += advance * ADVANCE_VALUE
+		score += value if owner == side else -value
 	return score
 
 

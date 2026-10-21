@@ -100,6 +100,13 @@ func is_legal(move: Move) -> bool:
 func try_play(move: Move) -> MoveRecord:
 	if not is_legal(move):
 		return null
+	return play_legal(move)
+
+
+## Plays [param move], already known to be legal because it came from
+## [method legal_moves], without checking it again: a Bot's search plays
+## many thousands of Moves per turn.
+func play_legal(move: Move) -> MoveRecord:
 	var mover: Piece = _board.piece_at(move.from)
 	var fight: Fight = _resolve_on_board(move)
 	_plies_without_fight = 0 if fight != null else _plies_without_fight + 1
@@ -136,9 +143,12 @@ func _first_legal_moves(limit: int) -> Array[Move]:
 	if _result.is_over():
 		return moves
 	var forbidden: Move = _move_back_forbidden_for(_side_to_move)
-	for from: Vector2i in _board.squares_of(_side_to_move):
-		var type: PieceType.Id = _board.piece_at(from).type
-		for to: Vector2i in MovementCatalog.rule_for(type).destinations(from, _board, _side_to_move):
+	var pieces: Dictionary[Vector2i, Piece] = _board.pieces()
+	for from: Vector2i in pieces:
+		var piece: Piece = pieces[from]
+		if piece.side != _side_to_move:
+			continue
+		for to: Vector2i in MovementCatalog.rule_for(piece.type).destinations(from, _board, _side_to_move):
 			if forbidden == null or not (forbidden.from == from and forbidden.to == to):
 				moves.append(Move.new(from, to))
 				if moves.size() == limit:
