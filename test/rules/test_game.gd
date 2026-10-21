@@ -39,6 +39,30 @@ func test_a_side_whose_pieces_cannot_move_has_no_legal_move() -> void:
 	assert_eq(game.legal_moves().size(), 0)
 
 
+func test_playing_a_listed_move_ends_as_trying_it_does() -> void:
+	# The King takes the Princess, a Fight that ends the game.
+	var rows: Array[String] = ["....k.", "......", "......", ".#..#.", ".#..#.", "......", "p.....", "K....."]
+	var tried: Game = Game.new(BoardNotation.parse_board(rows), Side.Id.RED)
+	var played: Game = tried.duplicate_game()
+	var move: Move = BoardNotation.parse_move("a1-a2")
+	var record: MoveRecord = played.play_legal(move)
+	tried.try_play(move)
+	assert_eq(record.fight.outcome, FightOutcome.Id.ATTACKER_WINS)
+	assert_eq(played.result().status, tried.result().status)
+	assert_eq(played.result().reason, GameResult.Reason.PRINCESS_CAPTURED)
+	assert_eq(played.side_to_move(), tried.side_to_move())
+	assert_eq(played.plies_without_fight(), tried.plies_without_fight())
+	assert_true(played.last_move_of(Side.Id.RED).equals(move))
+
+
+func test_playing_a_listed_quiet_move_passes_the_turn() -> void:
+	var game: Game = _game()
+	game.play_legal(BoardNotation.parse_move("a1-a2"))
+	assert_eq(game.side_to_move(), Side.Id.GREEN)
+	assert_eq(game.plies_without_fight(), 1)
+	assert_eq(_texts(game.legal_moves()), ["e8-d8", "e8-e7", "e8-f8"])
+
+
 func _game() -> Game:
 	var rows: Array[String] = ["....k.", "......", "......", ".#..#.", ".#..#.", "......", "......", "K....."]
 	return Game.new(BoardNotation.parse_board(rows), Side.Id.RED)

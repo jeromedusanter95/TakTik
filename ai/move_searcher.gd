@@ -141,7 +141,7 @@ func _answer(search: MoveSearch, score: int) -> void:
 
 static func _game_after(game: Game, move: Move) -> Game:
 	var child: Game = game.duplicate_game()
-	child.try_play(move)
+	child.play_legal(move)
 	return child
 
 

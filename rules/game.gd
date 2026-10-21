@@ -100,6 +100,13 @@ func is_legal(move: Move) -> bool:
 func try_play(move: Move) -> MoveRecord:
 	if not is_legal(move):
 		return null
+	return play_legal(move)
+
+
+## Plays [param move], already known to be legal because it came from
+## [method legal_moves], without checking it again: a Bot's search plays
+## many thousands of Moves per turn.
+func play_legal(move: Move) -> MoveRecord:
 	var mover: Piece = _board.piece_at(move.from)
 	var fight: Fight = _resolve_on_board(move)
 	_plies_without_fight = 0 if fight != null else _plies_without_fight + 1
