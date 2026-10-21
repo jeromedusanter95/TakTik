@@ -4,11 +4,16 @@ extends RefCounted
 ## alpha-beta pruning) and scores each of the side to move's Moves. Past that
 ## horizon it can keep following Attacks and immediate Princess wins, so an
 ## exchange is not cut off halfway and a quiet winning Move is not overlooked.
+##
+## The search keeps its own stack of positions (MoveSearch) instead of
+## recursing, so it can stop after any position and resume later: one deep
+## root Move never has to be searched in a single frame.
 
 ## The score of a won game, minus one per Move it takes, so faster wins
 ## score higher and slower losses score less badly.
 const WIN_SCORE: int = 10_000
 const INFINITY: int = 1_000_000
+const NO_NODE_LIMIT: int = 9_223_372_036_854_775_807
 
 var _evaluator: PositionEvaluator
 var _depth: int
@@ -37,9 +42,9 @@ func nodes_searched() -> int:
 ## The score of [param move] in [param game] for the side to move. The score
 ## is exact, so scores from different sampled worlds can be added up.
 func score_move(game: Game, move: Move) -> int:
-	var child: Game = game.duplicate_game()
-	child.try_play(move)
-	return -_negamax(child, _depth - 1, -INFINITY, INFINITY, 1)
+	var search: MoveSearch = begin_move(game, move)
+	advance(search, NO_NODE_LIMIT)
+	return search.score()
 
 
 ## [method score_move] for each of [param moves], in the same order.
@@ -50,46 +55,94 @@ func score_moves(game: Game, moves: Array[Move]) -> Array[int]:
 	return scores
 
 
-func _negamax(game: Game, depth: int, alpha: int, beta: int, ply: int) -> int:
+## Starts scoring [param move] in [param game] like [method score_move], but
+## leaves the work to [method advance], so it can be spread over frames.
+func begin_move(game: Game, move: Move) -> MoveSearch:
+	var search: MoveSearch = MoveSearch.new()
+	_enter(search, _game_after(game, move), false, _depth - 1, -INFINITY, INFINITY, 1)
+	return search
+
+
+## Searches [param search] until it is done or [method nodes_searched]
+## reaches [param node_limit]; it never searches a position past that limit.
+## The finished score is the same however the work was sliced.
+func advance(search: MoveSearch, node_limit: int) -> void:
+	while not search.is_done():
+		var frame: SearchFrame = search.top()
+		if frame.is_exhausted():
+			search.pop()
+			_answer(search, frame.best)
+		elif _nodes_searched >= node_limit:
+			return
+		else:
+			var move: Move = frame.moves[frame.next]
+			frame.next += 1
+			_enter(
+				search, _game_after(frame.game, move), frame.is_tactical, frame.depth - 1,
+				-frame.beta, -frame.alpha, frame.ply + 1,
+			)
+
+
+## Counts [param game] as searched and either scores it at once or pushes it
+## as a new frame of [param search]. Past the horizon ([param depth] 0 when
+## not [param tactical]) the side to move may stop at the static score or
+## play an Attack or an immediate Princess win, up to [member _attack_depth]
+## tactical Moves deep.
+func _enter(
+		search: MoveSearch,
+		game: Game,
+		tactical: bool,
+		depth: int,
+		alpha: int,
+		beta: int,
+		ply: int,
+) -> void:
 	_nodes_searched += 1
 	if game.result().is_over():
-		return _finished_score(game, ply)
-	if depth == 0:
-		return _follow_tactics(game, _attack_depth, alpha, beta, ply)
-	var best: int = -INFINITY
-	for move: Move in _ordered_moves(game, ply):
-		var child: Game = game.duplicate_game()
-		child.try_play(move)
-		var score: int = -_negamax(child, depth - 1, -beta, -alpha, ply + 1)
-		best = maxi(best, score)
-		alpha = maxi(alpha, score)
-		if alpha >= beta:
-			_killers[ply] = move
-			break
-	return best
+		_answer(search, _finished_score(game, ply))
+	elif tactical:
+		_enter_tactics(search, game, depth, alpha, beta, ply)
+	elif depth == 0:
+		_enter_tactics(search, game, _attack_depth, alpha, beta, ply)
+	else:
+		search.push(SearchFrame.new(
+			game, false, depth, alpha, beta, ply, _ordered_moves(game, ply), -INFINITY
+		))
 
 
-## The side to move may stop here (the static score) or play an Attack or an
-## immediate Princess win, up to [param tactics_left] tactical Moves deep.
-func _follow_tactics(game: Game, tactics_left: int, alpha: int, beta: int, ply: int) -> int:
+func _enter_tactics(
+		search: MoveSearch,
+		game: Game,
+		tactics_left: int,
+		alpha: int,
+		beta: int,
+		ply: int,
+) -> void:
 	var standing: int = _evaluator.evaluate(game, game.side_to_move())
 	if tactics_left == 0 or standing >= beta:
-		return standing
-	var best: int = standing
-	alpha = maxi(alpha, standing)
-	for move: Move in _tactical_moves(game):
-		var child: Game = game.duplicate_game()
-		child.try_play(move)
-		_nodes_searched += 1
-		var score: int = (
-			-_finished_score(child, ply + 1) if child.result().is_over()
-			else -_follow_tactics(child, tactics_left - 1, -beta, -alpha, ply + 1)
-		)
-		best = maxi(best, score)
-		alpha = maxi(alpha, score)
-		if alpha >= beta:
-			break
-	return best
+		_answer(search, standing)
+		return
+	search.push(SearchFrame.new(
+		game, true, tactics_left, maxi(alpha, standing), beta, ply, _tactical_moves(game), standing
+	))
+
+
+## Hands [param score], for the side to move in the position just searched,
+## to the frame that played into it, or ends [param search] at the root.
+func _answer(search: MoveSearch, score: int) -> void:
+	if not search.has_frames():
+		search.finish(-score)
+		return
+	var parent: SearchFrame = search.top()
+	var move: Move = parent.current_move()
+	if parent.take_score(-score) and not parent.is_tactical:
+		_killers[parent.ply] = move
+
+
+static func _game_after(game: Game, move: Move) -> Game:
+	var child: Game = game.duplicate_game()
+	child.try_play(move)
+	return child
 
 
 ## Scored for the side to move in the finished [param game].

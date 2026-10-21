@@ -58,6 +58,29 @@ func test_the_king_does_not_abandon_a_princess_finish_it_cannot_return_to_block(
 	assert_gt(blocking, unsafe)
 
 
+func test_a_move_searched_in_slices_scores_as_in_one_go() -> void:
+	var game: Game = _game(["k....p", "......", "......", ".#e.#.", ".#s.#.", "..N...", "......", "K....P"])
+	var whole: MoveSearcher = MoveSearcher.new(HeuristicEvaluator.new(), 4, 4)
+	var sliced: MoveSearcher = MoveSearcher.new(HeuristicEvaluator.new(), 4, 4)
+	for move: Move in game.legal_moves():
+		var expected: int = whole.score_move(game, move)
+		var search: MoveSearch = sliced.begin_move(game, move)
+		while not search.is_done():
+			sliced.advance(search, sliced.nodes_searched() + 7)
+		assert_eq(search.score(), expected)
+	assert_eq(sliced.nodes_searched(), whole.nodes_searched(), "the same positions")
+
+
+func test_advancing_a_search_stops_at_the_position_limit() -> void:
+	var game: Game = _game(["k....p", "......", "......", ".#e.#.", ".#s.#.", "..N...", "......", "K....P"])
+	var searcher: MoveSearcher = MoveSearcher.new(HeuristicEvaluator.new(), 4, 4)
+	var search: MoveSearch = searcher.begin_move(game, BoardNotation.parse_move("c3-c4"))
+	var limit: int = searcher.nodes_searched() + 20
+	searcher.advance(search, limit)
+	assert_false(search.is_done(), "a depth four Move holds more than 20 positions")
+	assert_eq(searcher.nodes_searched(), limit)
+
+
 func _best_move(game: Game, depth: int, attack_depth: int = 0) -> String:
 	var searcher: MoveSearcher = MoveSearcher.new(HeuristicEvaluator.new(), depth, attack_depth)
 	var moves: Array[Move] = game.legal_moves()

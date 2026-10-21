@@ -5,11 +5,12 @@ extends BotThinking
 ## (ADR 0002), drawing lots between equally good Moves. How the scores add up
 ## is the MoveScoreTally's job.
 ##
-## Each step stops once it has searched about [constant NODES_PER_STEP]
-## positions, so one frame never freezes the single threaded web build, while
-## small searches still finish in a frame or two. A turn that has searched its
-## position limit decides on the worlds it has fully searched, so rare crowded
-## positions do not keep the player waiting.
+## Each step stops once it has searched [constant NODES_PER_STEP] positions,
+## even in the middle of one Move's search (MoveSearch), so one frame never
+## freezes the single threaded web build, while small searches still finish
+## in a frame or two. Once the first world is fully searched, a turn that
+## reaches its position limit stops at once and decides on the worlds it has
+## fully searched, so rare crowded positions do not keep the player waiting.
 
 const NODES_PER_STEP: int = 300
 
@@ -23,6 +24,7 @@ var _rng: RandomNumberGenerator
 var _turn_end: int
 var _world: Game = null
 var _world_scores: Array[int] = []
+var _search: MoveSearch = null
 var _moves: Array[Move] = []
 var _tally: MoveScoreTally = null
 var _searched_worlds: int = 0
@@ -53,7 +55,7 @@ func _init(
 func step() -> void:
 	var step_end: int = _searcher.nodes_searched() + NODES_PER_STEP
 	while not _is_done and _searcher.nodes_searched() < step_end:
-		_score_next_move()
+		_search_until(step_end)
 
 
 func is_done() -> bool:
@@ -64,8 +66,11 @@ func chosen_move() -> Move:
 	return _chosen
 
 
-func _score_next_move() -> void:
-	if _searched_worlds > 0 and _searcher.nodes_searched() >= _turn_end:
+## Searches the current Move until it is scored or [param step_end] is
+## reached. A world left half searched at the turn's end is dropped.
+func _search_until(step_end: int) -> void:
+	var has_turn_limit: bool = _searched_worlds > 0
+	if has_turn_limit and _searcher.nodes_searched() >= _turn_end:
 		_finish()
 		return
 	if _world == null:
@@ -73,7 +78,13 @@ func _score_next_move() -> void:
 		if _moves.is_empty():
 			_finish()
 			return
-	_world_scores.append(_searcher.score_move(_world, _moves[_world_scores.size()]))
+	if _search == null:
+		_search = _searcher.begin_move(_world, _moves[_world_scores.size()])
+	_searcher.advance(_search, mini(step_end, _turn_end) if has_turn_limit else step_end)
+	if not _search.is_done():
+		return
+	_world_scores.append(_search.score())
+	_search = null
 	if _world_scores.size() == _moves.size():
 		_add_world_scores()
 
