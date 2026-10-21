@@ -48,6 +48,13 @@ func duplicate_board() -> Board:
 	return copy
 
 
+## Every Piece by its Square, in one read for code that walks the whole
+## Board many times, such as a Bot's search. Shared, not a copy: callers
+## must not change it.
+func pieces() -> Dictionary[Vector2i, Piece]:
+	return _pieces
+
+
 func piece_at(square: Vector2i) -> Piece:
 	if not _pieces.has(square):
 		return null

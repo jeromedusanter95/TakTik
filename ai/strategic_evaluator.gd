@@ -20,8 +20,12 @@ func evaluate(game: Game, side: Side.Id) -> int:
 
 func _own_bonus(board: Board) -> int:
 	var score: int = 0
-	for square: Vector2i in board.squares_of(_side):
-		var type: PieceType.Id = board.piece_at(square).type
+	var pieces: Dictionary[Vector2i, Piece] = board.pieces()
+	for square: Vector2i in pieces:
+		var piece: Piece = pieces[square]
+		if piece.side != _side:
+			continue
+		var type: PieceType.Id = piece.type
 		var advance: int = absi(square.y - Board.home_row(_side))
 		if type == PieceType.Id.PRINCESS:
 			score += _princess_guards(board, square) * _priorities.princess_guard_bonus
