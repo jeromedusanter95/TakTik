@@ -19,12 +19,12 @@ func after_all() -> void:
 	TranslationServer.set_locale(Languages.ENGLISH)
 
 
-func test_the_game_opens_on_the_home_screen_with_four_difficulties() -> void:
+func test_the_game_opens_on_the_home_screen_with_three_difficulties() -> void:
 	assert_true(_home().visible)
 	assert_false(_match().visible)
 	var difficulty: SegmentedControl = _home().get_node("%Difficulty")
+	assert_eq(_main.bot_profiles.size(), 3)
 	assert_eq(difficulty.option(2).text, "DIFFICULTY_HARD")
-	assert_eq(difficulty.option(3).text, "DIFFICULTY_VERY_HARD")
 
 
 func test_every_screen_gets_the_theme() -> void:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://game/match/local_match.tscn" id="2"]
@@ -10,11 +10,10 @@
 [ext_resource type="PackedScene" path="res://game/online/online_match.tscn" id="8"]
 [ext_resource type="Script" path="res://game/sound/sound_player.gd" id="9"]
 [ext_resource type="PackedScene" path="res://game/rules_page/rules_screen.tscn" id="10"]
-[ext_resource type="Resource" path="res://ai/profiles/very_hard.tres" id="11"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1")
-bot_profiles = Array[ExtResource("7")]([ExtResource("4"), ExtResource("5"), ExtResource("6"), ExtResource("11")])
+bot_profiles = Array[ExtResource("7")]([ExtResource("4"), ExtResource("5"), ExtResource("6")])
 online_server_url = "wss://taktik-referee.dusanterjerome.workers.dev"
 
 [node name="SoundPlayer" type="Node" parent="."]
