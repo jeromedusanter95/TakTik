@@ -5,6 +5,7 @@ const PROFILE_PATHS: Array[String] = [
 	"res://ai/profiles/easy.tres",
 	"res://ai/profiles/medium.tres",
 	"res://ai/profiles/hard.tres",
+	"res://ai/profiles/very_hard.tres",
 ]
 
 

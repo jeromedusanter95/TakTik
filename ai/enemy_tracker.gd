@@ -3,6 +3,9 @@ extends RefCounted
 ## A Bot's memory of the enemy Army, built only from what a player may know:
 ## the first PlayerView, then every PublicMoveEvent. A Piece Type seen in a
 ## Reveal stays known, as a human player would remember it.
+##
+## Built with [method of_own_army], it is instead the opponent's memory of the
+## Bot's own Army: what the opponent may know about the Bot's Pieces.
 
 var _enemy_side: Side.Id
 var _enemies: Dictionary[Vector2i, TrackedEnemy] = {}
@@ -10,9 +13,19 @@ var _graveyard: Array[PieceType.Id] = []
 
 
 func _init(view: PlayerView) -> void:
-	_enemy_side = Side.opponent(view.side)
-	for square: Vector2i in view.enemy_squares():
-		_enemies[square] = TrackedEnemy.new()
+	_watch(Side.opponent(view.side), view.enemy_squares())
+
+
+## What the opponent of [param view]'s side may know about that side's Army.
+static func of_own_army(view: PlayerView) -> EnemyTracker:
+	var tracker: EnemyTracker = EnemyTracker.new(view)
+	tracker._watch(view.side, view.own_squares())
+	return tracker
+
+
+## The side whose Pieces this memory follows.
+func watched_side() -> Side.Id:
+	return _enemy_side
 
 
 ## The memory of the enemy Piece on [param square]. A Square the tracker has
@@ -82,6 +95,13 @@ func _observe_own_move(event: PublicMoveEvent) -> void:
 		return
 	_enemies.erase(event.move.to)
 	_graveyard.append(event.defender_type)
+
+
+func _watch(side: Side.Id, squares: Array[Vector2i]) -> void:
+	_enemy_side = side
+	_enemies.clear()
+	for square: Vector2i in squares:
+		_enemies[square] = TrackedEnemy.new()
 
 
 static func _length_of(move: Move) -> int:

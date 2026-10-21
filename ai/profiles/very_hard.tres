@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="BotProfile" format=3]
+
+[ext_resource type="Script" path="res://ai/bot_profile.gd" id="1"]
+[ext_resource type="Script" path="res://ai/bot_strategy.gd" id="2_o728c"]
+[ext_resource type="Resource" path="res://ai/strategies/aggressive.tres" id="3_o728c"]
+[ext_resource type="Resource" path="res://ai/strategies/balanced.tres" id="4_0dvi3"]
+[ext_resource type="Resource" path="res://ai/strategies/defensive.tres" id="5_q5cnr"]
+
+[resource]
+script = ExtResource("1")
+display_name = "DIFFICULTY_VERY_HARD"
+search_depth = 4
+sample_count = 8
+attack_depth = 4
+strategies = Array[ExtResource("2_o728c")]([ExtResource("3_o728c"), ExtResource("4_0dvi3"), ExtResource("5_q5cnr")])
+world_score_cap = 250
+behaviour_evidence = 3.0
+reveal_cost_percent = 25
+threat_percent = 50
+mobility_percent = 100
+positions_per_turn = 24000

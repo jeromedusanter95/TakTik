@@ -21,3 +21,21 @@ extends Resource
 @export var strategies: Array[BotStrategy] = []
 ## Chance of playing a random legal Move instead of the best one.
 @export_range(0.0, 1.0) var mistake_chance: float = 0.0
+## Each imagined world's score for a Move is kept between -cap and cap, so a
+## win or loss in one world cannot outweigh all the others (0 = no cap).
+@export_range(0, 10_000) var world_score_cap: int = 0
+## How much more likely the Bot finds an enemy Piece type that fits that
+## Piece's Moves than one that does not (EnemyBehaviourReader). 1 ignores
+## behaviour and shuffles the unknown types evenly.
+@export_range(1.0, 10.0) var behaviour_evidence: float = 1.0
+## The share, in percent, of a Bot Piece's value charged to a Move that shows
+## its type to the opponent for the first time (RevealPenalty). 0 charges
+## nothing.
+@export_range(0, 100) var reveal_cost_percent: int = 0
+## The share, in percent, of the opponent's best pending Attack that counts
+## against the side to move at the search horizon (ThreatEvaluator). 0
+## leaves the evaluation as it is.
+@export_range(0, 100) var threat_percent: int = 0
+## The share, in percent, of MobilityEvaluator's penalty for running out of
+## Pieces able to move. 0 leaves the evaluation as it is.
+@export_range(0, 200) var mobility_percent: int = 0

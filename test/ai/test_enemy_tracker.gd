@@ -82,6 +82,23 @@ func test_our_simple_move_changes_nothing_about_the_enemy() -> void:
 	assert_false(tracker.enemy_at(_sq("a8")).has_moved())
 
 
+func test_the_own_army_memory_learns_what_our_reveals_showed_the_opponent() -> void:
+	var game: Game = _game(Side.Id.RED, ["......", "......", "......", ".#..#.", ".#..#.", "n.....", "K.....", ".....B"])
+	var exposure: EnemyTracker = EnemyTracker.of_own_army(PlayerView.of(game, Side.Id.RED))
+	assert_eq(exposure.enemy_squares(), [_sq("a2"), _sq("f1")])
+	_play(game, exposure, "a2-a3")
+	assert_eq(exposure.enemy_at(_sq("a3")).known_type(), PieceType.Id.KING)
+	assert_false(exposure.enemy_at(_sq("f1")).is_known())
+
+
+func test_the_own_army_memory_ignores_the_opponents_quiet_moves() -> void:
+	var game: Game = _game(Side.Id.GREEN, ["s.....", "......", "......", ".#..#.", ".#..#.", "......", "......", "K....."])
+	var exposure: EnemyTracker = EnemyTracker.of_own_army(PlayerView.of(game, Side.Id.RED))
+	_play(game, exposure, "a8-a7")
+	assert_eq(exposure.enemy_squares(), [_sq("a1")])
+	assert_false(exposure.enemy_at(_sq("a1")).has_moved())
+
+
 func _game(first_to_move: Side.Id, rows: Array[String]) -> Game:
 	return Game.new(BoardNotation.parse_board(rows), first_to_move)
 

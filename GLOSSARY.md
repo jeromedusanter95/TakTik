@@ -107,11 +107,11 @@ A player identified only by a chosen nickname, with no account.
 _Avoid_: Anonymous user, visitor
 
 **Bot**:
-A computer opponent at one of three Difficulties. A Bot never sees Hidden Pieces.
+A computer opponent at one of four Difficulties. A Bot never sees Hidden Pieces.
 _Avoid_: AI, CPU, computer
 
 **Difficulty**:
-The strength of a Bot: Easy, Medium or Hard.
+The strength of a Bot: Easy, Medium, Hard or Very Hard.
 _Avoid_: Level, skill
 
 **Strategy**:

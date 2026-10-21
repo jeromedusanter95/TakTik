@@ -102,22 +102,35 @@ static func _finished_score(game: Game, ply: int) -> int:
 	return WIN_SCORE - ply if mover_won else ply - WIN_SCORE
 
 
-## The killer Move of [param ply] first, then Attacks, which change the
-## score most, so alpha-beta prunes more.
+## The killer Move of [param ply] first, then Attacks that win material,
+## best first, then quiet Moves, then Attacks that lose: trying the strongest
+## Moves first lets alpha-beta prune more.
 func _ordered_moves(game: Game, ply: int) -> Array[Move]:
 	var killer: Move = _killers.get(ply)
+	var board: Board = game.board()
 	var first: Array[Move] = []
-	var attacks: Array[Move] = []
+	var winning: Array[Move] = []
+	var gains: Dictionary[Move, int] = {}
 	var quiet: Array[Move] = []
+	var losing: Array[Move] = []
 	for move: Move in game.legal_moves():
 		if move.equals(killer):
 			first.append(move)
-		elif game.board().has_piece(move.to):
-			attacks.append(move)
-		else:
+		elif not board.has_piece(move.to):
 			quiet.append(move)
-	first.append_array(attacks)
+		else:
+			var gain: int = ThreatEvaluator.attack_gain(
+				board.piece_at(move.from).type, board.piece_at(move.to).type
+			)
+			if gain >= 0:
+				gains[move] = gain
+				winning.append(move)
+			else:
+				losing.append(move)
+	winning.sort_custom(func(a: Move, b: Move) -> bool: return gains[a] > gains[b])
+	first.append_array(winning)
 	first.append_array(quiet)
+	first.append_array(losing)
 	return first
 
 

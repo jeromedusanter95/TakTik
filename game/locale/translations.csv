@@ -5,6 +5,7 @@ MENU_BOT_BUTTON,{difficulty} Bot,Bot {difficulty}
 DIFFICULTY_EASY,Easy,Facile
 DIFFICULTY_MEDIUM,Medium,Moyen
 DIFFICULTY_HARD,Hard,Difficile
+DIFFICULTY_VERY_HARD,Very hard,Très difficile
 HANDOFF_CONTINUE,I'm ready,C'est parti
 HANDOFF_PASS_TO,Pass the device to {side},Passez l'appareil au joueur {side}
 SETUP_RED_TITLE,"Red, set up your Army","Rouge, placez votre Armée"

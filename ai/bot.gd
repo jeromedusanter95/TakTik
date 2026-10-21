@@ -18,6 +18,9 @@ var _searcher: MoveSearcher
 var _evaluator: PositionEvaluator
 var _strategy: BotStrategy = null
 var _tracker: EnemyTracker = null
+## The opponent's memory of this Bot's Army.
+var _exposure: EnemyTracker = null
+var _reader: EnemyBehaviourReader = null
 
 
 ## [param evaluator] is replaceable to try other ways of scoring positions.
@@ -31,7 +34,11 @@ func _init(
 	_side = side
 	_rng = rng
 	_evaluator = evaluator
-	_searcher = MoveSearcher.new(evaluator, profile.search_depth, profile.attack_depth)
+	if profile.threat_percent > 0:
+		_evaluator = ThreatEvaluator.new(_evaluator, profile.threat_percent)
+	if profile.mobility_percent > 0:
+		_evaluator = MobilityEvaluator.new(_evaluator, profile.mobility_percent)
+	_searcher = MoveSearcher.new(_evaluator, profile.search_depth, profile.attack_depth)
 
 
 func profile() -> BotProfile:
@@ -55,22 +62,27 @@ func begin(view: PlayerView) -> void:
 	if _strategy == null:
 		_select_strategy(_rng)
 	_tracker = EnemyTracker.new(view)
+	_exposure = EnemyTracker.of_own_army(view)
+	if _reads_behaviour():
+		_reader = EnemyBehaviourReader.new(_tracker, _exposure, _profile.behaviour_evidence)
 
 
 func observe(event: PublicMoveEvent) -> void:
-	if _tracker != null:
-		_tracker.observe(event)
+	if _tracker == null:
+		return
+	if _reader != null:
+		_reader.read(event)
+	_tracker.observe(event)
+	_exposure.observe(event)
 
 
 func start_thinking(view: PlayerView) -> BotThinking:
 	if _tracker == null:
 		begin(view)
-	var sampler: WorldSampler = WorldSampler.new(_tracker, _rng)
+	var sampler: WorldSampler = WorldSampler.new(_tracker, _rng, _type_chooser())
 	if _rng.randf() < _profile.mistake_chance:
 		return DecidedThinking.new(_random_move(sampler.sample(view)))
-	return SampledSearchThinking.new(
-		view, sampler, _searcher, _profile.sample_count, _profile.positions_per_turn, _rng
-	)
+	return SampledSearchThinking.new(view, sampler, _searcher, _profile, _rng, _move_penalty())
 
 
 func _random_move(world: Game) -> Move:
@@ -78,6 +90,22 @@ func _random_move(world: Game) -> Move:
 	if moves.is_empty():
 		return null
 	return moves[_rng.randi_range(0, moves.size() - 1)]
+
+
+func _reads_behaviour() -> bool:
+	return _profile.behaviour_evidence > 1.0
+
+
+func _type_chooser() -> HiddenTypeChooser:
+	if _reads_behaviour():
+		return WeightedTypeChooser.new()
+	return ShuffledTypeChooser.new()
+
+
+func _move_penalty() -> MovePenalty:
+	if _profile.reveal_cost_percent > 0:
+		return RevealPenalty.new(_exposure, _profile.reveal_cost_percent)
+	return NoMovePenalty.new()
 
 
 func _select_strategy(rng: RandomNumberGenerator) -> void:

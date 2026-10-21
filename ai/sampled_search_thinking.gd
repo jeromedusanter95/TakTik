@@ -2,7 +2,8 @@ class_name SampledSearchThinking
 extends BotThinking
 ## Imagines worlds one after the other, scores every legal Move in each, and
 ## once all worlds are searched picks the Move with the best total score
-## (ADR 0002), drawing lots between equally good Moves.
+## (ADR 0002), drawing lots between equally good Moves. How the scores add up
+## is the MoveScoreTally's job.
 ##
 ## Each step stops once it has searched about [constant NODES_PER_STEP]
 ## positions, so one frame never freezes the single threaded web build, while
@@ -16,31 +17,37 @@ var _view: PlayerView
 var _sampler: WorldSampler
 var _searcher: MoveSearcher
 var _worlds_left: int
+var _score_cap: int
+var _penalty: MovePenalty
 var _rng: RandomNumberGenerator
 var _turn_end: int
 var _world: Game = null
 var _world_scores: Array[int] = []
 var _moves: Array[Move] = []
-var _totals: Array[int] = []
+var _tally: MoveScoreTally = null
 var _searched_worlds: int = 0
 var _chosen: Move = null
 var _is_done: bool = false
 
 
+## Reads the number of worlds, the position limit and the score cap from
+## [param profile]. [param penalty] charges each Move once per world.
 func _init(
 		view: PlayerView,
 		sampler: WorldSampler,
 		searcher: MoveSearcher,
-		world_count: int,
-		position_limit: int,
+		profile: BotProfile,
 		rng: RandomNumberGenerator,
+		penalty: MovePenalty,
 ) -> void:
 	_view = view
 	_sampler = sampler
 	_searcher = searcher
-	_worlds_left = maxi(world_count, 1)
+	_worlds_left = maxi(profile.sample_count, 1)
+	_score_cap = profile.world_score_cap
+	_penalty = penalty
 	_rng = rng
-	_turn_end = searcher.nodes_searched() + position_limit
+	_turn_end = searcher.nodes_searched() + profile.positions_per_turn
 
 
 func step() -> void:
@@ -72,8 +79,7 @@ func _score_next_move() -> void:
 
 
 func _add_world_scores() -> void:
-	for index: int in _world_scores.size():
-		_totals[index] += _world_scores[index]
+	_tally.add_world(_world_scores)
 	_world = null
 	_world_scores.clear()
 	_searched_worlds += 1
@@ -86,24 +92,18 @@ func _add_world_scores() -> void:
 ## gives the same list; it is read from the first one.
 func _imagine_next_world() -> void:
 	_world = _sampler.sample(_view)
-	if _totals.is_empty():
+	if _tally == null:
 		_moves = _world.legal_moves()
-		_totals.resize(_moves.size())
-		_totals.fill(0)
+		var penalties: Array[int] = []
+		for move: Move in _moves:
+			penalties.append(_penalty.cost(move, _view))
+		_tally = MoveScoreTally.new(penalties, _score_cap)
 
 
 func _finish() -> void:
 	_is_done = true
-	var best: Array[int] = _best_indexes()
+	if _tally == null:
+		return
+	var best: Array[int] = _tally.best_indexes()
 	if not best.is_empty():
 		_chosen = _moves[best[_rng.randi_range(0, best.size() - 1)]]
-
-
-func _best_indexes() -> Array[int]:
-	var best: Array[int] = []
-	for index: int in _totals.size():
-		if best.is_empty() or _totals[index] > _totals[best[0]]:
-			best = [index]
-		elif _totals[index] == _totals[best[0]]:
-			best.append(index)
-	return best
